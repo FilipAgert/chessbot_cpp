@@ -63,7 +63,44 @@ TEST(BoardTest, idx){
     row = 0;
     idx_val = Board::idx(row, col);
     ASSERT_EQ(idx_val, 7);
+
+
+
+    col = 7;
+    row = 4;
+    idx_val = Board::idx(row, col);
+    uint8_t c2, r2;
+    Board::row_col(r2, c2, idx_val);
+    ASSERT_EQ(col,c2);
+    ASSERT_EQ(row,r2);
+    col = 0;
+    row = 7;
+    idx_val = Board::idx(row, col);
+    Board::row_col(r2, c2, idx_val);
+    ASSERT_EQ(col,c2);
+    ASSERT_EQ(row,r2);
+    col = 0;
+    row = 0;
+    idx_val = Board::idx(row, col);
+    Board::row_col(r2, c2, idx_val);
+    ASSERT_EQ(col,c2);
+    ASSERT_EQ(row,r2);
+    col = 7;
+    row = 7;
+    idx_val = Board::idx(row, col);
+    Board::row_col(r2, c2, idx_val);
+    ASSERT_EQ(col,c2);
+    ASSERT_EQ(row,r2);
+    col = 3;
+    row = 3;
+    idx_val = Board::idx(row, col);
+    Board::row_col(r2, c2, idx_val);
+    ASSERT_EQ(col,c2);
+    ASSERT_EQ(row,r2);
+    
 }
+
+
 
 TEST(BoardTest, idx_from_string){
     std::string idx = "A1";

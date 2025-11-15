@@ -29,6 +29,16 @@ uint8_t Board::idx_from_string(std::string square){
     return idx(rowval, colval);
 };
 
+std::string Board::string_from_idx(const uint8_t idx){
+    uint8_t row, col;
+    row_col(row, col, idx);
+    return "";
+}
+void Board::row_col(uint8_t& row, uint8_t& col, const uint8_t idx){
+    col = idx % 8;
+    row = idx/8;
+}
+
 bool Board::is_square_empty(uint8_t square)const{
     return this->get_piece_at(square) == none_piece;
 }
