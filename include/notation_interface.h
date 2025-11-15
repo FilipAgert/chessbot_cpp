@@ -13,17 +13,14 @@ public:
      * 
      * @param FEN String containing FEN
      * @param state out: State of the FEN string.
-     * @return true : Successfully parsed FEN
+     * @return true : Successfully parsed FEN.
      * @return false : Did not succesfully parse FEN. BoardState undefined
      */
-    static bool read_fen(const std::string &FEN, BoardState& state);
+    static bool read_fen(std::string FEN, BoardState& state);
+
+
+    static std::string starting_FEN() {std::string s = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; return s;} 
 };
-
-
-
-
-
-
 
 
 #endif

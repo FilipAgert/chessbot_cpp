@@ -1,15 +1,13 @@
 #include <notation_interface.h>
 #include <sstream>
 
-bool NotationInterface::read_fen(const std::string &FEN, BoardState& state){
-    int row = 8;
-    int col = 1;
+bool NotationInterface::read_fen(const std::string FEN, BoardState& state){
+    int row = 7;
+    int col = 0;
     int num_pieces = 0;
 
     bool success = true;
 
-    // ---------------------
-    // 1. Parse piece layout
     // ---------------------
 
     for (size_t i = 0; i < FEN.size(); ++i) {
@@ -36,11 +34,11 @@ bool NotationInterface::read_fen(const std::string &FEN, BoardState& state){
             col++;
         }
 
-        if (col > 8) {
-            col = 1;
+        if (col > 7) {
+            col = 0;
             row--;
         }
-        if (row < 1)
+        if (row < 0)
             break;
     }
 

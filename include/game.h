@@ -13,7 +13,6 @@ public:
     void make_move(uint8_t start_square, uint8_t end_square);
     void undo_move();
     void display_board();
-    void set_fen(std::string fen);
     std::string get_fen() const;
 
 private:
