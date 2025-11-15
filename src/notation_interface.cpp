@@ -2,6 +2,7 @@
 #include <sstream>
 
 bool NotationInterface::read_fen(const std::string FEN, BoardState& state){
+    state.reset();
     int row = 7;
     int col = 0;
     int num_pieces = 0;
@@ -144,6 +145,7 @@ std::string NotationInterface::fen_from_state(const BoardState& state){
     // 3. Castling rights
     // --------------------------------------------------------
     FEN += NotationInterface::castling_rights(state.castling);
+    FEN += " ";
 
     // --------------------------------------------------------
     // 4. En passant square

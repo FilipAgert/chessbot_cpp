@@ -49,3 +49,27 @@ TEST(FEN_TEST, starting_state) {
     ASSERT_EQ(state.board.get_piece_at(62), Piece::piece_from_char('n'));
     ASSERT_EQ(state.board.get_piece_at(63), Piece::piece_from_char('r'));
 }
+
+TEST(FEN_TEST, get_fen) {
+    std::string fen = NotationInterface::starting_FEN();
+    BoardState state;
+    bool success = NotationInterface::read_fen(fen, state);
+    assert(success);
+
+    std::string fen_out = NotationInterface::fen_from_state(state);
+
+    ASSERT_EQ(fen, fen_out);
+
+    fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2";
+    success = NotationInterface::read_fen(fen, state);
+    assert(success);
+    fen_out = NotationInterface::fen_from_state(state);
+    ASSERT_EQ(fen, fen_out);
+
+    fen = "r2qkb1r/pp3npp/2p2p2/4p3/4P3/1P4NP/1PQP1PP1/2R1NRK1 b kq - 0 15";
+    success = NotationInterface::read_fen(fen, state);
+    assert(success);
+    fen_out = NotationInterface::fen_from_state(state);
+    ASSERT_EQ(fen, fen_out);
+
+}
