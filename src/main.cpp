@@ -20,7 +20,7 @@ int main() {
         } else if(input == "position"){
             UCIInterface::process_position_command(input);
         } else if (input == "fen"){
-           UCIInterface::process_fen_command(input) 
+           UCIInterface::process_fen_command(input);
         } else if(input == "bestmove"){
             UCIInterface::send_bestmove();
         } else if(input == "ponder"){
