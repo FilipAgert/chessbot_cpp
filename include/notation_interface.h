@@ -20,6 +20,13 @@ public:
 
 
     static std::string starting_FEN() {std::string s = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; return s;} 
+    /**
+     * @brief Fen standard string for printing out castling rights. '-' if no castling rights else the sides.
+     * 
+     * @param castle int containing the castling information
+     * @return std::string 
+     */
+    static std::string castling_rights(const uint8_t castle);
 };
 
 

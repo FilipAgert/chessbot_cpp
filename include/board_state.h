@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <array>
 #include <constants.h>
+#include <string>
 struct BoardState{
     Board board;
     std::array<uint8_t, 32> piece_locations{};
@@ -17,7 +18,6 @@ struct BoardState{
     
     int ply_moves;
     int full_moves;
-    
 
     static constexpr uint8_t cast_white_kingside = 0b1;
     static constexpr uint8_t cast_white_queenside = 0b10;

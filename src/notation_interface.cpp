@@ -94,3 +94,13 @@ bool NotationInterface::read_fen(const std::string FEN, BoardState& state){
 
     return success;
 }
+
+std::string NotationInterface::castling_rights(const uint8_t castle){
+    std::string builder = "";
+    if(castle & BoardState::cast_white_kingside) builder.push_back(Piece(Piece::king|Piece::white).get_char());
+    if(castle & BoardState::cast_white_queenside) builder.push_back(Piece(Piece::queen|Piece::white).get_char());
+    if(castle & BoardState::cast_black_kingside) builder.push_back(Piece(Piece::king|Piece::black).get_char());
+    if(castle & BoardState::cast_black_queenside) builder.push_back(Piece(Piece::queen|Piece::black).get_char());
+    if (builder.length() == 0) builder = "-";
+    return builder;
+}

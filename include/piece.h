@@ -50,6 +50,13 @@ public:
      * @return Piece 
      */
     static Piece piece_from_char(char c);
+    /**
+     * @brief Returns the character piece symbolising the given uint8_t value. Works on colors.
+     * 
+     * @param value 
+     * @return char 
+     */
+    static char char_from_val(uint8_t value) {return all_piece_symbols[value];};
     static uint8_t piece_col_from_char(char c);
     static uint8_t piece_type_from_char(char c);
     inline static bool are_colors_equal(const Piece color1, const Piece color2) {

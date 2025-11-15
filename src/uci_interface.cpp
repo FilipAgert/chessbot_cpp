@@ -20,6 +20,8 @@ void UCIInterface::process_new_game_command() {
     UCIInterface::uci_response("New game started.");
 }
 void UCIInterface::process_go_command(std::string command) {
+    //Initialize board:
+    Game::instance().set_fen(NotationInterface::starting_FEN());
     UCIInterface::uci_response("Processing go command: " + command);
 }
 void UCIInterface::process_position_command(std::string command) {
