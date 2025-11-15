@@ -34,6 +34,13 @@ void UCIInterface::send_bestmove() {
     UCIInterface::uci_response("bestmove e2e4 ponder e7e5");
 }
 
+void UCIInterface::process_fen_command(std::string command){
+    UCIInterface::uci_response("Processing FEN command: " + command);
+    bool success = Game::instance().set_fen(command);
+    if(!success) UCIInterface::uci_response("Invalid FEN command: " + command);
+    UCIInterface::uci_response("FEN command processed.");
+}
+
 
 void UCIInterface::uci_response(std::string response) {
     std::cout << response << std::endl;

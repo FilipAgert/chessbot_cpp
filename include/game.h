@@ -16,7 +16,14 @@ public:
     void undo_move();
     void display_board();
     std::string get_fen() const;
-    void set_fen(std::string FEN);
+    /**
+     * @brief Set the game state from FEN. If not success, game state now undefined.
+     * 
+     * @param FEN FEN string
+     * @return true OK
+     * @return false Game state undefined.
+     */
+    bool set_fen(std::string FEN);
 private:
     BoardState state;
     Game() = default;
