@@ -14,6 +14,10 @@ public:
     void reset_game();
     void make_move(uint8_t start_square, uint8_t end_square);
     void undo_move();
+    /**
+     * @brief Prints board to console. Uppercase pieces are white, lowercase black.
+     * 
+     */
     void display_board();
     std::string get_fen() const;
     /**

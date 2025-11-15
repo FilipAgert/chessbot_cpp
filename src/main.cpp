@@ -35,12 +35,14 @@ int main() {
             UCIInterface::process_ponder_command();
         } else if (command == "newgame") {
             UCIInterface::process_new_game_command();
+        } else if (command == "board"){
+            UCIInterface::process_board_command();
         } else if (command == "quit") {
             UCIInterface::process_quit_command();
         } else if (command == "debug") {
             std::cout << "Debug mode is not implemented yet." << std::endl;
         } else if (command == "help") {
-            std::cout << "Available commands: uci, isready, go, position, fen, bestmove, ponder, newgame, stop, debug, help" << std::endl;
+            std::cout << "Available commands: uci, isready, go, position, fen, bestmove, ponder, newgame, stop, debug, board, help" << std::endl;
         } else {
             std::cout << "Unknown command: " << input << std::endl;
         }
