@@ -27,7 +27,7 @@ struct BoardState{
     * @return * void 
     */
     void do_move(Move& move);
-    void undo_move(Move move);
+    void undo_move(const Move move);
     /**
      * @brief Changes whose turn it is: white <-> black. Only the turn_color parameter is changed.
      * 
@@ -64,6 +64,13 @@ struct BoardState{
      * @param sq 
      */
     void piece_loc_remove(uint8_t sq);
+
+    /**
+     * @brief Adds piece to array. Assumes that num_pieces is correct (PRE adding) I.e. if num_pieces is 1, will add to index 1 (position 2) in array.
+     * 
+     * @param sq Square of piece location
+     */
+    inline void piece_loc_add(const uint8_t sq) {piece_locations[num_pieces] = sq;};
 };
 
 

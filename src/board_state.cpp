@@ -7,6 +7,7 @@ void BoardState::do_move(Move& move){
     move.captured_piece = this->board.get_piece_at(move.end_square);
     move.moved_piece = this->board.get_piece_at(move.start_square);
     
+    if(move.promotion.get_value()) std::cerr<<"warning: promotion not implemented yet in BoardState::do_move"<< std::endl;
     ply_moves += 1;
     if(this->turn_color == Piece::black) full_moves += 1;
     change_turn(); //Changes turn color from white <-> black.
@@ -23,6 +24,29 @@ void BoardState::do_move(Move& move){
     } else piece_loc_move(move.start_square, move.end_square);
 
     board.move_piece(move.start_square, move.end_square);
+}
+
+void BoardState::undo_move(const Move move){
+    castling = move.castling_rights;
+    en_passant_square = move.en_passant_square;
+    en_passant = en_passant_square < 64;
+    if(move.promotion.get_value()) std::cerr<<"warning: promotion not implemented yet in BoardState::undo_move"<< std::endl;
+    
+    board.move_piece(move.end_square, move.start_square);
+    if(move.captured_piece.get_value()){
+        piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
+        if(en_passant && move.moved_piece.get_type() == Piece::pawn && move.end_square == en_passant_square){
+            std::cerr << "Warning: en passant not implemented in BoardState::undo_move";
+        }
+        board.add_piece(move.end_square, move.captured_piece);
+    } else{
+        piece_loc_move(move.end_square, move.start_square);
+    } 
+   
+    
+    ply_moves -= 1;
+    if(this->turn_color == Piece::white) full_moves -= 1;
+    change_turn(); //Changes turn color from white <-> black.
 }
 
 void BoardState::piece_loc_remove(uint8_t sq){
