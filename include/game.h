@@ -1,12 +1,12 @@
 #include <piece.h>
-#include <board.h>
+#include <board_state.h>
 #include <constants.h>
+#include <notation_interface.h>
 
-
-class game {
+class Game {
 public:
-    game();
-    ~game();
+    Game();
+    ~Game();
     void start_game();
     void end_game();
     void reset_game();
@@ -14,11 +14,7 @@ public:
     void undo_move();
     void display_board();
     std::string get_fen() const;
-
+    void set_fen(std::string FEN);
 private:
-    Board game_board;
-    uint8_t current_turn; // 0 for white, 1 for black
-    int move_count;
-    int ply_count;
-    uint8_t castle_rights;
+    BoardState state;
 };

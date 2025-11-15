@@ -1,12 +1,10 @@
 #include <game.h>
 #include <string>
+#include <stdexcept>
 
 
-
-
-game::game(){
-    this->current_turn = 0;
-    this->move_count = 0;
-    this->ply_count = 0;
-    this->castle_rights = 0;
+void Game::set_fen(std::string FEN){
+    bool success = NotationInterface::read_fen(FEN, this->state);
+    
+    if(!success) throw std::invalid_argument("Invalid FEN state.");
 }
