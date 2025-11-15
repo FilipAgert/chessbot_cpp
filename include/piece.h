@@ -14,15 +14,41 @@ public:
     constexpr Piece(uint8_t val) : value(val) {}
     constexpr Piece() : value(none) {} // Default constructor initializes to none
 
+    /**
+     * @brief Get the type of the piece (knight, pawn, etc..)
+     * 
+     * @return uint8_t value corresponding to type
+     */
     uint8_t get_type() const;
+    /**
+     * @brief Get the color of the piece
+     * 
+     * @return uint8_t 
+     */
     uint8_t get_color() const;
+    /**
+     * @brief Get the value of the piece. I.e. the uint8_t containing the type and color information
+     * 
+     * @return constexpr uint8_t 
+     */
     inline constexpr uint8_t get_value() const {return value;};
     inline void set_value(uint8_t v){value = v;};
+    /**
+     * @brief Get the character representing this piece. I.e. a white pawn would be P
+     * 
+     * @return char 
+     */
     char get_char() const;
     void print_val() const {
         std::cout << "Piece value: " << (value) << std::endl;
     }
 
+    /**
+     * @brief Creates and returns a piece given a character representing it. error piece if nonvalid character.
+     * 
+     * @param c 
+     * @return Piece 
+     */
     static Piece piece_from_char(char c);
     static uint8_t piece_col_from_char(char c);
     static uint8_t piece_type_from_char(char c);
