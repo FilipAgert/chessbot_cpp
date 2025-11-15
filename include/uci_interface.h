@@ -1,6 +1,6 @@
 #ifndef UCI_INTERFACE_H
 #define UCI_INTERFACE_H
-
+#include <game.h>
 #include <iostream>
 #include <string>
 #include "constants.h"

@@ -5,8 +5,10 @@
 
 class Game {
 public:
-    Game();
-    ~Game();
+    static Game& instance(){
+        static Game game_instance;
+        return game_instance;
+    }
     void start_game();
     void end_game();
     void reset_game();
@@ -17,4 +19,5 @@ public:
     void set_fen(std::string FEN);
 private:
     BoardState state;
+    Game() = default;
 };
