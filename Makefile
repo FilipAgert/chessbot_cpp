@@ -9,7 +9,7 @@ EXEN = main.exe
 TEST_EXE = test.exe
 
 # flags
-FLAGS = -Wall -std=c++17 -O3 -I$(DINC)
+FLAGS = -Wall -std=c++17 -O1 -I$(DINC)
 LIBS = -lgtest -lgtest_main -pthread  # Google Test and pthread libs
 
 # commands for compilation
@@ -17,9 +17,9 @@ CCL = g++ -o
 CC = g++ $(FLAGS) -c -g
 
 # objects
-OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o
+OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o $(DOBJ)/game.o $(DOBJ)/notation_interface.o
 MAIN_OBJ = $(DOBJ)/main.o
-TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o  # Add object files for your tests (adjust the name as needed)
+TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o # Add object files for your tests (adjust the name as needed)
 
 # Targets
 main: $(DEXE)/$(EXEN)
