@@ -19,6 +19,8 @@ int main() {
             UCIInterface::process_go_command(input);
         } else if(input == "position"){
             UCIInterface::process_position_command(input);
+        } else if (input == "fen"){
+           UCIInterface::process_fen_command(input) 
         } else if(input == "bestmove"){
             UCIInterface::send_bestmove();
         } else if(input == "ponder"){
@@ -30,7 +32,7 @@ int main() {
         } else if (input == "debug") {
             std::cout << "Debug mode is not implemented yet." << std::endl;
         } else if (input == "help") {
-            std::cout << "Available commands: uci, isready, go, position, bestmove, ponder, newgame, stop, debug, help" << std::endl;
+            std::cout << "Available commands: uci, isready, go, position, fen, bestmove, ponder, newgame, stop, debug, help" << std::endl;
         } else {
             std::cout << "Unknown command: " << input << std::endl;
         }
