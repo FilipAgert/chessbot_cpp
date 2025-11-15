@@ -45,6 +45,7 @@ void BoardState::piece_loc_move(uint8_t from, uint8_t to){
             piece_locations[idx] = to;
             return;
         }
+        idx++;
     }
     throw new std::runtime_error("No piece found at square: " + (int)from);
 }
