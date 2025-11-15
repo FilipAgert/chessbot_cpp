@@ -2,6 +2,8 @@
 #include <board_state.h>
 #include <constants.h>
 #include <notation_interface.h>
+#include <move.h>
+#include <stack>
 
 class Game {
 public:
@@ -12,7 +14,7 @@ public:
     void start_game();
     void end_game();
     void reset_game();
-    void make_move(uint8_t start_square, uint8_t end_square);
+    void make_move(const uint8_t start_square, const uint8_t end_square);
     void undo_move();
     /**
      * @brief Prints board to console. Uppercase pieces are white, lowercase black.
@@ -29,6 +31,8 @@ public:
      */
     bool set_fen(std::string FEN);
 private:
+    std::stack<Move> move_stack; 
     BoardState state;
     Game() = default;
+    
 };

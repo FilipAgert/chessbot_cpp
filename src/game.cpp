@@ -61,3 +61,17 @@ void Game::display_board() {
     std::cout << "  +-----------------+" << std::endl;
     std::cout << "    " << files << std::endl;
 }
+
+void Game::make_move(const uint8_t start_square, const uint8_t end_square){
+    Move move;
+    move.start_square = start_square;
+    move.end_square = end_square;
+    state.do_move(move);
+    move_stack.push(move);
+}
+
+void Game::undo_move(){
+    Move move = move_stack.top();
+    move_stack.pop();
+    state.undo_move(move);
+}
