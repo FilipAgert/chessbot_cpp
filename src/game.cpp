@@ -29,20 +29,26 @@ void Game::display_board() {
         }
         std::cout << "| " << r + 1 << "     ";
         switch (r) { 
-            case 6: {
+            case 7: {
                 std::cout << "Turn: " << Piece::char_from_val(this->state.turn_color); break;
             }
-            case 5: {
+            case 6: {
                 std::cout << "Ply counter: " << this->state.ply_moves; break;    
             } 
-            case 4: {
+            case 5: {
                 std::cout << "Move counter: " << this->state.full_moves; break;    
             } 
-            case 3: {
+            case 4: {
                 std::cout << "En passant: " << this->state.en_passant; break;    
             } 
-            case 2: {
+            case 3: {
                 std::cout << "Castle rights: " << NotationInterface::castling_rights(this->state.castling); break;
+            }
+            case 2: {
+                std::cout << "Number of white pieces: (not implemented)"; break;
+            }
+            case 1: {
+                std::cout << "Number of black pieces: (not implemented)"; break;
             }
         }
         std::cout<<std::endl;
