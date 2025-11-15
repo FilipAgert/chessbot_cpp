@@ -40,7 +40,7 @@ public:
      */
     char get_char() const;
     void print_val() const {
-        std::cout << "Piece value: " << (value) << std::endl;
+        std::cout << "Piece value: " << ((int)value) << std::endl;
     }
 
     /**

@@ -8,6 +8,10 @@ bool Game::set_fen(std::string FEN){
     return success;
 }
 
+std::string Game::get_fen() const{
+    return "";
+}
+
 void Game::display_board() {
     const char* files = "A B C D E F G H";
 
