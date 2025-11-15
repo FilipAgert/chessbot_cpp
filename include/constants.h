@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <string>
-inline std::string const ID_name = "emblapowerbot";
+inline std::string const ID_name = "filip_bot";
 inline std::string const ID_author = "filipagert";
 inline std::string const ID_version = "0.1";
 

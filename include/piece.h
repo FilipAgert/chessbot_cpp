@@ -16,6 +16,8 @@ public:
 
     uint8_t get_type() const;
     uint8_t get_color() const;
+    inline constexpr uint8_t get_value() const {return value;};
+    inline void set_value(uint8_t v){value = v;};
     char get_char() const;
     void print_val() const {
         std::cout << "Piece value: " << (value) << std::endl;

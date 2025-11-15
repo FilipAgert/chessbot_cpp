@@ -6,7 +6,8 @@
 #include <piece.h>
 #include <string>
 #include <iostream>
-class Board {
+#include <array>
+struct Board {
 public:
     Board();
     ~Board();
@@ -25,8 +26,7 @@ public:
     * @brief Gets index from square string e.g. "A5"
     */
     static uint8_t idx_from_string(std::string square);
-
-    
+ 
     inline Piece get_piece_at(uint8_t row, uint8_t col)const{
         return get_piece_at(idx(row,col));
     };
@@ -46,6 +46,6 @@ public:
     void clear_board();
 
 private:
-    Piece game_board[64];
+    std::array<Piece, 64> game_board;
 };
 #endif
