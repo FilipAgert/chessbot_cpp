@@ -17,6 +17,8 @@ public:
      * @return false : Did not succesfully parse FEN. BoardState undefined
      */
     static bool read_fen(std::string FEN, BoardState& state);
+    
+    static std::string fen_from_state(const BoardState& state);
 
 
     static std::string starting_FEN() {std::string s = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; return s;} 

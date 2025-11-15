@@ -104,3 +104,67 @@ std::string NotationInterface::castling_rights(const uint8_t castle){
     if (builder.length() == 0) builder = "-";
     return builder;
 }
+
+std::string NotationInterface::fen_from_state(const BoardState& state){
+    std::string FEN;
+    FEN.reserve(92);
+
+    for (int row = 7; row >= 0; row--) {
+        int emptyCount = 0;
+
+        for (int col = 0; col <= 7; col++) {
+            uint8_t idx = Board::idx(row, col);
+            Piece piece = state.board.get_piece_at(idx);
+
+            if (piece == none_piece) {
+                emptyCount++;
+            } else {
+                if (emptyCount > 0) {
+                    FEN += std::to_string(emptyCount);
+                    emptyCount = 0;
+                }
+                FEN += piece.get_char();
+            }
+        }
+
+        if (emptyCount > 0) FEN += std::to_string(emptyCount);
+
+        if (row != 0) FEN += '/';
+    }
+
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 2. Whose turn?
+    // --------------------------------------------------------
+    FEN += (state.turn_color == Piece::white ? 'w' : 'b');
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 3. Castling rights
+    // --------------------------------------------------------
+    FEN += NotationInterface::castling_rights(state.castling);
+
+    // --------------------------------------------------------
+    // 4. En passant square
+    // --------------------------------------------------------
+    if (state.en_passant)
+        FEN += Board::string_from_idx(state.en_passant_square);
+    else
+        FEN += '-';
+
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 5. Halfmove (ply) clock
+    // --------------------------------------------------------
+    FEN += std::to_string(state.ply_moves);
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 6. Fullmove number
+    // --------------------------------------------------------
+    FEN += std::to_string(state.full_moves);
+
+    return FEN;
+}
