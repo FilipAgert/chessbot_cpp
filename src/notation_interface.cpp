@@ -76,6 +76,7 @@ bool NotationInterface::read_fen(const std::string FEN, BoardState& state){
     } else {
         state.en_passant = true;
         state.en_passant_square = Board::idx_from_string(epPart);
+        if(state.en_passant_square > 63) success = false;
     }
 
     // Halfmove clock
