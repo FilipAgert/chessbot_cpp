@@ -101,11 +101,35 @@ TEST(BoardTest, idx){
 }
 
 
+TEST(BoardTest, string_from_idx){
+    uint8_t idx = 0;
+    std::string sq = "a1";
+    ASSERT_EQ(sq, Board::string_from_idx(idx));
+
+    idx = 9;
+    sq = "b2";
+    ASSERT_EQ(sq, Board::string_from_idx(idx));
+
+    idx = 8;
+    sq = "a2";
+    ASSERT_EQ(sq, Board::string_from_idx(idx));
+    
+    for (uint8_t i = 0; i < 64 ; i++){
+        sq = Board::string_from_idx(i);
+        idx = Board::idx_from_string(sq);
+        ASSERT_EQ(idx, i);
+    }
+
+}
 
 TEST(BoardTest, idx_from_string){
     std::string idx = "A1";
     uint8_t idx_val = Board::idx_from_string(idx);
     ASSERT_EQ(idx_val, 0);
+
+    idx = "a2";
+    idx_val = Board::idx_from_string(idx);
+    ASSERT_EQ(idx_val, 8);
 
     idx = "H8";
     idx_val = Board::idx_from_string(idx);

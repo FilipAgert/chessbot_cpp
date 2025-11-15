@@ -6,14 +6,14 @@ uint8_t Board::idx_from_string(std::string square){
     }
     char colchar = square[0];
     char rowchar = square[1];
-    int basecol;
-    int baserow;
-    int colval;
-    int rowval;
+    uint8_t basecol;
+    uint8_t baserow;
+    uint8_t colval;
+    uint8_t rowval;
 
     if(colchar >= 'A' && colchar <= 'H') {
         basecol = 'A';
-    } else if(colchar >= 'a' && colchar <= 'a') {
+    } else if(colchar >= 'a' && colchar <= 'h') {
         basecol = 'a';
     } else {
         return err_val8;
@@ -32,7 +32,10 @@ uint8_t Board::idx_from_string(std::string square){
 std::string Board::string_from_idx(const uint8_t idx){
     uint8_t row, col;
     row_col(row, col, idx);
-    return "";
+    char r = 'a'+col;
+    char c = '1'+row;
+    std::string s = std::string() + r + c;
+    return s;
 }
 void Board::row_col(uint8_t& row, uint8_t& col, const uint8_t idx){
     col = idx % 8;
