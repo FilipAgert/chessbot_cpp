@@ -66,7 +66,6 @@ void BoardState::undo_move(const Move move){
     };
 
     if(move.captured_piece.get_value()){
-        num_pieces++;
         if(en_passant && board.get_piece_at(move.start_square).get_type() == pawn && move.end_square == en_passant_square){
             //Readd captured pawn.
             uint8_t captured_pawn_loc = (turn_color == black) ? move.end_square - 8 : move.end_square+8;
@@ -77,6 +76,7 @@ void BoardState::undo_move(const Move move){
             piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
             board.add_piece(move.end_square, move.captured_piece);
         }
+        num_pieces++;
     } else{
         piece_loc_move(move.end_square, move.start_square);
     } 
@@ -337,4 +337,8 @@ std::string BoardState::fen_from_state() const{
     FEN += std::to_string(full_moves);
 
     return FEN;
+}
+void BoardState::print_piece_loc() const{
+    for(int i =0; i<num_pieces; i++) std::cout << NotationInterface::string_from_idx(piece_locations[i]) << " ";
+    std::cout<<std::endl;
 }

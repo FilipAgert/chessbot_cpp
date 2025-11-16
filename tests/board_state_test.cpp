@@ -103,6 +103,29 @@ TEST(BoardStateTest, doUndoMoveCapture) {
     ASSERT_EQ(modified, original);
 }
 TEST(BoardStateTest, doUndoMoveEnPassant) {
+    BoardState original;
+    BoardState modified;
+
+    // Position engineered so white can capture and later promote
+    std::string fen = 
+        "8/4p1k1/8/3P4/8/8/8/5K2 b - - 0 1";
+
+    original.read_fen(fen);
+    modified.read_fen(fen);
+
+
+    Move m1, m2, m3, m4, m5, m6;
+
+    m1 = Move("e7e5");
+    m2 = Move("d5e6");
+    modified.do_move(m1);
+    modified.do_move(m2);
+    ASSERT_EQ(modified.num_pieces, 3);
+    modified.undo_move(m2);
+    modified.undo_move(m1);
+    ASSERT_EQ(modified, original);
+}
+TEST(BoardStateTest, doUndoMoveEnPassantFEN) {
     BoardState state;
     // White pawn on e5, black pawn on d7 ready for d5 enabling e.p.
     std::string fen = "8/8/8/3pP3/8/8/8/8 w - d6 0 1";

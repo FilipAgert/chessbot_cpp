@@ -86,7 +86,7 @@ struct BoardState{
      * @return std::string 
      */
     std::string fen_from_state()const;
-
+    void print_piece_loc() const;
     void Display_board();
     bool operator==(const BoardState& other)const;
 };
