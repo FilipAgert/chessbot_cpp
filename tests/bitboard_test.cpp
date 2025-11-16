@@ -30,13 +30,14 @@ TEST(BitBoardTest, mask){
 
 TEST(BitBoardTest, test_knight_moves){
     uint64_t knight = 0b1;//Knight in a1. CAN attack:
+    uint64_t f_bb=0;
     std::array<uint8_t, 64> attack;
     attack.fill(0); 
     attack[NotationInterface::idx_from_string("b3")] = 1;
     attack[NotationInterface::idx_from_string("c2")] = 1;
     uint64_t expected = BitBoard::bb_from_array(attack);
     
-    uint64_t actual = BitBoard::knight_moves(knight);
+    uint64_t actual = BitBoard::knight_moves(knight,f_bb);
     ASSERT_EQ(actual, expected);
     
     knight = 0x4000000000000000;
@@ -45,18 +46,18 @@ TEST(BitBoardTest, test_knight_moves){
     attack[NotationInterface::idx_from_string("f6")] = 1;
     attack[NotationInterface::idx_from_string("h6")] = 1;
     expected = BitBoard::bb_from_array(attack);
-    actual = BitBoard::knight_moves(knight);
+    actual = BitBoard::knight_moves(knight, f_bb);
     ASSERT_EQ(actual, expected);
 
     knight = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
-    expected = BitBoard::bitcount(BitBoard::knight_moves(knight));
+    expected = BitBoard::bitcount(BitBoard::knight_moves(knight,f_bb));
     actual = 8;
     ASSERT_EQ(expected, actual);
 
     
 
     knight = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
-    expected = BitBoard::bitcount(BitBoard::knight_moves(knight));
+    expected = BitBoard::bitcount(BitBoard::knight_moves(knight, f_bb));
     actual = 8;
     ASSERT_EQ(expected, actual);
 
