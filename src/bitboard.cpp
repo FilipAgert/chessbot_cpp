@@ -15,15 +15,18 @@ namespace BitBoard{
         out |=         (knight_loc & (~(top | row(6)))    & (~left))           << (N+N+W); //NNW
         return out;
     }
-    uint64_t ray(const uint64_t origin, const int dir){
+    uint64_t ray(const uint64_t origin, const int dir, int steps){
         //How to ensure no wrap-around?
         uint64_t hit = origin;
         uint64_t mask = edge_mask(dir);
         
-        for (int i =1; i<8; i++){
+        for (int i =1; i<=steps; i++){
             hit |= shift_bb((~mask)&hit, dir);//Shift the mask in dir direction, but only on non-masked places.
         }
         return hit& ~origin;//Exclude origin, since the piece does not attack itself.
+    }
+    uint64_t ray(const uint64_t origin, const int dir){
+        return ray(origin, dir, 7);
     }
     uint64_t rook_moves(const uint64_t rook_locs){
         uint64_t hit = ray(rook_locs, N);
@@ -38,6 +41,9 @@ namespace BitBoard{
         hit |= ray(bishop_locs, SW);
         hit |= ray(bishop_locs, NW);
         return hit; 
+    }
+    uint64_t queen_moves(const uint64_t queen_bb){
+        return rook_moves(queen_bb) | bishop_moves(queen_bb); 
     }
 }
 

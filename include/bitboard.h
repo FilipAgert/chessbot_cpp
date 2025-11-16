@@ -55,10 +55,9 @@ namespace BitBoard{
      * @return uint64_t Bitboard of all the knight moves.
      */
     uint64_t knight_moves(const uint64_t knight_loc);
-    
     uint64_t rook_moves(const uint64_t rook_locs);
     uint64_t bishop_moves(const uint64_t bishop_bb);
-    uint64_t queen_moves(const uint64_t queen_bb){return rook_moves(queen_bb) | bishop_moves(queen_bb);};
+    uint64_t queen_moves(const uint64_t queen_bb);
     
     /**
      * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.
@@ -67,6 +66,7 @@ namespace BitBoard{
      * @param dir 
      * @return uint64_t 
      */
+    uint64_t ray(const uint64_t origin, const int dir, const int steps);
     uint64_t ray(const uint64_t origin, const int dir);
 
     
