@@ -65,7 +65,7 @@ namespace BitBoard{
      * @param dir 
      * @return uint64_t 
      */
-    uint64_t ray(const uint64_t origin, const uint64_t dir);
+    uint64_t ray(const uint64_t origin, const int dir);
 
     
     static inline constexpr uint64_t bb_from_array(std::array<uint8_t, 64> arr){
@@ -100,7 +100,7 @@ namespace masks{//Containing masks for bitboards. E.g. mask out top row or somet
     static inline constexpr uint64_t row(uint8_t r){return bottom << 8*r;};
     static inline constexpr uint64_t col(uint8_t c){return left << c;};
 
-    uint64_t edge_mask(uint8_t dir);
+    uint64_t edge_mask(int dir);
 
 }
 

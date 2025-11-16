@@ -61,3 +61,18 @@ TEST(BitBoardTest, test_knight_moves){
     ASSERT_EQ(expected, actual);
 
 }
+TEST(BitBoardTest, test_ray){
+    uint64_t origin = 0b1;//A1.
+    int dir = W;
+    uint64_t attacked = BitBoard::ray(origin, dir);
+    ASSERT_EQ(attacked, 0);
+    origin = 0b10;//A1.
+    dir = W;
+    attacked = BitBoard::ray(origin, dir);
+    ASSERT_EQ(attacked, 0b1);
+    
+    dir = N;
+    attacked = BitBoard::ray(origin, dir);
+    ASSERT_EQ(attacked, masks::col(1) & ~BitBoard::one_high(NotationInterface::idx_from_string("b1")));
+
+}

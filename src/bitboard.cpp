@@ -7,26 +7,29 @@ namespace BitBoard{
         uint64_t out = (knight_loc & (~(top | row(6)))    & (~right))          << (N+N+E); //NNE
         out |=         (knight_loc & (~(top))             & (~(right|col(6)))) << (N+E+E); //NEE
         out |=         (knight_loc & (~(bottom))          & (~(right|col(6)))) >> -(S+E+E); //SEE
-        out |=         (knight_loc & (~(bottom | row(1))) & (~(right)))         >> -(S+S+E); //SSE
+        out |=         (knight_loc & (~(bottom | row(1))) & (~(right)))        >> -(S+S+E); //SSE
                                                                               
-        out |=         (knight_loc & (~(bottom | row(1))) & (~(left)))          >> -(S+S+W); //SSW
+        out |=         (knight_loc & (~(bottom | row(1))) & (~(left)))         >> -(S+S+W); //SSW
         out |=         (knight_loc & (~(bottom))          & (~(left|col(1))))  >> -(S+W+W); //SWW
         out |=         (knight_loc & (~(top))             & (~(left|col(1))))  << (N+W+W); //NWW
         out |=         (knight_loc & (~(top | row(6)))    & (~left))           << (N+N+W); //NNW
         return out;
     }
-    uint64_t ray(const uint64_t origin, const uint8_t dir){
+    uint64_t ray(const uint64_t origin, const int dir){
         //How to ensure no wrap-around?
-        uint64_t hit = 0;
+        uint64_t hit = origin;
         uint64_t mask = edge_mask(dir);
         
-        shift_bb(origin, dir);
+        for (int i =1; i<8; i++){
+            hit |= shift_bb((~mask)&hit, dir);//Shift the mask in dir direction, but only on non-masked places.
+        }
+        return hit& ~origin;//Exclude origin, since the piece does not attack itself.
     }
 }
 
 namespace masks{
     
-    uint64_t edge_mask(uint8_t dir){
+    uint64_t edge_mask(int dir){
         uint64_t outmask = 0;
         switch(dir){
             case E: outmask = right; break;
