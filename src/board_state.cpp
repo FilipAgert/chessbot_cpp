@@ -1,6 +1,6 @@
 #include <board_state.h>
 
-
+using namespace pieces;
 void BoardState::do_move(Move& move){
     move.castling_rights = this->castling;
     move.en_passant_square = this-> en_passant ? this->en_passant_square : err_val8; 
@@ -190,10 +190,10 @@ bool BoardState::read_fen(const std::string FEN){
     if (castlePart != "-") {
         for (char c : castlePart) {
             switch (c) {
-                case 'K': castling |= cast_white_kingside; break;
-                case 'Q': castling |= cast_white_queenside; break;
-                case 'k': castling |= cast_black_kingside; break;
-                case 'q': castling |= cast_black_queenside; break;
+                case 'K': castling |= castling::cast_white_kingside; break;
+                case 'Q': castling |= castling::cast_white_queenside; break;
+                case 'k': castling |= castling::cast_black_kingside; break;
+                case 'q': castling |= castling::cast_black_queenside; break;
                 default: success = false;
             }
         }

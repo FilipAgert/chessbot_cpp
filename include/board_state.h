@@ -32,7 +32,7 @@ struct BoardState{
      * @brief Changes whose turn it is: white <-> black. Only the turn_color parameter is changed.
      * 
      */
-    void change_turn(){turn_color ^= color_mask;} //Xor with color mask to change color.
+    void change_turn(){turn_color ^= pieces::color_mask;} //Xor with color mask to change color.
 
 
     /**

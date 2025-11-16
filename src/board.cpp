@@ -84,8 +84,14 @@ void Board::clear_board(){
 }
 size_t Board::get_moves(std::array<Move, max_legal_moves>& moves, const uint8_t turn_color) const{
     //Iterate over the locations of the pieces. Get all their available moves, add into array and return number of moves.
+    //1. Generate all possible movemaps for each piece
+    //2. For each movemap, check for collisions. Treat enemy/friendly differently. Exclude all other moves.
+    //3. For these moves, check if they lead to king in check.
+    //   Easily with attack bitmaps? We can have current attack bitmap (king cannot move into),
+    //   and we can have a bitmap ignoring first piece (first piece seethrough). If King is ON this bitmap NOW, then a piece might be pinned.
+    //   Need to check if we're moving the pinned piece.
+    //   Move generation is likely easier with bitmap since we can just shift.
     return 0;
-    
 }
 bool Board::operator==(const Board& other)const{
     for (int i = 0; i<64;i++) if (!(game_board[i] == other.game_board[i])) return false; 

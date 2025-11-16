@@ -3,10 +3,10 @@
 
 std::string NotationInterface::castling_rights(const uint8_t castle){
     std::string builder = "";
-    if(castle & cast_white_kingside) builder.push_back(Piece(king|white).get_char());
-    if(castle & cast_white_queenside) builder.push_back(Piece(queen|white).get_char());
-    if(castle & cast_black_kingside) builder.push_back(Piece(king|black).get_char());
-    if(castle & cast_black_queenside) builder.push_back(Piece(queen|black).get_char());
+    if(castle & castling::cast_white_kingside) builder.push_back(Piece(king|white).get_char());
+    if(castle & castling::cast_white_queenside) builder.push_back(Piece(queen|white).get_char());
+    if(castle & castling::cast_black_kingside) builder.push_back(Piece(king|black).get_char());
+    if(castle & castling::cast_black_queenside) builder.push_back(Piece(queen|black).get_char());
     if (builder.length() == 0) builder = "-";
     return builder;
 }

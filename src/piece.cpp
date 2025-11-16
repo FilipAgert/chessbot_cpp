@@ -1,6 +1,6 @@
 #include "piece.h"
 #include <cstdint>
-
+using namespace pieces;
 const std::string Piece::white_pieces = "KQRNBP";
 const std::string Piece::black_pieces = "kqrnbp";
 const std::string Piece::all_piece_symbols = "        wKQRNBP bkqrnbp";

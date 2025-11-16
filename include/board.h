@@ -8,6 +8,7 @@
 #include <iostream>
 #include <array>
 #include <notation_interface.h>
+#include <bitboard.h>
 #include <move.h>
 struct Board {
 public:
@@ -42,6 +43,13 @@ public:
     
     bool operator==(const Board& other)const;
 
+    /**
+     * @brief Get the all possible moves for specified player.
+     * 
+     * @param moves Array containing the moves
+     * @param turn_color Color of player to find moves for.
+     * @return size_t Number of legal moves found.
+     */
     size_t get_moves(std::array<Move, max_legal_moves>& moves, const uint8_t turn_color)const; 
     
     inline uint8_t get_num_pieces(){return num_pieces;};
@@ -50,6 +58,12 @@ public:
 protected:
     std::array<Piece, 64> game_board;
     std::array<uint8_t, 32> piece_locations{};//Array containing the indices for pieces in the board array.
+    //Color                 W          B
+    //Bitboards: Pieces: [9-14]   [17-22].
+    //           Attack: 15         23 
+    
+    std::array<uint64_t,32> bit_boards{}; 
+
     uint8_t num_pieces = 0;
     /**
      * @brief Adds piece to array. Assumes that num_pieces is correct (PRE adding) I.e. if num_pieces is 1, will add to index 1 (position 2) in array.
