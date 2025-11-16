@@ -39,16 +39,6 @@ uint8_t Board::get_square_color(uint8_t square)const{
     return this->get_piece_at(square).get_color();
 }
 
-void Board::undo_capture(const uint8_t start_square,const  uint8_t end_square, const Piece captured){
-    game_board[start_square] = game_board[end_square];
-    game_board[end_square] = captured;
-    piece_loc_remove(start_square);//Counterintuative, but the captured piece already points to this location
-    num_pieces++;
-}
-void Board::undo_capture_ep(const uint8_t start_square,const  uint8_t end_square, const Piece captured, const uint8_t captured_pawn_loc){
-    move_piece(end_square, start_square);
-    add_piece(captured_pawn_loc, captured);
-}
 void Board::capture_piece(const uint8_t start_square,const  uint8_t end_square){
     game_board[end_square] = game_board[start_square];
     game_board[start_square] = none_piece;

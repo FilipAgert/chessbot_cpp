@@ -30,8 +30,6 @@ public:
     
     void capture_piece(const uint8_t start_square,const uint8_t end_square);
     void capture_piece_ep(const uint8_t start_square,const uint8_t end_square, const uint8_t captured_pawn_loc);
-    void undo_capture(const uint8_t start_square, const uint8_t end_square, Piece captured_piece);
-    void undo_capture_ep(const uint8_t start_square, const uint8_t end_square,const Piece captured_piece, const uint8_t captured_pawn_loc);
 
     void promote_piece(const uint8_t square, const Piece promotion);
     

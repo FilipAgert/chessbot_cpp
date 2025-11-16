@@ -19,8 +19,6 @@ void BoardState::do_move(Move& move){
 
     if(move.captured_piece.get_value()){
         if(en_passant && moved.get_type() == pawn && move.end_square == en_passant_square){
-            //todo: piece_loc_remove of the captured pawn. And piece_loc move of the moved piece.
-            //Also remove from board captured pawn.
             uint8_t captured_pawn_loc = (turn_color == black) ? move.end_square - 8 : move.end_square + 8 ;
             //Depends on turn color. If black, we captured a black piece. This means that the location of the pawn is target_square-8,else +8
             board.capture_piece_ep(move.start_square, move.end_square, captured_pawn_loc);
