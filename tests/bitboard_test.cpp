@@ -98,4 +98,11 @@ TEST(BitBoardTest, test_ray){
     attack[NotationInterface::idx_from_string("h7")] = 1;
     uint64_t expected = BitBoard::bb_from_array(attack);
     ASSERT_EQ(attacked, expected);
+    
+    uint64_t blockers = BitBoard::one_high(NotationInterface::idx_from_string("f5"));
+    attack[NotationInterface::idx_from_string("g6")] = 0;
+    attack[NotationInterface::idx_from_string("h7")] = 0;
+    expected = BitBoard::bb_from_array(attack);
+    attacked = BitBoard::ray(origin, dir, blockers);
+    ASSERT_EQ(attacked, expected);
 }
