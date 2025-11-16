@@ -2,6 +2,7 @@
 #include "constants.h"
 #include <board_state.h>
 #include <notation_interface.h>
+#include <integer_representation.h>
 #include <gtest/gtest.h>
 #include <string>
 #include <move.h>
@@ -25,20 +26,20 @@ TEST(BoardStateTest, shift_piece_loc){
 TEST(BoardStateTest, doUndoMove){
     BoardState state;
     std::string starting_fen = NotationInterface::starting_FEN();
-    NotationInterface::read_fen(starting_fen, state);
+    state.read_fen(starting_fen);
     
     Move move;
-    move.start_square = Board::idx_from_string("a2");
-    move.end_square = Board::idx_from_string("a4");
+    move.start_square = NotationInterface::idx_from_string("a2");
+    move.end_square = NotationInterface::idx_from_string("a4");
     state.do_move(move);
     ASSERT_TRUE(state.board.is_square_empty(move.start_square));
     ASSERT_FALSE(state.board.is_square_empty(move.end_square));
-    ASSERT_EQ(state.board.get_piece_at(move.end_square), Piece::piece_from_char('P'));
-    ASSERT_EQ(state.turn_color, Piece::black) ;
+    ASSERT_EQ(state.board.get_piece_at(move.end_square), Piece('P'));
+    ASSERT_EQ(state.turn_color, black) ;
     state.undo_move(move);
     ASSERT_FALSE(state.board.is_square_empty(move.start_square));
     ASSERT_TRUE(state.board.is_square_empty(move.end_square));
-    ASSERT_EQ(state.turn_color, Piece::white);
+    ASSERT_EQ(state.turn_color, white);
     
     state.do_move(move);
 
@@ -48,54 +49,54 @@ TEST(BoardStateTest, doUndoMovePromotion) {
     BoardState state;
     // White pawn on a7 ready to promote
     std::string fen = "8/P7/8/8/8/8/8/8 w - - 0 1";
-    NotationInterface::read_fen(fen, state);
+    state.read_fen(fen);
 
     Move move;
-    move.start_square = Board::idx_from_string("a7");
-    move.end_square = Board::idx_from_string("a8");
-    move.promotion = Piece::piece_from_char('Q');
+    move.start_square = NotationInterface::idx_from_string("a7");
+    move.end_square = NotationInterface::idx_from_string("a8");
+    move.promotion = Piece('Q');
 
     state.do_move(move);
 
     ASSERT_TRUE(state.board.is_square_empty(move.start_square));
     ASSERT_EQ(state.board.get_piece_at(move.end_square),
-              Piece::piece_from_char('Q'));
-    ASSERT_EQ(state.turn_color, Piece::black);
+              Piece('Q'));
+    ASSERT_EQ(state.turn_color, black);
 
     state.undo_move(move);
 
     ASSERT_FALSE(state.board.is_square_empty(move.start_square));
     ASSERT_TRUE(state.board.is_square_empty(move.end_square));
     ASSERT_EQ(state.board.get_piece_at(move.start_square),
-              Piece::piece_from_char('P'));
-    ASSERT_EQ(state.turn_color, Piece::white);
+              Piece('P'));
+    ASSERT_EQ(state.turn_color, white);
 }
 TEST(BoardStateTest, doUndoMoveCapture) {
     BoardState original;
     BoardState modified;
     // White pawn on e4, black pawn on d5 so exd5 is legal
     std::string fen = "8/8/8/3p4/4P3/8/8/8 w - - 0 1";
-    NotationInterface::read_fen(fen, modified);
-    NotationInterface::read_fen(fen, original);
+    modified.read_fen(fen);
+    original.read_fen(fen);
 
     Move move;
-    move.start_square = Board::idx_from_string("e4");
-    move.end_square = Board::idx_from_string("d5");
+    move.start_square = NotationInterface::idx_from_string("e4");
+    move.end_square = NotationInterface::idx_from_string("d5");
 
     Piece captured = modified.board.get_piece_at(move.end_square);
     modified.do_move(move);
 
     ASSERT_EQ(modified.board.get_piece_at(move.end_square),
-              Piece::piece_from_char('P'));
+              Piece('P'));
     ASSERT_TRUE(modified.board.is_square_empty(move.start_square));
-    ASSERT_EQ(modified.turn_color, Piece::black);
+    ASSERT_EQ(modified.turn_color, black);
 
     modified.undo_move(move);
 
     ASSERT_EQ(modified.board.get_piece_at(move.start_square),
-              Piece::piece_from_char('P'));
+              Piece('P'));
     ASSERT_EQ(modified.board.get_piece_at(move.end_square), captured);
-    ASSERT_EQ(modified.turn_color, Piece::white);
+    ASSERT_EQ(modified.turn_color, white);
     ASSERT_EQ((int)modified.num_pieces, (int)original.num_pieces);
     ASSERT_EQ(modified, original);
 }
@@ -103,47 +104,47 @@ TEST(BoardStateTest, doUndoMoveEnPassant) {
     BoardState state;
     // White pawn on e5, black pawn on d7 ready for d5 enabling e.p.
     std::string fen = "8/3p4/8/4P3/8/8/8/8 w - d6 0 1";
-    NotationInterface::read_fen(fen, state);
+    state.read_fen(fen);
 
     Move ep_move;
-    ep_move.start_square = Board::idx_from_string("e5");
-    ep_move.end_square = Board::idx_from_string("d6");
+    ep_move.start_square = NotationInterface::idx_from_string("e5");
+    ep_move.end_square = NotationInterface::idx_from_string("d6");
 
     state.do_move(ep_move);
 
-    ASSERT_TRUE(state.board.is_square_empty(Board::idx_from_string("e5")));
-    ASSERT_EQ(state.board.get_piece_at(Board::idx_from_string("d6")),
-              Piece::piece_from_char('P'));
-    ASSERT_TRUE(state.board.is_square_empty(Board::idx_from_string("d5")));
-    ASSERT_EQ(state.turn_color, Piece::black);
+    ASSERT_TRUE(state.board.is_square_empty(NotationInterface::idx_from_string("e5")));
+    ASSERT_EQ(state.board.get_piece_at(NotationInterface::idx_from_string("d6")),
+              Piece('P'));
+    ASSERT_TRUE(state.board.is_square_empty(NotationInterface::idx_from_string("d5")));
+    ASSERT_EQ(state.turn_color, black);
 
     state.undo_move(ep_move);
 
-    ASSERT_FALSE(state.board.is_square_empty(Board::idx_from_string("e5")));
-    ASSERT_EQ(state.board.get_piece_at(Board::idx_from_string("d5")),
-              Piece::piece_from_char('p'));
-    ASSERT_TRUE(state.board.is_square_empty(Board::idx_from_string("d6")));
-    ASSERT_EQ(state.turn_color, Piece::white);
+    ASSERT_FALSE(state.board.is_square_empty(NotationInterface::idx_from_string("e5")));
+    ASSERT_EQ(state.board.get_piece_at(NotationInterface::idx_from_string("d5")),
+              Piece('p'));
+    ASSERT_TRUE(state.board.is_square_empty(NotationInterface::idx_from_string("d6")));
+    ASSERT_EQ(state.turn_color, white);
 }
 TEST(BoardStateTest, chainedMovesUndoEquality) {
     BoardState original;
     BoardState modified;
 
     std::string fen = NotationInterface::starting_FEN();
-    NotationInterface::read_fen(fen, original);
-    NotationInterface::read_fen(fen, modified);
+    original.read_fen(fen);
+    modified.read_fen(fen);
 
     // Moves: 1. e2e4, 1... e7e5, 2. g1f3
     Move m1, m2, m3;
 
-    m1.start_square = Board::idx_from_string("e2");
-    m1.end_square = Board::idx_from_string("e4");
+    m1.start_square = NotationInterface::idx_from_string("e2");
+    m1.end_square = NotationInterface::idx_from_string("e4");
 
-    m2.start_square = Board::idx_from_string("e7");
-    m2.end_square = Board::idx_from_string("e5");
+    m2.start_square = NotationInterface::idx_from_string("e7");
+    m2.end_square = NotationInterface::idx_from_string("e5");
 
-    m3.start_square = Board::idx_from_string("g1");
-    m3.end_square = Board::idx_from_string("f3");
+    m3.start_square = NotationInterface::idx_from_string("g1");
+    m3.end_square = NotationInterface::idx_from_string("f3");
 
     modified.do_move(m1);
     modified.do_move(m2);
@@ -166,8 +167,8 @@ TEST(BoardStateTest, chainedMovesCapturePromotionUndoEquality) {
     // White pawn on d4, black pawn on e7 (which white will capture),
     // and white will later push pawn to promotion.
 
-    NotationInterface::read_fen(fen, original);
-    NotationInterface::read_fen(fen, modified);
+    original.read_fen(fen);
+    modified.read_fen(fen);
 
     // Moves:
     // 1. d4xe5 (capture)
@@ -181,34 +182,34 @@ TEST(BoardStateTest, chainedMovesCapturePromotionUndoEquality) {
     Move m1, m2, m3, m4, m5, m6, m7;
 
     // 1. d4xe5
-    m1.start_square = Board::idx_from_string("d4");
-    m1.end_square   = Board::idx_from_string("e5");
+    m1.start_square = NotationInterface::idx_from_string("d4");
+    m1.end_square   = NotationInterface::idx_from_string("e5");
     // capture handled automatically by end_square having a piece
 
     // 2. ... Kg6
-    m2.start_square = Board::idx_from_string("g7");
-    m2.end_square   = Board::idx_from_string("g6");
+    m2.start_square = NotationInterface::idx_from_string("g7");
+    m2.end_square   = NotationInterface::idx_from_string("g6");
 
     // 3. e5-e6
-    m3.start_square = Board::idx_from_string("e5");
-    m3.end_square   = Board::idx_from_string("e6");
+    m3.start_square = NotationInterface::idx_from_string("e5");
+    m3.end_square   = NotationInterface::idx_from_string("e6");
 
     // 4. ... Kg7
-    m4.start_square = Board::idx_from_string("g6");
-    m4.end_square   = Board::idx_from_string("g7");
+    m4.start_square = NotationInterface::idx_from_string("g6");
+    m4.end_square   = NotationInterface::idx_from_string("g7");
 
     // 5. e6-e7
-    m5.start_square = Board::idx_from_string("e6");
-    m5.end_square   = Board::idx_from_string("e7");
+    m5.start_square = NotationInterface::idx_from_string("e6");
+    m5.end_square   = NotationInterface::idx_from_string("e7");
 
     // 6. ... Kf7
-    m6.start_square = Board::idx_from_string("g7");
-    m6.end_square   = Board::idx_from_string("f7");
+    m6.start_square = NotationInterface::idx_from_string("g7");
+    m6.end_square   = NotationInterface::idx_from_string("f7");
 
     // 7. e7-e8=Q (promotion)
-    m7.start_square  = Board::idx_from_string("e7");
-    m7.end_square    = Board::idx_from_string("e8");
-    m7.promotion     = Piece::piece_from_char('Q');
+    m7.start_square  = NotationInterface::idx_from_string("e7");
+    m7.end_square    = NotationInterface::idx_from_string("e8");
+    m7.promotion     = Piece('Q');
 
     // Apply moves
     modified.do_move(m1);
@@ -228,6 +229,6 @@ TEST(BoardStateTest, chainedMovesCapturePromotionUndoEquality) {
     modified.undo_move(m2);
     modified.undo_move(m1);
 
-    // Should match the original exactly
+    // Should match the  exactly
     ASSERT_TRUE(modified == original);
 }

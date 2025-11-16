@@ -7,12 +7,12 @@ void BoardState::do_move(Move& move){
     move.captured_piece = this->board.get_piece_at(move.end_square);
     move.check = check;
     ply_moves += 1;
-    if(this->turn_color == Piece::black) full_moves += 1;
+    if(this->turn_color == black) full_moves += 1;
     change_turn(); //Changes turn color from white <-> black.
     
     if(move.captured_piece.get_value()){
         num_pieces--;
-        if(en_passant && board.get_piece_at(move.end_square).get_type() == Piece::pawn && move.end_square == en_passant_square){
+        if(en_passant && board.get_piece_at(move.end_square).get_type() == pawn && move.end_square == en_passant_square){
             std::cerr << "Warning: en passant not implemented in BoardState::do_move";
         }
         //If a piece is removed, we can reuse target piece square since it already points to a square with a piece. 
@@ -24,7 +24,7 @@ void BoardState::do_move(Move& move){
     board.move_piece(move.start_square, move.end_square);
     if(move.promotion.get_value()) {
         board.add_piece(move.end_square, move.promotion); //Replace pawn by promoted.
-        if(move.promotion.get_color() == Piece::none) throw new std::invalid_argument("Promoted piece must have a color");
+        if(move.promotion.get_color() == none) throw new std::invalid_argument("Promoted piece must have a color");
     }
 }
 
@@ -35,13 +35,13 @@ void BoardState::undo_move(const Move move){
     check = move.check;
     board.move_piece(move.end_square, move.start_square);
     if(move.promotion.get_value()){
-        board.add_piece(move.start_square,(move.promotion.get_color() | Piece::pawn)); //Replace with pawn.
+        board.add_piece(move.start_square,Piece(move.promotion.get_color() | pawn)); //Replace with pawn.
     };
 
 
     if(move.captured_piece.get_value()){
         piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
-        if(en_passant && board.get_piece_at(move.end_square).get_type() == Piece::pawn && move.end_square == en_passant_square){
+        if(en_passant && board.get_piece_at(move.end_square).get_type() == pawn && move.end_square == en_passant_square){
             std::cerr << "Warning: en passant not implemented in BoardState::undo_move";
         }
         board.add_piece(move.end_square, move.captured_piece);
@@ -52,7 +52,7 @@ void BoardState::undo_move(const Move move){
    
     
     ply_moves -= 1;
-    if(this->turn_color == Piece::white) full_moves -= 1;
+    if(this->turn_color == white) full_moves -= 1;
     change_turn(); //Changes turn color from white <-> black.
 }
 
@@ -105,7 +105,7 @@ void BoardState::Display_board() {
     for (int r = 7; r >= 0; --r) {
         std::cout << r + 1 << " | ";
         for (int c = 0; c < 8; ++c) {
-            uint8_t idx = Board::idx(r, c);
+            uint8_t idx = NotationInterface::idx(r, c);
             Piece p = board.get_piece_at(idx);
             char printval = p.get_char();
             if (printval == ' ' && ep && ep_sq == idx) printval = 'x';
@@ -141,4 +141,162 @@ void BoardState::Display_board() {
 
     std::cout << "  +-----------------+" << std::endl;
     std::cout << "    " << files << std::endl;
+}
+bool BoardState::read_fen(const std::string FEN){
+    this->reset();
+    int row = 7;
+    int col = 0;
+    int num_pieces = 0;
+
+    bool success = true;
+
+    // ---------------------
+
+    for (size_t i = 0; i < FEN.size(); ++i) {
+        char ch = FEN[i];
+        if (ch == '/') continue;
+        if (ch == ' ') {
+            // reached end of board part
+            break;
+        }
+
+        if (std::isdigit(ch)) {
+            int num = ch - '0';
+            col += num;
+        } else {
+            Piece p = Piece(ch);
+            if (!Piece::is_valid_piece(p)) {
+                success = false;
+                break;
+            }
+
+            int idx = NotationInterface::idx(row, col);
+            board.add_piece(idx,p);
+            piece_locations[num_pieces++] = idx;
+            col++;
+        }
+
+        if (col > 7) {
+            col = 0;
+            row--;
+        }
+        if (row < 0)
+            break;
+    }
+
+    // ---------------------------------------
+    // 2. Parse remaining FEN fields
+    //     side castle enpassant halfmove fullmove
+    // ---------------------------------------
+    std::istringstream iss(FEN);
+    std::string boardPart, turnPart, castlePart, epPart, halfPart, movePart;
+
+    iss >> boardPart >> turnPart >> castlePart >> epPart >> halfPart >> movePart;
+
+    // Side to move
+    if (turnPart == "w") turn_color = white;      // white
+    else if (turnPart == "b") turn_color = black; // black
+    else success = false;
+
+    // Castling rights
+    castling = 0;
+    if (castlePart != "-") {
+        for (char c : castlePart) {
+            switch (c) {
+                case 'K': castling |= cast_white_kingside; break;
+                case 'Q': castling |= cast_white_queenside; break;
+                case 'k': castling |= cast_black_kingside; break;
+                case 'q': castling |= cast_black_queenside; break;
+                default: success = false;
+            }
+        }
+    }
+
+    // En passant
+    if (epPart == "-") {
+        en_passant = false;
+    } else {
+        en_passant = true;
+        en_passant_square = NotationInterface::idx_from_string(epPart);
+        if(en_passant_square > 63) success = false;
+    }
+
+    // Halfmove clock
+    ply_moves = std::stoi(halfPart);
+
+    // Fullmove number
+    full_moves = std::stoi(movePart);
+
+    // ----------------------------
+    // 3. Store results in state
+    // ----------------------------
+
+    num_pieces = num_pieces;
+
+
+    return success;
+}
+std::string BoardState::fen_from_state() const{
+    std::string FEN;
+    FEN.reserve(92);
+
+    for (int row = 7; row >= 0; row--) {
+        int emptyCount = 0;
+
+        for (int col = 0; col <= 7; col++) {
+            uint8_t idx = NotationInterface::idx(row, col);
+            Piece piece = board.get_piece_at(idx);
+
+            if (piece == none_piece) {
+                emptyCount++;
+            } else {
+                if (emptyCount > 0) {
+                    FEN += std::to_string(emptyCount);
+                    emptyCount = 0;
+                }
+                FEN += piece.get_char();
+            }
+        }
+
+        if (emptyCount > 0) FEN += std::to_string(emptyCount);
+
+        if (row != 0) FEN += '/';
+    }
+
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 2. Whose turn?
+    // --------------------------------------------------------
+    FEN += (turn_color == white ? 'w' : 'b');
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 3. Castling rights
+    // --------------------------------------------------------
+    FEN += NotationInterface::castling_rights(castling);
+    FEN += " ";
+
+    // --------------------------------------------------------
+    // 4. En passant square
+    // --------------------------------------------------------
+    if (en_passant)
+        FEN += NotationInterface::string_from_idx(en_passant_square);
+    else
+        FEN += '-';
+
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 5. Halfmove (ply) clock
+    // --------------------------------------------------------
+    FEN += std::to_string(ply_moves);
+    FEN += ' ';
+
+    // --------------------------------------------------------
+    // 6. Fullmove number
+    // --------------------------------------------------------
+    FEN += std::to_string(full_moves);
+
+    return FEN;
 }

@@ -8,6 +8,8 @@
 #include <string>
 #include <move.h>
 #include <exception>
+#include <sstream>
+#include <integer_representation.h>
 struct BoardState{
     Board board;
     std::array<uint8_t, 32> piece_locations{};//Array containing the indices for pieces in the board array.
@@ -32,7 +34,7 @@ struct BoardState{
      * @brief Changes whose turn it is: white <-> black. Only the turn_color parameter is changed.
      * 
      */
-    void change_turn(){turn_color ^= Piece::color_mask;} //Xor with color mask to change color.
+    void change_turn(){turn_color ^= color_mask;} //Xor with color mask to change color.
 
     void reset(){
         piece_locations.fill(0);
@@ -47,10 +49,6 @@ struct BoardState{
         board.clear_board();
     };
 
-    static constexpr uint8_t cast_white_kingside = 0b1;
-    static constexpr uint8_t cast_white_queenside = 0b10;
-    static constexpr uint8_t cast_black_kingside = 0b100;
-    static constexpr uint8_t cast_black_queenside = 0b1000;
     
     /** @brief in the piece_loc array, for the element with "from" as its square, change it to to.
      * 
@@ -72,6 +70,22 @@ struct BoardState{
      */
     inline void piece_loc_add(const uint8_t sq) {piece_locations[num_pieces] = sq;};
 
+
+    /**
+     * @brief Takes a FEN string and sets it into the board state.
+     * 
+     * @param FEN String containing FEN
+     * @return true : Successfully parsed FEN.
+     * @return false : Did not succesfully parse FEN. BoardState undefined
+     */
+    bool read_fen(std::string FEN);
+    
+    /**
+     * @brief Outputs fen from state.
+     * 
+     * @return std::string 
+     */
+    std::string fen_from_state()const;
 
     void Display_board();
     bool operator==(const BoardState& other)const;

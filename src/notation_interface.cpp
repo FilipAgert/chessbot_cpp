@@ -1,172 +1,54 @@
 #include <notation_interface.h>
-#include <sstream>
 
-bool NotationInterface::read_fen(const std::string FEN, BoardState& state){
-    state.reset();
-    int row = 7;
-    int col = 0;
-    int num_pieces = 0;
-
-    bool success = true;
-
-    // ---------------------
-
-    for (size_t i = 0; i < FEN.size(); ++i) {
-        char ch = FEN[i];
-        if (ch == '/') continue;
-        if (ch == ' ') {
-            // reached end of board part
-            break;
-        }
-
-        if (std::isdigit(ch)) {
-            int num = ch - '0';
-            col += num;
-        } else {
-            Piece p = Piece::piece_from_char(ch);
-            if (!Piece::is_valid_piece(p)) {
-                success = false;
-                break;
-            }
-
-            int idx = Board::idx(row, col);
-            state.board.add_piece(idx,p);
-            state.piece_locations[num_pieces++] = idx;
-            col++;
-        }
-
-        if (col > 7) {
-            col = 0;
-            row--;
-        }
-        if (row < 0)
-            break;
-    }
-
-    // ---------------------------------------
-    // 2. Parse remaining FEN fields
-    //     side castle enpassant halfmove fullmove
-    // ---------------------------------------
-    std::istringstream iss(FEN);
-    std::string boardPart, turnPart, castlePart, epPart, halfPart, movePart;
-
-    iss >> boardPart >> turnPart >> castlePart >> epPart >> halfPart >> movePart;
-
-    // Side to move
-    if (turnPart == "w") state.turn_color = Piece::white;      // white
-    else if (turnPart == "b") state.turn_color = Piece::black; // black
-    else success = false;
-
-    // Castling rights
-    state.castling = 0;
-    if (castlePart != "-") {
-        for (char c : castlePart) {
-            switch (c) {
-                case 'K': state.castling |= BoardState::cast_white_kingside; break;
-                case 'Q': state.castling |= BoardState::cast_white_queenside; break;
-                case 'k': state.castling |= BoardState::cast_black_kingside; break;
-                case 'q': state.castling |= BoardState::cast_black_queenside; break;
-                default: success = false;
-            }
-        }
-    }
-
-    // En passant
-    if (epPart == "-") {
-        state.en_passant = false;
-    } else {
-        state.en_passant = true;
-        state.en_passant_square = Board::idx_from_string(epPart);
-        if(state.en_passant_square > 63) success = false;
-    }
-
-    // Halfmove clock
-    state.ply_moves = std::stoi(halfPart);
-
-    // Fullmove number
-    state.full_moves = std::stoi(movePart);
-
-    // ----------------------------
-    // 3. Store results in state
-    // ----------------------------
-
-    state.num_pieces = num_pieces;
-
-
-    return success;
-}
 
 std::string NotationInterface::castling_rights(const uint8_t castle){
     std::string builder = "";
-    if(castle & BoardState::cast_white_kingside) builder.push_back(Piece(Piece::king|Piece::white).get_char());
-    if(castle & BoardState::cast_white_queenside) builder.push_back(Piece(Piece::queen|Piece::white).get_char());
-    if(castle & BoardState::cast_black_kingside) builder.push_back(Piece(Piece::king|Piece::black).get_char());
-    if(castle & BoardState::cast_black_queenside) builder.push_back(Piece(Piece::queen|Piece::black).get_char());
+    if(castle & cast_white_kingside) builder.push_back(Piece(king|white).get_char());
+    if(castle & cast_white_queenside) builder.push_back(Piece(queen|white).get_char());
+    if(castle & cast_black_kingside) builder.push_back(Piece(king|black).get_char());
+    if(castle & cast_black_queenside) builder.push_back(Piece(queen|black).get_char());
     if (builder.length() == 0) builder = "-";
     return builder;
 }
+uint8_t NotationInterface::idx_from_string(std::string square){
+    if (square.length() != 2) { //Needs exactly two characters
+        return err_val8;
+    }
+    char colchar = square[0];
+    char rowchar = square[1];
+    uint8_t basecol;
+    uint8_t baserow;
+    uint8_t colval;
+    uint8_t rowval;
 
-std::string NotationInterface::fen_from_state(const BoardState& state){
-    std::string FEN;
-    FEN.reserve(92);
-
-    for (int row = 7; row >= 0; row--) {
-        int emptyCount = 0;
-
-        for (int col = 0; col <= 7; col++) {
-            uint8_t idx = Board::idx(row, col);
-            Piece piece = state.board.get_piece_at(idx);
-
-            if (piece == none_piece) {
-                emptyCount++;
-            } else {
-                if (emptyCount > 0) {
-                    FEN += std::to_string(emptyCount);
-                    emptyCount = 0;
-                }
-                FEN += piece.get_char();
-            }
-        }
-
-        if (emptyCount > 0) FEN += std::to_string(emptyCount);
-
-        if (row != 0) FEN += '/';
+    if(colchar >= 'A' && colchar <= 'H') {
+        basecol = 'A';
+    } else if(colchar >= 'a' && colchar <= 'h') {
+        basecol = 'a';
+    } else {
+        return err_val8;
+    }
+    colval =colchar - basecol;
+    if(rowchar >= '1' && rowchar <= '8') {
+        baserow = '1';
+        rowval =rowchar - baserow;
+    } else {
+        return err_val8;
     }
 
-    FEN += ' ';
+    return idx(rowval, colval);
+};
 
-    // --------------------------------------------------------
-    // 2. Whose turn?
-    // --------------------------------------------------------
-    FEN += (state.turn_color == Piece::white ? 'w' : 'b');
-    FEN += ' ';
+std::string NotationInterface::string_from_idx(const uint8_t idx){
+    uint8_t row, col;
+    row_col(row, col, idx);
+    char r = 'a'+col;
+    char c = '1'+row;
+    std::string s = std::string() + r + c;
+    return s;
+}
 
-    // --------------------------------------------------------
-    // 3. Castling rights
-    // --------------------------------------------------------
-    FEN += NotationInterface::castling_rights(state.castling);
-    FEN += " ";
-
-    // --------------------------------------------------------
-    // 4. En passant square
-    // --------------------------------------------------------
-    if (state.en_passant)
-        FEN += Board::string_from_idx(state.en_passant_square);
-    else
-        FEN += '-';
-
-    FEN += ' ';
-
-    // --------------------------------------------------------
-    // 5. Halfmove (ply) clock
-    // --------------------------------------------------------
-    FEN += std::to_string(state.ply_moves);
-    FEN += ' ';
-
-    // --------------------------------------------------------
-    // 6. Fullmove number
-    // --------------------------------------------------------
-    FEN += std::to_string(state.full_moves);
-
-    return FEN;
+void NotationInterface::row_col(uint8_t& row, uint8_t& col, const uint8_t idx){
+    col = idx % 8;
+    row = idx/8;
 }

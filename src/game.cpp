@@ -4,7 +4,7 @@
 
 
 bool Game::set_fen(std::string FEN){
-    bool success = NotationInterface::read_fen(FEN, this->state);
+    bool success = state.read_fen(FEN);
     return success;
 }
 
@@ -13,10 +13,7 @@ std::string Game::get_fen() const{
 }
 
 
-void Game::make_move(const uint8_t start_square, const uint8_t end_square){
-    Move move;
-    move.start_square = start_square;
-    move.end_square = end_square;
+void Game::make_move(Move move){
     state.do_move(move);
     move_stack.push(move);
 }

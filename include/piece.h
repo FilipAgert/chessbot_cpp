@@ -4,15 +4,33 @@
 #include <cstdint> // for int8_t, uint8_t
 #include <string>
 #include <iostream>
+#include <integer_representation.h>
 
 
 struct Piece {
 protected:
     uint8_t value;
 public:
-    //Constructor
-    constexpr Piece(uint8_t val) : value(val) {}
+       // Numeric constructor: 0–63 piece code, etc.
+    template<
+        typename T,
+        typename = std::enable_if_t<
+            std::is_integral_v<T> &&
+            !std::is_same_v<T, char>
+        >
+    >
+    explicit Piece(T v) {
+        value = static_cast<uint8_t>(v);
+    }
+
     constexpr Piece() : value(none) {} // Default constructor initializes to none
+    /**
+     * @brief Creates and returns a piece given a character representing it. error piece if nonvalid character.
+     * 
+     * @param c 
+     * @return Piece 
+     */
+    explicit Piece(char c);
 
     /**
      * @brief Get the type of the piece (knight, pawn, etc..)
@@ -44,13 +62,6 @@ public:
     }
 
     /**
-     * @brief Creates and returns a piece given a character representing it. error piece if nonvalid character.
-     * 
-     * @param c 
-     * @return Piece 
-     */
-    static Piece piece_from_char(char c);
-    /**
      * @brief Returns the character piece symbolising the given uint8_t value. Works on colors.
      * 
      * @param value 
@@ -73,19 +84,6 @@ public:
         return value == other.value;
     }
 
-    static constexpr uint8_t none   = 0b000;
-    static constexpr uint8_t pawn   = 0b110;
-    static constexpr uint8_t bishop = 0b101;
-    static constexpr uint8_t knight = 0b100;
-    static constexpr uint8_t rook   = 0b011;
-    static constexpr uint8_t queen  = 0b010;
-    static constexpr uint8_t king   = 0b001;
-
-    static constexpr uint8_t white  = 0b01000; //8
-    static constexpr uint8_t black  = 0b10000; //16
-
-    static constexpr uint8_t piece_mask = 0b00111;
-    static constexpr uint8_t color_mask = 0b11000;
 
     static const std::string white_pieces;
     static const std::string black_pieces;
@@ -93,5 +91,5 @@ public:
     
     
 };
-static constexpr Piece none_piece = {0};
+static constexpr Piece none_piece = Piece();
 #endif

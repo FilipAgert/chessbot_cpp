@@ -22,6 +22,21 @@ void UCIInterface::process_new_game_command() {
 void UCIInterface::process_go_command(std::string command) {
     //Initialize board:
     Game::instance().set_fen(NotationInterface::starting_FEN());
+
+    size_t pos = 0; 
+    while(pos < command.size()){
+        while(pos < command.size() && command[pos] == ' ') pos++;
+        
+        if (pos >= command.size()) break;
+        
+        size_t start = pos;
+        while(pos < command.size() && command[pos] != ' ') pos++;
+
+        std::string move_str = command.substr(start, pos - start);
+        
+        Move move = Move(move_str);
+        Game::instance().make_move(move);
+    }
     UCIInterface::uci_response("Processing go command: " + command);
 }
 void UCIInterface::process_position_command(std::string command) {

@@ -17,15 +17,10 @@ char Piece::get_char() const{
     return all_piece_symbols[value];
 } 
 
-Piece Piece::piece_from_char(char c){
+Piece::Piece(char c){
     uint8_t color = piece_col_from_char(c);
     uint8_t type = piece_type_from_char(c);
-    if (color == none || type == none) {
-        return Piece(); // Return an empty Piece if the character is invalid
-    }
-    Piece p;
-    p.value = (color | type);
-    return p;
+    this->value = (color | type);
 }
 
 uint8_t Piece::piece_col_from_char(char c){
