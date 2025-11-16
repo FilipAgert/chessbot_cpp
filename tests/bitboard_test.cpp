@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <bitboard.h>
+#include <notation_interface.h>
+#include <cstdint>
 using namespace BitBoard;
 using namespace dirs;
 using namespace masks;
@@ -23,4 +25,19 @@ TEST(BitBoardTest, mask){
     ASSERT_EQ(top, row(7));//#
     ASSERT_EQ(sides, col(0)|col(7));
     ASSERT_EQ(top|bottom, row(0) | row(7));
+}
+
+
+TEST(BitBoardTest, test_knight_moves){
+    uint64_t knight = 0b1;//Knight in a1. CAN attack:
+    std::array<uint8_t, 64> attack;
+    attack.fill(0); 
+    attack[NotationInterface::idx_from_string("b3")] = 1;
+    attack[NotationInterface::idx_from_string("c2")] = 1;
+    uint64_t expected = BitBoard::bb_from_array(attack);
+    
+    uint64_t actual = BitBoard::knight_moves(knight);
+    ASSERT_EQ(actual, expected);
+    
+
 }

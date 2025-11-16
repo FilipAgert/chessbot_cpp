@@ -2,6 +2,7 @@
 #define BITBOARD_H
 #include <cstdint>
 #include <bitset>
+#include <array>
 namespace BitBoard{
     /**
      * @brief Shifts the bitboard in a certain direction n # of steps. Branchless execution
@@ -19,7 +20,7 @@ namespace BitBoard{
         uint64_t left = (board << left_shift)&left_mask;
         uint64_t right = (board >> right_shift) & right_mask;
         return left | right;
-    }
+    };
     /**
      * @brief Shifts the bitboard in a certain direction for 1 step. Branchless execution
      * 
@@ -35,8 +36,16 @@ namespace BitBoard{
         uint64_t left = (board << left_shift)&left_mask;
         uint64_t right = (board >> right_shift) & right_mask;
         return left | right;
-    }
+    };
+    
+    inline constexpr int bitcount(uint64_t bb){return __builtin_popcountll(bb);};
+    inline constexpr int lsb(uint64_t bb){return __builtin_ctzll(bb);};
    
+    // print bitboard for debugging
+    inline void print(uint64_t bb) {
+        std::bitset<64> b(bb);
+        std::cout << b << "\n";
+    }
     /**
      * @brief Gets the bitboard for the available knight moves.
      * 
@@ -44,6 +53,15 @@ namespace BitBoard{
      * @return uint64_t Bitboard of all the knight moves.
      */
     uint64_t knight_moves(const uint64_t knight_loc);
+
+    
+    static inline constexpr uint64_t bb_from_array(std::array<uint8_t, 64> arr){
+        uint64_t bb = 0;
+        for (int i = 0; i<64; i++) {
+            if(arr[i] >0) bb |= 1ULL <<i;
+        }
+        return bb;
+    };
 };
 
 namespace dirs{
