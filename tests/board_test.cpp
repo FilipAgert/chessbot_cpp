@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <integer_representation.h>
 #include <string>
-
+using namespace pieces;
 // Test that Board() initializes all squares to empty pieces
 TEST(BoardTest, Initialization) {
     Board b = Board();

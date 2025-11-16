@@ -7,7 +7,7 @@
 #include <string>
 #include <move.h>
 
-
+using namespace pieces;
 TEST(BoardStateTest, doUndoMove){
     BoardState state;
     std::string starting_fen = NotationInterface::starting_FEN();

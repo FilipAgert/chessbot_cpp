@@ -1,7 +1,7 @@
 // piece_test.cpp
 #include "piece.h"
 #include <gtest/gtest.h>
-
+using namespace pieces;
 // Test that `get_type()` correctly retrieves the type (binary masking)
 TEST(PieceTest, GetType) {
     Piece p = Piece(pawn | white);

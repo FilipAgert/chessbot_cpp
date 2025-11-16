@@ -4,7 +4,7 @@
 #include <board_state.h>
 #include <gtest/gtest.h>
 #include <string>
-
+using namespace pieces;
 //Test that FEN for starting state is read correctly.
 TEST(FEN_TEST, starting_state) {
     BoardState state;
