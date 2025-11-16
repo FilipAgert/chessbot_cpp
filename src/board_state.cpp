@@ -4,22 +4,36 @@
 void BoardState::do_move(Move& move){
     move.castling_rights = this->castling;
     move.en_passant_square = this-> en_passant ? this->en_passant_square : err_val8; 
-    move.captured_piece = this->board.get_piece_at(move.end_square);
     move.check = check;
     ply_moves += 1;
     if(this->turn_color == black) full_moves += 1;
     change_turn(); //Changes turn color from white <-> black.
     Piece moved = board.get_piece_at(move.start_square);
+    
+    //Exception: en_passant.
+    if(en_passant && moved.get_type() == pawn && move.end_square == en_passant_square){ 
+        move.captured_piece = Piece(pawn | turn_color); //Can only capture pawns in en_passant.
+    } else {
+        move.captured_piece = this->board.get_piece_at(move.end_square);
+    }
 
     if(move.captured_piece.get_value()){
-        num_pieces--;
         if(en_passant && moved.get_type() == pawn && move.end_square == en_passant_square){
-            std::cerr << "Warning: en passant capture not implemented in BoardState::do_move";
+            //todo: piece_loc_remove of the captured pawn. And piece_loc move of the moved piece.
+            //Also remove from board captured pawn.
+            uint8_t captured_pawn_loc = (turn_color == black) ? move.end_square - 8 : move.end_square + 8 ;
+            //Depends on turn color. If black, we captured a black piece. This means that the location of the pawn is target_square-8,else +8
+
+            piece_loc_remove(captured_pawn_loc);
+            piece_loc_move(move.start_square, move.end_square);
+            board.remove_piece(captured_pawn_loc);
+        } else{
+            //If a piece is removed, we can reuse target piece square since it already points to a square with a piece. 
+            //Not valid for en_passant capture.
+            //Only need to remove start_square.
+            piece_loc_remove(move.start_square);
         }
-        //If a piece is removed, we can reuse target piece square since it already points to a square with a piece. 
-        //Not valid for en_passant capture.
-        //Only need to remove start_square.
-        piece_loc_remove(move.start_square);
+        num_pieces--;
     } else {
         piece_loc_move(move.start_square, move.end_square);
     }
@@ -51,14 +65,18 @@ void BoardState::undo_move(const Move move){
         board.add_piece(move.start_square,Piece(move.promotion.get_color() | pawn)); //Replace with pawn.
     };
 
-
     if(move.captured_piece.get_value()){
-        piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
-        if(en_passant && board.get_piece_at(move.end_square).get_type() == pawn && move.end_square == en_passant_square){
-            std::cerr << "Warning: en passant capture not implemented in BoardState::undo_move";
-        }
-        board.add_piece(move.end_square, move.captured_piece);
         num_pieces++;
+        if(en_passant && board.get_piece_at(move.start_square).get_type() == pawn && move.end_square == en_passant_square){
+            //Readd captured pawn.
+            uint8_t captured_pawn_loc = (turn_color == black) ? move.end_square - 8 : move.end_square+8;
+            board.add_piece(captured_pawn_loc, move.captured_piece);
+            piece_loc_add(captured_pawn_loc);
+            piece_loc_move(move.end_square, move.start_square);
+        } else {
+            piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
+            board.add_piece(move.end_square, move.captured_piece);
+        }
     } else{
         piece_loc_move(move.end_square, move.start_square);
     } 
@@ -92,8 +110,12 @@ void BoardState::piece_loc_move(uint8_t from, uint8_t to){
         idx++;
     }
     Display_board();
-    std::cerr << "No piece found at square: " << (int) from<<std::endl;
-    std::cerr << "Number of pieces: " << num_pieces << std::endl;
+    std::cerr << "No piece found at square: " <<(int) from<< " " << NotationInterface::string_from_idx(from) << std::endl;
+    std::cerr << "Attempted move: " << Move(from, to).toString()<< std::endl;
+    std::cerr << "Number of pieces: " << (int)num_pieces << std::endl;
+    std::cerr << "Locations in piece_loc:"<<std::endl;
+    for(int i =0; i<num_pieces; i++) std::cerr << NotationInterface::string_from_idx(piece_locations[i]) << " ";
+    std::cerr << std::endl;
     std::abort();
 }
 
