@@ -39,5 +39,13 @@ TEST(BitBoardTest, test_knight_moves){
     uint64_t actual = BitBoard::knight_moves(knight);
     ASSERT_EQ(actual, expected);
     
+    knight = 0x4000000000000000;
+    attack.fill(0);
+    attack[NotationInterface::idx_from_string("e7")] = 1;
+    attack[NotationInterface::idx_from_string("f6")] = 1;
+    attack[NotationInterface::idx_from_string("h6")] = 1;
+    expected = BitBoard::bb_from_array(attack);
+    actual = BitBoard::knight_moves(knight);
+    
 
 }
