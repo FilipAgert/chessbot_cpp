@@ -23,23 +23,15 @@ void BoardState::do_move(Move& move){
             //Also remove from board captured pawn.
             uint8_t captured_pawn_loc = (turn_color == black) ? move.end_square - 8 : move.end_square + 8 ;
             //Depends on turn color. If black, we captured a black piece. This means that the location of the pawn is target_square-8,else +8
-
-            piece_loc_remove(captured_pawn_loc);
-            piece_loc_move(move.start_square, move.end_square);
-            board.remove_piece(captured_pawn_loc);
+            board.capture_piece_ep(move.start_square, move.end_square, captured_pawn_loc);
         } else{
-            //If a piece is removed, we can reuse target piece square since it already points to a square with a piece. 
-            //Not valid for en_passant capture.
-            //Only need to remove start_square.
-            piece_loc_remove(move.start_square);
+            board.capture_piece(move.start_square, move.end_square);
         }
-        num_pieces--;
     } else {
-        piece_loc_move(move.start_square, move.end_square);
+        board.move_piece(move.start_square, move.end_square);
     }
-    board.move_piece(move.start_square, move.end_square);
     if(move.promotion.get_value()) {
-        board.add_piece(move.end_square, move.promotion); //Replace pawn by promoted.
+        board.promote_piece(move.end_square, move.promotion);
         if(move.promotion.get_color() == none) {
             std::cerr << "Invalid argument: Promoted piece must have a color. Piece value: " << move.promotion.get_value() << "\n";
             std::abort();
@@ -62,23 +54,16 @@ void BoardState::undo_move(const Move move){
     check = move.check;
     board.move_piece(move.end_square, move.start_square);
     if(move.promotion.get_value()){
-        board.add_piece(move.start_square,Piece(move.promotion.get_color() | pawn)); //Replace with pawn.
+        board.promote_piece(move.start_square, Piece(move.promotion.get_color() | pawn)); //Replace with pawn.
     };
 
     if(move.captured_piece.get_value()){
         if(en_passant && board.get_piece_at(move.start_square).get_type() == pawn && move.end_square == en_passant_square){
-            //Readd captured pawn.
             uint8_t captured_pawn_loc = (turn_color == black) ? move.end_square - 8 : move.end_square+8;
             board.add_piece(captured_pawn_loc, move.captured_piece);
-            piece_loc_add(captured_pawn_loc);
-            piece_loc_move(move.end_square, move.start_square);
         } else {
-            piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
             board.add_piece(move.end_square, move.captured_piece);
         }
-        num_pieces++;
-    } else{
-        piece_loc_move(move.end_square, move.start_square);
     } 
    
     
@@ -87,41 +72,9 @@ void BoardState::undo_move(const Move move){
     change_turn(); //Changes turn color from white <-> black.
 }
 
-void BoardState::piece_loc_remove(uint8_t sq){
-    uint8_t idx = 0;
-    while (idx < num_pieces){
-        if(piece_locations[idx] == sq) break;
-        idx++;
-    }
-    idx++;
-    while (idx < num_pieces){
-        piece_locations[idx-1] = piece_locations[idx];
-        idx++;
-    }
-}
-
-void BoardState::piece_loc_move(uint8_t from, uint8_t to){
-    uint8_t idx = 0;
-    while (idx < num_pieces){
-        if(piece_locations[idx] == from){
-            piece_locations[idx] = to;
-            return;
-        }
-        idx++;
-    }
-    Display_board();
-    std::cerr << "No piece found at square: " <<(int) from<< " " << NotationInterface::string_from_idx(from) << std::endl;
-    std::cerr << "Attempted move: " << Move(from, to).toString()<< std::endl;
-    std::cerr << "Number of pieces: " << (int)num_pieces << std::endl;
-    std::cerr << "Locations in piece_loc:"<<std::endl;
-    for(int i =0; i<num_pieces; i++) std::cerr << NotationInterface::string_from_idx(piece_locations[i]) << " ";
-    std::cerr << std::endl;
-    std::abort();
-}
 
 bool BoardState::operator==(const BoardState& other)const{
     if (!(board == other.board)) return false;
-    if (num_pieces != other.num_pieces) return false;
     if (castling != other.castling) return false;
     if (turn_color != other.turn_color) return false;
     if (en_passant != other.en_passant) return false;
@@ -184,7 +137,6 @@ bool BoardState::read_fen(const std::string FEN){
     this->reset();
     int row = 7;
     int col = 0;
-    int num_pieces = 0;
 
     bool success = true;
 
@@ -210,7 +162,6 @@ bool BoardState::read_fen(const std::string FEN){
 
             int idx = NotationInterface::idx(row, col);
             board.add_piece(idx,p);
-            piece_locations[num_pieces++] = idx;
             col++;
         }
 
@@ -268,8 +219,6 @@ bool BoardState::read_fen(const std::string FEN){
     // ----------------------------
     // 3. Store results in state
     // ----------------------------
-
-    this->num_pieces = num_pieces;
 
 
     return success;
@@ -339,8 +288,7 @@ std::string BoardState::fen_from_state() const{
     return FEN;
 }
 void BoardState::print_piece_loc() const{
-    for(int i =0; i<num_pieces; i++) std::cout << NotationInterface::string_from_idx(piece_locations[i]) << " ";
-    std::cout<<std::endl;
+    board.print_piece_loc();
 }
 size_t BoardState::get_moves(std::array<Move, max_legal_moves>& moves)const{
     uint8_t num_moves = board.get_moves(moves, turn_color);

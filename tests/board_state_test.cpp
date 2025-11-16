@@ -7,21 +7,6 @@
 #include <string>
 #include <move.h>
 
-// Test that Board() initializes all squares to empty pieces
-TEST(BoardStateTest, shift_piece_loc){
-    BoardState state;
-    state.piece_locations[0] = 16;
-    state.piece_locations[1] = 6;
-    state.piece_locations[2] = 50;
-    state.piece_locations[3] = 58;
-    state.num_pieces = 4;
-    state.piece_loc_remove(6);
-    
-    ASSERT_EQ(state.piece_locations[0], 16);
-    ASSERT_EQ(state.piece_locations[1], 50);
-    ASSERT_EQ(state.piece_locations[2], 58);
-    
-}
 
 TEST(BoardStateTest, doUndoMove){
     BoardState state;
@@ -99,7 +84,7 @@ TEST(BoardStateTest, doUndoMoveCapture) {
               Piece('P'));
     ASSERT_EQ(modified.board.get_piece_at(move.end_square), captured);
     ASSERT_EQ(modified.turn_color, white);
-    ASSERT_EQ((int)modified.num_pieces, (int)original.num_pieces);
+    ASSERT_EQ((int)modified.get_num_pieces(), (int)original.get_num_pieces());
     ASSERT_EQ(modified, original);
 }
 TEST(BoardStateTest, doUndoMoveEnPassant) {
@@ -120,7 +105,7 @@ TEST(BoardStateTest, doUndoMoveEnPassant) {
     m2 = Move("d5e6");
     modified.do_move(m1);
     modified.do_move(m2);
-    ASSERT_EQ(modified.num_pieces, 3);
+    ASSERT_EQ(modified.get_num_pieces(), 3);
     modified.undo_move(m2);
     modified.undo_move(m1);
     ASSERT_EQ(modified, original);

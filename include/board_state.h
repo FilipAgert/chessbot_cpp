@@ -12,8 +12,6 @@
 #include <integer_representation.h>
 struct BoardState{
     Board board;
-    std::array<uint8_t, 32> piece_locations{};//Array containing the indices for pieces in the board array.
-    uint8_t num_pieces = err_val8;
     uint8_t castling = err_val8;
     uint8_t turn_color = err_val8; //0b01000 for white 0b10000 for black
     bool en_passant = false;
@@ -45,8 +43,6 @@ struct BoardState{
      */
     size_t get_moves(std::array<Move, max_legal_moves>& moves) const;
     void reset(){
-        piece_locations.fill(0);
-        num_pieces = 0;
         castling = err_val8;
         turn_color = err_val8;
         en_passant = false;
@@ -58,25 +54,7 @@ struct BoardState{
     };
 
     
-    /** @brief in the piece_loc array, for the element with "from" as its square, change it to to.
-     * 
-     * @param from square to be replaced
-     * @param to square to be replaced by
-     */
-    void piece_loc_move(uint8_t from, uint8_t to);
-    /**
-     * @brief Removes piece from piece_loc array shift all other elements to the left. 
-     * 
-     * @param sq 
-     */
-    void piece_loc_remove(uint8_t sq);
 
-    /**
-     * @brief Adds piece to array. Assumes that num_pieces is correct (PRE adding) I.e. if num_pieces is 1, will add to index 1 (position 2) in array.
-     * 
-     * @param sq Square of piece location
-     */
-    inline void piece_loc_add(const uint8_t sq) {piece_locations[num_pieces] = sq;};
 
 
     /**
@@ -97,6 +75,7 @@ struct BoardState{
     void print_piece_loc() const;
     void Display_board();
     bool operator==(const BoardState& other)const;
+    uint8_t get_num_pieces(){return board.get_num_pieces();};
 };
 
 
