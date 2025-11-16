@@ -342,3 +342,7 @@ void BoardState::print_piece_loc() const{
     for(int i =0; i<num_pieces; i++) std::cout << NotationInterface::string_from_idx(piece_locations[i]) << " ";
     std::cout<<std::endl;
 }
+size_t BoardState::get_moves(std::array<Move, max_legal_moves>& moves)const{
+    uint8_t num_moves = board.get_moves(moves, turn_color);
+    return num_moves;
+}

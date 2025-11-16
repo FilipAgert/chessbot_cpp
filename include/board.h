@@ -8,6 +8,7 @@
 #include <iostream>
 #include <array>
 #include <notation_interface.h>
+#include <move.h>
 struct Board {
 public:
     Board();
@@ -35,6 +36,7 @@ public:
     
     bool operator==(const Board& other)const;
 
+    size_t get_moves(std::array<Move, max_legal_moves>& moves, const uint8_t turn_color)const; 
     
 
 private:

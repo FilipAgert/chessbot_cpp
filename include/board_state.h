@@ -36,6 +36,14 @@ struct BoardState{
      */
     void change_turn(){turn_color ^= color_mask;} //Xor with color mask to change color.
 
+
+    /**
+     * @brief Get the all the possible legal moves and sets into provided array
+     * 
+     * @param moves array containing moves
+     * @return * size_t: number of legal moves in array. 
+     */
+    size_t get_moves(std::array<Move, max_legal_moves>& moves) const;
     void reset(){
         piece_locations.fill(0);
         num_pieces = 0;

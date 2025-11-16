@@ -27,7 +27,11 @@ void Board::clear_board(){
         this->game_board[i] = Piece();
     }
 }
-
+size_t Board::get_moves(std::array<Move, max_legal_moves>& moves, const uint8_t turn_color) const{
+    //Iterate over the locations of the pieces. Get all their available moves, add into array and return number of moves.
+    return 0;
+    
+}
 bool Board::operator==(const Board& other)const{
     for (int i = 0; i<64;i++) if (!(game_board[i] == other.game_board[i])) return false; 
     return true;
