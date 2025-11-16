@@ -1,6 +1,6 @@
 #include <notation_interface.h>
 
-
+using namespace pieces;
 std::string NotationInterface::castling_rights(const uint8_t castle){
     std::string builder = "";
     if(castle & castling::cast_white_kingside) builder.push_back(Piece(king|white).get_char());
