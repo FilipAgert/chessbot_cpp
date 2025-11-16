@@ -252,4 +252,8 @@ TEST(BoardStateTest, enPassantSquare){
     state.do_move(move);
     ASSERT_TRUE(state.en_passant);
     ASSERT_EQ(state.en_passant_square, NotationInterface::idx_from_string("a6"));
+    
+    move = Move("b7b6");
+    state.do_move(move);
+    ASSERT_FALSE(state.en_passant); 
 }
