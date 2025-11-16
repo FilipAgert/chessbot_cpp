@@ -14,4 +14,34 @@ namespace BitBoard{
         out |= (knight_loc & (~(top | row(6))) & (~left)) << (N+N+E); //NNW
         return out;
     }
+    uint64_t ray(const uint64_t origin, const uint64_t dir){
+        //How to ensure no wrap-around?
+        uint64_t hit = 0;
+        uint64_t mask =0;
+        
+        hit |= 
+        shift_bb(origin, dir);
+    }
+}
+
+namespace masks{
+    
+    uint64_t edge_mask(uint8_t dir){
+        uint64_t outmask = 0;
+        switch(dir){
+            case E: outmask = right; break;
+            case W: outmask = left; break;
+            case S: outmask = bottom; break;
+            case N: outmask = top; break;
+            case NE: outmask = top | right; break;
+            case NW: outmask = top | left; break;
+            case SE: outmask = bottom | right; break;
+            case SW: outmask = bottom | left; break;
+            default: 
+                std::cerr << "err: wrong dir" << std::endl; 
+                abort();
+                break;
+        }
+        return outmask;
+    }
 }

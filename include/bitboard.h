@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <bitset>
 #include <array>
+#include <iostream>
 namespace BitBoard{
     /**
      * @brief Shifts the bitboard in a certain direction n # of steps. Branchless execution
@@ -53,6 +54,17 @@ namespace BitBoard{
      * @return uint64_t Bitboard of all the knight moves.
      */
     uint64_t knight_moves(const uint64_t knight_loc);
+    
+    uint64_t rook_moves(const uint64_t rook_locs);
+    
+    /**
+     * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.
+     * 
+     * @param origin 
+     * @param dir 
+     * @return uint64_t 
+     */
+    uint64_t ray(const uint64_t origin, const uint64_t dir);
 
     
     static inline constexpr uint64_t bb_from_array(std::array<uint8_t, 64> arr){
@@ -82,9 +94,12 @@ namespace masks{//Containing masks for bitboards. E.g. mask out top row or somet
     static constexpr uint64_t left =  0x0101010101010101;
     static constexpr uint64_t right =  BitBoard::shift_bb(left, dirs::E, 7);
     static constexpr uint64_t sides = left | right;
+    static constexpr uint64_t fill = 0xFFFFFFFFFFFFFFFF;
     
     static inline constexpr uint64_t row(uint8_t r){return bottom << 8*r;};
     static inline constexpr uint64_t col(uint8_t c){return left << c;};
+
+    uint64_t edge_mask(uint8_t dir){}
 
 }
 
