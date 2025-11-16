@@ -19,7 +19,7 @@ CC = g++ $(FLAGS) -c -g
 # objects
 OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o $(DOBJ)/game.o $(DOBJ)/notation_interface.o $(DOBJ)/board_state.o
 MAIN_OBJ = $(DOBJ)/main.o
-TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o# Add object files for your tests (adjust the name as needed)
+TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o# Add object files for your tests (adjust the name as needed)
 
 # Targets
 main: $(DEXE)/$(EXEN)
