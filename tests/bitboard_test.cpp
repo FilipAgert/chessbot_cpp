@@ -49,6 +49,12 @@ TEST(BitBoardTest, test_knight_moves){
     actual = BitBoard::knight_moves(knight, f_bb);
     ASSERT_EQ(actual, expected);
 
+    attack[NotationInterface::idx_from_string("h6")] = 0;
+    f_bb = BitBoard::one_high(NotationInterface::idx_from_string("h6"));
+    expected = BitBoard::bb_from_array(attack);
+    actual = BitBoard::knight_moves(knight, f_bb);
+    ASSERT_EQ(actual, expected);
+
     knight = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
     expected = BitBoard::bitcount(BitBoard::knight_moves(knight,f_bb));
     actual = 8;
