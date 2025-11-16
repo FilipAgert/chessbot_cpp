@@ -69,6 +69,10 @@ void Board::clear_board(){
     }
 }
 
+bool Board::operator==(const Board& other)const{
+    for (int i = 0; i<64;i++) if (!(game_board[i] == other.game_board[i])) return false; 
+    return true;
+}
 
 Board::Board(){
     for (int i = 0; i<64; i++){

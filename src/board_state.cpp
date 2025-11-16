@@ -73,3 +73,16 @@ void BoardState::piece_loc_move(uint8_t from, uint8_t to){
     }
     throw new std::runtime_error("No piece found at square: " + (int)from);
 }
+
+bool BoardState::operator==(const BoardState& other)const{
+    if (!(board == other.board)) return false;
+    if (num_pieces != other.num_pieces) return false;
+    if (castling != other.castling) return false;
+    if (turn_color != other.turn_color) return false;
+    if (en_passant != other.en_passant) return false;
+    if (en_passant && (en_passant_square != other.en_passant_square)) return false;
+    if (check != other.check) return false;
+    if (ply_moves != other.ply_moves) return false;
+    if (full_moves != other.full_moves) return false;
+    return true;
+}

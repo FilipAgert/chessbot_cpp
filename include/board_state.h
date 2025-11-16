@@ -71,6 +71,9 @@ struct BoardState{
      * @param sq Square of piece location
      */
     inline void piece_loc_add(const uint8_t sq) {piece_locations[num_pieces] = sq;};
+
+
+    bool operator==(const BoardState& other)const;
 };
 
 

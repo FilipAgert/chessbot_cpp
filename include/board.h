@@ -61,6 +61,8 @@ public:
     uint8_t get_square_color(uint8_t square)const;
 
     void clear_board();
+    
+    bool operator==(const Board& other)const;
 
 private:
     std::array<Piece, 64> game_board;
