@@ -11,7 +11,7 @@ namespace BitBoard{
      * @param steps How many steps to move in this direction
      * @return shifted bitboard
      */
-    inline uint64_t shift_bb(const uint64_t board, const int dir, const uint8_t steps){
+    static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir, const uint8_t steps){
         int left_shift = (dir > 0) * dir*steps;
         int right_shift = (dir < 0) * (-dir)*steps;
         uint64_t left_mask = -(dir > 0);
@@ -27,7 +27,7 @@ namespace BitBoard{
      * @param dir direction to move in (N,E,S,W etc)
      * @return shifted bitboard
      */
-    inline uint64_t shift_bb(const uint64_t board, const int dir){
+    static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir){
         int left_shift = (dir > 0) * dir;
         int right_shift = (dir < 0) * (-dir);
         uint64_t left_mask = -(dir > 0); //Generates mask of all ones, or mask of all 0s.
@@ -36,6 +36,14 @@ namespace BitBoard{
         uint64_t right = (board >> right_shift) & right_mask;
         return left | right;
     }
+   
+    /**
+     * @brief Gets the bitboard for the available knight moves.
+     * 
+     * @param knight_loc Location of knights.
+     * @return uint64_t Bitboard of all the knight moves.
+     */
+    uint64_t knight_moves(const uint64_t knight_loc);
 };
 
 namespace dirs{
@@ -48,6 +56,18 @@ namespace dirs{
     static constexpr int NE = N+E;
     static constexpr int SE = S+E;
     static constexpr int NW = N+W;
+}
+
+namespace masks{//Containing masks for bitboards. E.g. mask out top row or someth(ing similar.
+    static constexpr uint64_t bottom = 0b11111111;
+    static constexpr uint64_t top = BitBoard::shift_bb(bottom, dirs::N,7);
+    static constexpr uint64_t left =  0x0101010101010101;
+    static constexpr uint64_t right =  BitBoard::shift_bb(left, dirs::E, 7);
+    static constexpr uint64_t sides = left | right;
+    
+    static inline constexpr uint64_t row(uint8_t r){return bottom << 8*r;};
+    static inline constexpr uint64_t col(uint8_t c){return left << c;};
+
 }
 
 
