@@ -58,6 +58,7 @@ namespace BitBoard{
     uint64_t rook_moves(const uint64_t rook_locs);
     uint64_t bishop_moves(const uint64_t bishop_bb);
     uint64_t queen_moves(const uint64_t queen_bb);
+    uint64_t king_moves(const uint64_t king_bb);
     
     /**
      * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.

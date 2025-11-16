@@ -45,6 +45,17 @@ namespace BitBoard{
     uint64_t queen_moves(const uint64_t queen_bb){
         return rook_moves(queen_bb) | bishop_moves(queen_bb); 
     }
+    uint64_t king_moves(const uint64_t king_bb){
+        uint64_t hit = ray(king_bb, N, 1);
+        hit |= ray(king_bb, NE, 1);
+        hit |= ray(king_bb, E, 1);
+        hit |= ray(king_bb, SE, 1);
+        hit |= ray(king_bb, S, 1);
+        hit |= ray(king_bb, SW, 1);
+        hit |= ray(king_bb, W, 1);
+        hit |= ray(king_bb, NW, 1);
+        return hit;
+    }
 }
 
 namespace masks{
