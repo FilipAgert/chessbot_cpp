@@ -75,4 +75,20 @@ TEST(BitBoardTest, test_ray){
     attacked = BitBoard::ray(origin, dir);
     ASSERT_EQ(attacked, masks::col(1) & ~BitBoard::one_high(NotationInterface::idx_from_string("b1")));
 
+    dir = NW;
+    attacked = BitBoard::ray(origin, dir);
+    ASSERT_EQ(attacked, BitBoard::one_high(NotationInterface::idx_from_string("a2")));
+
+    dir = NE;
+    attacked = BitBoard::ray(origin, dir);
+    std::array<uint8_t, 64> attack;
+    attack.fill(0); 
+    attack[NotationInterface::idx_from_string("c2")] = 1;
+    attack[NotationInterface::idx_from_string("d3")] = 1;
+    attack[NotationInterface::idx_from_string("e4")] = 1;
+    attack[NotationInterface::idx_from_string("f5")] = 1;
+    attack[NotationInterface::idx_from_string("g6")] = 1;
+    attack[NotationInterface::idx_from_string("h7")] = 1;
+    uint64_t expected = BitBoard::bb_from_array(attack);
+    ASSERT_EQ(attacked, expected);
 }
