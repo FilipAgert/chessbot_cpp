@@ -34,7 +34,9 @@ TEST(BoardStateTest, doUndoMove){
     state.do_move(move);
     ASSERT_TRUE(state.board.is_square_empty(move.start_square));
     ASSERT_FALSE(state.board.is_square_empty(move.end_square));
-    ASSERT_EQ(state.board.get_piece_at(move.end_square), Piece('P'));
+    Piece p = Piece('P');
+    ASSERT_EQ(state.board.get_piece_at(move.end_square), p);
+    
     ASSERT_EQ(state.turn_color, black) ;
     state.undo_move(move);
     ASSERT_FALSE(state.board.is_square_empty(move.start_square));

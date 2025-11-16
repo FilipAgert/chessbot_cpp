@@ -9,7 +9,7 @@ void BoardState::do_move(Move& move){
     ply_moves += 1;
     if(this->turn_color == black) full_moves += 1;
     change_turn(); //Changes turn color from white <-> black.
-    
+
     if(move.captured_piece.get_value()){
         num_pieces--;
         if(en_passant && board.get_piece_at(move.end_square).get_type() == pawn && move.end_square == en_passant_square){
@@ -19,12 +19,16 @@ void BoardState::do_move(Move& move){
         //Not valid for en_passant capture.
         //Only need to remove start_square.
         piece_loc_remove(move.start_square);
-    } else piece_loc_move(move.start_square, move.end_square);
-
+    } else {
+        piece_loc_move(move.start_square, move.end_square);
+    }
     board.move_piece(move.start_square, move.end_square);
     if(move.promotion.get_value()) {
         board.add_piece(move.end_square, move.promotion); //Replace pawn by promoted.
-        if(move.promotion.get_color() == none) throw new std::invalid_argument("Promoted piece must have a color");
+        if(move.promotion.get_color() == none) {
+            std::cerr << "Invalid argument: Promoted piece must have a color. Piece value: " << move.promotion.get_value() << "\n";
+            std::abort();
+        }
     }
 }
 
@@ -78,7 +82,10 @@ void BoardState::piece_loc_move(uint8_t from, uint8_t to){
         }
         idx++;
     }
-    throw new std::runtime_error("No piece found at square: " + (int)from);
+    Display_board();
+    std::cerr << "No piece found at square: " << (int) from<<std::endl;
+    std::cerr << "Number of pieces: " << num_pieces << std::endl;
+    std::abort();
 }
 
 bool BoardState::operator==(const BoardState& other)const{
@@ -231,7 +238,7 @@ bool BoardState::read_fen(const std::string FEN){
     // 3. Store results in state
     // ----------------------------
 
-    num_pieces = num_pieces;
+    this->num_pieces = num_pieces;
 
 
     return success;
