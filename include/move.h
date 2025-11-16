@@ -21,7 +21,7 @@ struct Move{
         this->promotion = (move_str.length()==5) ? Piece(move_str[4]) : Piece();
     };
     Move(uint8_t from, uint8_t to){start_square = from; end_square = to;};
-    std::string toString(){
+    std::string toString()const{
         std::string out = NotationInterface::string_from_idx(start_square)+NotationInterface::string_from_idx(end_square);
         if(!(promotion == none_piece)) out += promotion.get_char();
         return out; 
