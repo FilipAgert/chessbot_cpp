@@ -20,7 +20,7 @@ public:
      * @brief Prints board to console. Uppercase pieces are white, lowercase black.
      * 
      */
-    void display_board() ;
+    void display_board(){state.Display_board();};
     std::string get_fen() const;
     /**
      * @brief Set the game state from FEN. If not success, game state now undefined.

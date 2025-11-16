@@ -73,6 +73,7 @@ struct BoardState{
     inline void piece_loc_add(const uint8_t sq) {piece_locations[num_pieces] = sq;};
 
 
+    void Display_board();
     bool operator==(const BoardState& other)const;
 };
 
