@@ -105,9 +105,8 @@ TEST(BoardStateTest, doUndoMoveCapture) {
 TEST(BoardStateTest, doUndoMoveEnPassant) {
     BoardState state;
     // White pawn on e5, black pawn on d7 ready for d5 enabling e.p.
-    std::string fen = "8/3p4/8/4P3/8/8/8/8 w - d6 0 1";
+    std::string fen = "8/8/8/3pP3/8/8/8/8 w - d6 0 1";
     state.read_fen(fen);
-
     Move ep_move;
     ep_move.start_square = NotationInterface::idx_from_string("e5");
     ep_move.end_square = NotationInterface::idx_from_string("d6");
@@ -159,59 +158,52 @@ TEST(BoardStateTest, chainedMovesUndoEquality) {
 
     ASSERT_TRUE(modified == original);
 }
+TEST(BoardStateTest, chainedMoveCapture) {
+    BoardState original;
+    BoardState modified;
+
+    // Position engineered so white can capture and later promote
+    std::string fen = 
+        "8/4p1k1/8/3P4/8/8/8/5K2 b - - 0 1";
+
+    original.read_fen(fen);
+    modified.read_fen(fen);
+
+
+    Move m1, m2;
+
+    m1 = Move("e7e6");
+    m2 = Move("d5e6");
+    modified.do_move(m1);
+    modified.do_move(m2);
+
+    // Undo moves in reverse
+    modified.undo_move(m2);
+    modified.undo_move(m1);
+
+    // Should match the  exactly
+    ASSERT_TRUE(modified == original);
+}
 TEST(BoardStateTest, chainedMovesCapturePromotionUndoEquality) {
     BoardState original;
     BoardState modified;
 
     // Position engineered so white can capture and later promote
     std::string fen = 
-        "8/4p1k1/8/8/3P4/8/8/4K3 w - - 0 1";
-    // White pawn on d4, black pawn on e7 (which white will capture),
-    // and white will later push pawn to promotion.
+        "8/4p1k1/8/3P4/8/8/8/5K2 b - - 0 1";
 
     original.read_fen(fen);
     modified.read_fen(fen);
 
-    // Moves:
-    // 1. d4xe5 (capture)
-    // 2. ... Kg6
-    // 3. e5-e6
-    // 4. ... Kg7
-    // 5. e6-e7
-    // 6. ... Kf7
-    // 7. e7-e8=Q (promotion)
 
-    Move m1, m2, m3, m4, m5, m6, m7;
+    Move m1, m2, m3, m4, m5, m6;
 
-    // 1. d4xe5
-    m1.start_square = NotationInterface::idx_from_string("d4");
-    m1.end_square   = NotationInterface::idx_from_string("e5");
-    // capture handled automatically by end_square having a piece
-
-    // 2. ... Kg6
-    m2.start_square = NotationInterface::idx_from_string("g7");
-    m2.end_square   = NotationInterface::idx_from_string("g6");
-
-    // 3. e5-e6
-    m3.start_square = NotationInterface::idx_from_string("e5");
-    m3.end_square   = NotationInterface::idx_from_string("e6");
-
-    // 4. ... Kg7
-    m4.start_square = NotationInterface::idx_from_string("g6");
-    m4.end_square   = NotationInterface::idx_from_string("g7");
-
-    // 5. e6-e7
-    m5.start_square = NotationInterface::idx_from_string("e6");
-    m5.end_square   = NotationInterface::idx_from_string("e7");
-
-    // 6. ... Kf7
-    m6.start_square = NotationInterface::idx_from_string("g7");
-    m6.end_square   = NotationInterface::idx_from_string("f7");
-
-    // 7. e7-e8=Q (promotion)
-    m7.start_square  = NotationInterface::idx_from_string("e7");
-    m7.end_square    = NotationInterface::idx_from_string("e8");
-    m7.promotion     = Piece('Q');
+    m1 = Move("e7e5");
+    m2 = Move("d5e6");
+    m3 = Move("g7f6");
+    m4 = Move("e6e7");
+    m5 = Move("f6f7");
+    m6 = Move("e7e8Q");
 
     // Apply moves
     modified.do_move(m1);
@@ -220,10 +212,8 @@ TEST(BoardStateTest, chainedMovesCapturePromotionUndoEquality) {
     modified.do_move(m4);
     modified.do_move(m5);
     modified.do_move(m6);
-    modified.do_move(m7);
 
     // Undo moves in reverse
-    modified.undo_move(m7);
     modified.undo_move(m6);
     modified.undo_move(m5);
     modified.undo_move(m4);
