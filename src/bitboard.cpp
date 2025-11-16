@@ -50,14 +50,14 @@ namespace BitBoard{
         return rook_moves(queen_bb, friendly_bb, enemy_bb) | bishop_moves(queen_bb, friendly_bb, enemy_bb); 
     }
     uint64_t king_moves(const uint64_t king_bb, const uint64_t friendly_bb){
-        uint64_t hit = ray(king_bb, N, 1);
-        hit |= ray(king_bb, NE, 1);
-        hit |= ray(king_bb, E, 1);
-        hit |= ray(king_bb, SE, 1);
-        hit |= ray(king_bb, S, 1);
-        hit |= ray(king_bb, SW, 1);
-        hit |= ray(king_bb, W, 1);
-        hit |= ray(king_bb, NW, 1);
+        uint64_t hit = ray(king_bb, N, 0,1);
+        hit |= ray(king_bb, NE, 0,1);
+        hit |= ray(king_bb, E, 0,1);
+        hit |= ray(king_bb, SE,0, 1);
+        hit |= ray(king_bb, S, 0,1);
+        hit |= ray(king_bb, SW,0, 1);
+        hit |= ray(king_bb, W, 0,1);
+        hit |= ray(king_bb, NW,0, 1);
         return hit & ~friendly_bb;
     }
 }
