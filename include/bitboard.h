@@ -38,7 +38,8 @@ namespace BitBoard{
         uint64_t right = (board >> right_shift) & right_mask;
         return left | right;
     };
-    
+   
+    constexpr uint64_t one_high(int sq) { return 1ULL << sq; } 
     inline constexpr int bitcount(uint64_t bb){return __builtin_popcountll(bb);};
     inline constexpr int lsb(uint64_t bb){return __builtin_ctzll(bb);};
    
@@ -99,7 +100,7 @@ namespace masks{//Containing masks for bitboards. E.g. mask out top row or somet
     static inline constexpr uint64_t row(uint8_t r){return bottom << 8*r;};
     static inline constexpr uint64_t col(uint8_t c){return left << c;};
 
-    uint64_t edge_mask(uint8_t dir){}
+    uint64_t edge_mask(uint8_t dir);
 
 }
 

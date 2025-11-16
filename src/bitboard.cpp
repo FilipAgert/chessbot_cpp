@@ -4,14 +4,15 @@ using namespace masks;
 namespace BitBoard{
     uint64_t knight_moves(const uint64_t knight_loc){
         //Gets all possible attack squares a knight can make by shifting bitboard a few times.
-        uint64_t out = (knight_loc & (~(top | row(6))) & (~right)) << (N+N+E); //NNE
-        out |=  (knight_loc & (~(top)) & (~(right|col(6)))) << (N+E+E); //NEE
-        out |=  (knight_loc & (~(bottom)) & (~(right|col(6)))) >> -(S+E+E); //SEE
-        out |=  (knight_loc & (~(bottom | row(1))) & (~(right)) >> -(S+S+E)); //SSE
-        out |=  (knight_loc & (~(bottom | row(1))) & (~(left)) >> -(S+S+W)); //SSW
-        out |=  (knight_loc & (~(bottom)) & (~(left|col(1)))) >> -(S+W+W); //SWW
-        out |=  (knight_loc & (~(top)) & (~(left|col(1)))) << (N+W+W); //NWW
-        out |= (knight_loc & (~(top | row(6))) & (~left)) << (N+N+W); //NNW
+        uint64_t out = (knight_loc & (~(top | row(6)))    & (~right))          << (N+N+E); //NNE
+        out |=         (knight_loc & (~(top))             & (~(right|col(6)))) << (N+E+E); //NEE
+        out |=         (knight_loc & (~(bottom))          & (~(right|col(6)))) >> -(S+E+E); //SEE
+        out |=         (knight_loc & (~(bottom | row(1))) & (~(right)))         >> -(S+S+E); //SSE
+                                                                              
+        out |=         (knight_loc & (~(bottom | row(1))) & (~(left)))          >> -(S+S+W); //SSW
+        out |=         (knight_loc & (~(bottom))          & (~(left|col(1))))  >> -(S+W+W); //SWW
+        out |=         (knight_loc & (~(top))             & (~(left|col(1))))  << (N+W+W); //NWW
+        out |=         (knight_loc & (~(top | row(6)))    & (~left))           << (N+N+W); //NNW
         return out;
     }
     uint64_t ray(const uint64_t origin, const uint8_t dir){
@@ -19,7 +20,6 @@ namespace BitBoard{
         uint64_t hit = 0;
         uint64_t mask = edge_mask(dir);
         
-        hit |= 
         shift_bb(origin, dir);
     }
 }
