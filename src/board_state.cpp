@@ -5,7 +5,6 @@ void BoardState::do_move(Move& move){
     move.castling_rights = this->castling;
     move.en_passant_square = this-> en_passant ? this->en_passant_square : err_val8; 
     move.captured_piece = this->board.get_piece_at(move.end_square);
-    move.moved_piece = this->board.get_piece_at(move.start_square);
     
     ply_moves += 1;
     if(this->turn_color == Piece::black) full_moves += 1;
@@ -13,7 +12,7 @@ void BoardState::do_move(Move& move){
     
     if(move.captured_piece.get_value()){
         num_pieces--;
-        if(en_passant && move.moved_piece.get_type() == Piece::pawn && move.end_square == en_passant_square){
+        if(en_passant && board.get_piece_at(move.end_square).get_type() == Piece::pawn && move.end_square == en_passant_square){
             std::cerr << "Warning: en passant not implemented in BoardState::do_move";
         }
         //If a piece is removed, we can reuse target piece square since it already points to a square with a piece. 
@@ -42,7 +41,7 @@ void BoardState::undo_move(const Move move){
 
     if(move.captured_piece.get_value()){
         piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
-        if(en_passant && move.moved_piece.get_type() == Piece::pawn && move.end_square == en_passant_square){
+        if(en_passant && board.get_piece_at(move.end_square).get_type() == Piece::pawn && move.end_square == en_passant_square){
             std::cerr << "Warning: en passant not implemented in BoardState::undo_move";
         }
         board.add_piece(move.end_square, move.captured_piece);
