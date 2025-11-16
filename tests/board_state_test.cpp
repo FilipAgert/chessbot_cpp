@@ -234,3 +234,22 @@ TEST(BoardStateTest, chainedMovesCapturePromotionUndoEquality) {
     // Should match the  exactly
     ASSERT_TRUE(modified == original);
 }
+
+TEST(BoardStateTest, enPassantSquare){
+    BoardState state;
+    std::string starting_fen = NotationInterface::starting_FEN();
+    state.read_fen(starting_fen);
+    
+    Move move;
+    move.start_square = NotationInterface::idx_from_string("a2");
+    move.end_square = NotationInterface::idx_from_string("a4");
+    state.do_move(move);
+    ASSERT_EQ(state.en_passant_square, NotationInterface::idx_from_string("a3"));
+    ASSERT_TRUE(state.en_passant);
+    
+    move.start_square = NotationInterface::idx_from_string("a7");
+    move.end_square = NotationInterface::idx_from_string("a5");
+    state.do_move(move);
+    ASSERT_TRUE(state.en_passant);
+    ASSERT_EQ(state.en_passant_square, NotationInterface::idx_from_string("a6"));
+}

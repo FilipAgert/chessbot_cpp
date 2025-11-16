@@ -9,11 +9,12 @@ void BoardState::do_move(Move& move){
     ply_moves += 1;
     if(this->turn_color == black) full_moves += 1;
     change_turn(); //Changes turn color from white <-> black.
+    Piece moved = board.get_piece_at(move.start_square);
 
     if(move.captured_piece.get_value()){
         num_pieces--;
-        if(en_passant && board.get_piece_at(move.end_square).get_type() == pawn && move.end_square == en_passant_square){
-            std::cerr << "Warning: en passant not implemented in BoardState::do_move";
+        if(en_passant && moved.get_type() == pawn && move.end_square == en_passant_square){
+            std::cerr << "Warning: en passant capture not implemented in BoardState::do_move";
         }
         //If a piece is removed, we can reuse target piece square since it already points to a square with a piece. 
         //Not valid for en_passant capture.
@@ -29,6 +30,14 @@ void BoardState::do_move(Move& move){
             std::cerr << "Invalid argument: Promoted piece must have a color. Piece value: " << move.promotion.get_value() << "\n";
             std::abort();
         }
+    }
+    //Set the en_passant flags
+    if(moved.get_type() == pawn && abs(move.end_square - move.start_square) == 16){
+        en_passant = true;
+        en_passant_square = (move.start_square + move.end_square)/2;
+    } else{
+        en_passant = false;
+        en_passant_square = err_val8;
     }
 }
 
@@ -46,7 +55,7 @@ void BoardState::undo_move(const Move move){
     if(move.captured_piece.get_value()){
         piece_loc_add(move.start_square); //Counterintuative, but the target square will already track the target piece.
         if(en_passant && board.get_piece_at(move.end_square).get_type() == pawn && move.end_square == en_passant_square){
-            std::cerr << "Warning: en passant not implemented in BoardState::undo_move";
+            std::cerr << "Warning: en passant capture not implemented in BoardState::undo_move";
         }
         board.add_piece(move.end_square, move.captured_piece);
         num_pieces++;

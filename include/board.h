@@ -35,6 +35,8 @@ public:
     
     bool operator==(const Board& other)const;
 
+    
+
 private:
     std::array<Piece, 64> game_board;
 };
