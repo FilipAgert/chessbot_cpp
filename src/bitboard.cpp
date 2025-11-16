@@ -25,6 +25,20 @@ namespace BitBoard{
         }
         return hit& ~origin;//Exclude origin, since the piece does not attack itself.
     }
+    uint64_t rook_moves(const uint64_t rook_locs){
+        uint64_t hit = ray(rook_locs, N);
+        hit |= ray(rook_locs, E);
+        hit |= ray(rook_locs, S);
+        hit |= ray(rook_locs, W);
+        return hit; 
+    }
+    uint64_t bishop_moves(const uint64_t bishop_locs){
+        uint64_t hit = ray(bishop_locs, NE);
+        hit |= ray(bishop_locs, SE);
+        hit |= ray(bishop_locs, SW);
+        hit |= ray(bishop_locs, NW);
+        return hit; 
+    }
 }
 
 namespace masks{
