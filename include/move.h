@@ -9,6 +9,7 @@ struct Move{
     uint8_t start_square, end_square;
     uint8_t en_passant_square = err_val8;
     uint8_t castling_rights;
+    uint8_t check;//This way we don't have to recompute if checked when we undo a move.
 };
 
 

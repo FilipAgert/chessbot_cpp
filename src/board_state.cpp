@@ -5,7 +5,7 @@ void BoardState::do_move(Move& move){
     move.castling_rights = this->castling;
     move.en_passant_square = this-> en_passant ? this->en_passant_square : err_val8; 
     move.captured_piece = this->board.get_piece_at(move.end_square);
-    
+    move.check = check;
     ply_moves += 1;
     if(this->turn_color == Piece::black) full_moves += 1;
     change_turn(); //Changes turn color from white <-> black.
@@ -32,7 +32,7 @@ void BoardState::undo_move(const Move move){
     castling = move.castling_rights;
     en_passant_square = move.en_passant_square;
     en_passant = en_passant_square < 64;
-    
+    check = move.check;
     board.move_piece(move.end_square, move.start_square);
     if(move.promotion.get_value()){
         board.add_piece(move.start_square,(move.promotion.get_color() | Piece::pawn)); //Replace with pawn.
