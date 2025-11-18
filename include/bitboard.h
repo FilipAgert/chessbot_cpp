@@ -46,11 +46,35 @@ namespace BitBoard{
     inline constexpr int lsb(uint64_t bb){return __builtin_ctzll(bb);};
    
     // print bitboard for debugging
-    inline void print(uint64_t bb) {
-        std::bitset<64> b(bb);
-        std::cout << b << "\n";
-    }
+    inline void print(uint64_t bb) { std::cout << bb_str(bb)<< "\n"; }
     inline std::string bb_str(uint64_t bb) {std::bitset<64> b(bb); return b.to_string();};
+    inline void print(uint64_t bb) { std::cout << to_string(bb)<< "\n"; };
+    std::string to_string(uint64_t bb) {  
+        std::stringstream ss;
+        
+        // File labels
+        ss << "\n    a b c d e f g h\n";
+        ss << "   -----------------\n";
+
+        // Iterate ranks from 8 (index 7) down to 1 (index 0)
+        for (int rank = 7; rank >= 0; --rank) {
+            ss << rank + 1 << " |"; // Rank label
+            for (int file = 0; file < 8; ++file) {
+                int index = rank * 8 + file;
+                // Check if the bit at the current square index is set
+                if ((bb >> index) & 1) {
+                    ss << " 1"; // High bit
+                } else {
+                    ss << " -"; // Low bit
+                }
+            }
+            ss << " |\n";
+        }
+        ss << "   -----------------\n";
+        
+        return ss.str();
+    }
+
     /**
      * @brief Gets the bitboard for the available knight moves.
      * 
