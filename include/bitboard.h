@@ -4,6 +4,7 @@
 #include <bitset>
 #include <array>
 #include <iostream>
+#include <integer_representation.h>
 namespace BitBoard{
     /**
      * @brief Shifts the bitboard in a certain direction n # of steps. Branchless execution
@@ -60,6 +61,7 @@ namespace BitBoard{
     uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
     uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
     uint64_t king_moves(const uint64_t king_bb, const uint64_t friendly_bb);
+    uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb, const uint64_t ep_bb);
     
     /**
      * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.
@@ -102,8 +104,8 @@ namespace masks{//Containing masks for bitboards. E.g. mask out top row or somet
     static constexpr uint64_t sides = left | right;
     static constexpr uint64_t fill = 0xFFFFFFFFFFFFFFFF;
     
-    static inline constexpr uint64_t row(uint8_t r){return bottom << 8*r;};
-    static inline constexpr uint64_t col(uint8_t c){return left << c;};
+    static inline constexpr uint64_t row(uint8_t r){return bottom << 8*r;};//mask for row.
+    static inline constexpr uint64_t col(uint8_t c){return left << c;};//mask for col.
 
     uint64_t edge_mask(int dir);
 
