@@ -5,6 +5,7 @@
 #include <array>
 #include <iostream>
 #include <integer_representation.h>
+#include <string>
 namespace BitBoard{
     /**
      * @brief Shifts the bitboard in a certain direction n # of steps. Branchless execution
@@ -49,6 +50,7 @@ namespace BitBoard{
         std::bitset<64> b(bb);
         std::cout << b << "\n";
     }
+    inline std::string bb_str(uint64_t bb) {std::bitset<64> b(bb); return b.to_string();};
     /**
      * @brief Gets the bitboard for the available knight moves.
      * 
@@ -61,7 +63,7 @@ namespace BitBoard{
     uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
     uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
     uint64_t king_moves(const uint64_t king_bb, const uint64_t friendly_bb);
-    uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb, const uint64_t ep_bb);
+    uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb, const uint64_t ep_bb, const uint8_t pawn_color);
     
     /**
      * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.

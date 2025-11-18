@@ -1,6 +1,22 @@
 #include <bitboard.h>
 using namespace dirs;
 using namespace masks;
+uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const uint8_t pawn_col){
+    int dir = (pawn_col == pieces::white)*N + (pawn_col==pieces::black)*S;//branchless assignment
+    uint8_t rowi = 1*(pawn_col == pieces::white) + 6*(pawn_col == pieces::black); //Branchless execution. Evaluates to 1 or 7 depending on color.
+    uint64_t blocker = BitBoard::shift_bb(all_bb, -dir); //Blocking pieces are one up
+    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~blocker, dir); //All one moves up
+    blocker = blocker | BitBoard::shift_bb(blocker, -dir); //Pieces now block two moves...
+    moves |= BitBoard::shift_bb(pawn_bb & ~blocker & row(rowi), dir, 2);
+    return moves;
+}
+uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb, const uint8_t pawn_col){
+    int dir = (pawn_col == pieces::white)*N + (pawn_col==pieces::black)*S;//branchless assignment
+    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir+1) | BitBoard::shift_bb(pawn_bb & ~col(0), dir-1);
+    //dir + 1 is either NE or SE. Cannot go to the right if we are in the rightmost column. Likewise for dir -1 with left column.
+    moves &= (enemy_bb | ep_bb); //Require either enemy there or en_passant there. 
+    return moves;
+}
 namespace BitBoard{
     uint64_t knight_moves(const uint64_t knight_loc, const uint64_t friendly_bb){
         //Gets all possible attack squares a knight can make by shifting bitboard a few times.
@@ -61,26 +77,9 @@ namespace BitBoard{
         return hit & ~friendly_bb;
     }
     uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb, const uint64_t ep_bb, const uint8_t pawn_col){
-
-
+        return pawn_forward_moves(pawn_bb, friendly_bb | enemy_bb, pawn_col) | pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
     }
     
-}
-uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const uint8_t pawn_col){
-    uint8_t dir = (pawn_col == pieces::white)*N + (pawn_col==pieces::black)*S;//branchless assignment
-    uint8_t rowi = 1*(pawn_col == pieces::white) + 7*(pawn_col == pieces::black); //Branchless execution. Evaluates to 1 or 7 depending on color.
-    uint64_t blocker = BitBoard::shift_bb(all_bb, -dir); //Blocking pieces are one up
-    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~blocker, dir); //All one moves up
-    blocker = blocker | BitBoard::shift_bb(blocker, -dir); //Pieces now block two moves...
-    moves |= BitBoard::shift_bb(pawn_bb & ~blocker & row(rowi), dir, 2);
-    return moves;
-}
-uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint8_t ep_bb, const uint8_t pawn_col){
-    uint8_t dir = (pawn_col == pieces::white)*N + (pawn_col==pieces::black)*S;//branchless assignment
-    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir+1) | BitBoard::shift_bb(pawn_bb & ~col(0), dir-1);
-    //dir + 1 is either NE or SE. Cannot go to the right if we are in the rightmost column. Likewise for dir -1 with left column.
-    moves &= (enemy_bb | ep_bb); //Require either enemy there or en_passant there. 
-    return moves;
 }
 
 namespace masks{

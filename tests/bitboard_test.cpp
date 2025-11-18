@@ -4,10 +4,12 @@
 #include <string>
 #include <bitboard.h>
 #include <notation_interface.h>
+#include <integer_representation.h>
 #include <cstdint>
 using namespace BitBoard;
 using namespace dirs;
 using namespace masks;
+using namespace pieces;
 TEST(BitBoardTest, shift){
     uint64_t bb = 0b1;
     uint64_t shifted = shift_bb(bb, N);
@@ -282,4 +284,178 @@ TEST(BitBoardTest, test_king_moves)
     expected = BitBoard::bb_from_array(attack);
     actual = BitBoard::king_moves(king, f_bb);
     ASSERT_EQ(actual, expected);
+}
+
+TEST(BitBoardTest, test_pawn_moves)
+{
+    // Utility array to build expected move bitboards
+    std::array<uint8_t, 64> attack_map{};
+    uint64_t expected;
+    uint64_t actual;
+
+    // --- SCENARIO 1: white PAWN - STARTING MOVES (1 & 2 squares) ---
+    // Pawn on d2, no blockers. Expected: d3, d4.
+    attack_map.fill(0);
+    uint64_t pawn = BitBoard::one_high(NotationInterface::idx_from_string("d2"));
+    uint64_t friendly = 0;
+    uint64_t enemy = 0;
+    uint64_t ep = 0;
+
+    for (auto sq : { "d3", "d4" })
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on d2 failed 1/2 square move.";
+
+    // --- SCENARIO 2: white PAWN - NORMAL 1-SQUARE MOVE ---
+    // Pawn on d3, no blockers. Expected: d4. (Cannot move two squares)
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("d3"));
+    attack_map[NotationInterface::idx_from_string("d4")] = 1;
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on d3 failed 1 square move.";
+    
+    // --- SCENARIO 2: white PAWN - NORMAL 1-SQUARE BLOCKED ---
+    // Pawn on d3, blockers. Expected: 0.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("d3"));
+    friendly = BitBoard::one_high(NotationInterface::idx_from_string("d4"));
+    attack_map[NotationInterface::idx_from_string("d4")] = 1;
+
+    expected = 0;
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on d3 failed to be blocked.";
+
+    // --- SCENARIO 3: white PAWN - CAPTURES (Normal) ---
+    // Pawn on e4. Enemy on d5 (capture) and e5 (block). Friendly on f5 (no move/capture).
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
+    friendly = BitBoard::one_high(NotationInterface::idx_from_string("f5"));
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("d5"));
+
+    // Expected moves: capture on d5. Forward move e5. f5 is friendly.
+    for (auto sq : { "d5", "e5" })
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+    
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on e4 failed capture and blocking." << BitBoard::bb_str(expected) << " " << BitBoard::bb_str(actual);
+
+    // --- SCENARIO 4: white PAWN - EN PASSANT CAPTURE ---
+    // Pawn on e5. Ep target square is f6 (i.e., black pawn moved f7-f5). 
+    // The pawn to capture is actually on f5, but the target is f6.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("e5"));
+    friendly = 0;
+    enemy = 0; // The captured enemy piece is assumed to be handled internally by ep_bb logic.
+    ep = BitBoard::one_high(NotationInterface::idx_from_string("f6")); // Ep target square
+
+    attack_map[NotationInterface::idx_from_string("e6")] = 1; // Normal forward move
+    attack_map[NotationInterface::idx_from_string("f6")] = 1; // En passant move
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on e5 failed En Passant move to f6." << BitBoard::bb_str(actual);
+
+    // --- SCENARIO 5: white PAWN - FORWARD BLOCKING (Friendly & Enemy) ---
+    // Pawn on a2 (start rank). Blocked on a3 by friendly, a4 by enemy.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("a2"));
+    friendly = BitBoard::one_high(NotationInterface::idx_from_string("a3"));
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("a4"));
+    ep = 0; 
+    
+    // No expected moves, as a3 is blocked by friendly piece.
+    expected = 0; 
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on a2 failed when blocked by friendly on a3.";
+
+    // Pawn on a2. Blocked on a3 by enemy.
+    friendly = 0;
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("a3"));
+    
+    // No expected moves, as a3 is blocked by enemy piece.
+    expected = 0;
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on a2 failed when blocked by enemy on a3.";
+    
+    // --- SCENARIO 6: white PAWN - NO WRAPAROUND (A and H files) ---
+    // Pawn on a3. Enemy on b4. No wrap to h4.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("a3"));
+    friendly = 0;
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("b4")); 
+
+    for (auto sq : { "a4", "b4" }) // Forward move a4, capture b4
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+    
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on a3 failed A-file edge case/wraparound.";
+
+    // Pawn on h3. Enemy on g4. No wrap to a4.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("h3"));
+    friendly = 0;
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("g4")); 
+
+    for (auto sq : { "h4", "g4" }) // Forward move h4, capture g4
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    ASSERT_EQ(actual, expected) << "White pawn on h3 failed H-file edge case/wraparound.";
+
+
+    // =================================================================
+    // --- black PAWN TESTS (Symmetrical verification) ---
+    // =================================================================
+
+    // --- SCENARIO 7: black PAWN - STARTING MOVES (1 & 2 squares) ---
+    // Pawn on d7, no blockers. Expected: d6, d5.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("d7"));
+    friendly = 0;
+    enemy = 0;
+    ep = 0;
+
+    for (auto sq : { "d6", "d5" })
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    ASSERT_EQ(actual, expected) << "Black pawn on d7 failed 1/2 square move." << BitBoard::bb_str(actual);
+
+    // --- SCENARIO 8: black PAWN - CAPTURES & EN PASSANT ---
+    // Pawn on e4. Enemy on d3 and f3. Ep target square is d3.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
+    friendly = BitBoard::one_high(NotationInterface::idx_from_string("d3")); // This spot is now a friendly to test no capture
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("f3")); // Normal capture
+    ep = BitBoard::one_high(NotationInterface::idx_from_string("d3")); // Ep target square
+
+    // Expected moves: e3 (forward), f3 (capture), d3 (ep capture).
+    for (auto sq : { "e3", "f3", "d3" })
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    ASSERT_EQ(actual, expected) << "Black pawn on e4 failed mixed captures and en passant.";
+
+    // --- SCENARIO 9: black PAWN - NO WRAPAROUND (H file) ---
+    // Pawn on h6. Enemy on g5. No wrap to a5.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("h6"));
+    friendly = 0;
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("g5"));
+
+    for (auto sq : { "h5", "g5" }) // Forward move h5, capture g5
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    ASSERT_EQ(actual, expected) << "Black pawn on h6 failed H-file edge case/wraparound.";
 }
