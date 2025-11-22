@@ -79,6 +79,32 @@ namespace BitBoard{
     uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb, const uint64_t ep_bb, const uint8_t pawn_col){
         return pawn_forward_moves(pawn_bb, friendly_bb | enemy_bb, pawn_col) | pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
     }
+
+    std::string to_string_bb(uint64_t bb) {  
+        std::stringstream ss;
+        
+        // File labels
+        ss << "\n    a b c d e f g h\n";
+        ss << "   -----------------\n";
+
+        // Iterate ranks from 8 (index 7) down to 1 (index 0)
+        for (int rank = 7; rank >= 0; --rank) {
+            ss << rank + 1 << " |"; // Rank label
+            for (int file = 0; file < 8; ++file) {
+                int index = rank * 8 + file;
+                // Check if the bit at the current square index is set
+                if ((bb >> index) & 1) {
+                    ss << " 1"; // High bit
+                } else {
+                    ss << " -"; // Low bit
+                }
+            }
+            ss << " |\n";
+        }
+        ss << "   -----------------\n";
+        
+        return ss.str();
+    };
     
 }
 
