@@ -3,6 +3,29 @@
 #include <iostream>
 #include <movegen.h>
 using namespace movegen;
+
+void Board::bb_move(const uint8_t from, const uint8_t to, const Piece p) {
+    bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
+    uint64_t bb = BitBoard::one_high(from);
+    bit_boards[p.get_value()] &= ~bb;
+    bb = BitBoard::one_high(to);
+    bit_boards[p.get_value()] |= bb;
+    bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
+}
+void Board::bb_remove(const uint8_t sq, const Piece p) {
+    bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
+    uint8_t bb = BitBoard::one_high(sq);
+    bit_boards[p.get_value()] &= ~bb;
+    bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
+}
+void Board::bb_add(const uint8_t sq, const Piece p) {
+    bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
+
+    uint8_t bb = BitBoard::one_high(sq);
+    bit_boards[p.get_value()] |= bb;
+
+    bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
+}
 void Board::piece_loc_move(uint8_t from, uint8_t to) {
     uint8_t idx = 0;
     while (idx < num_pieces) {

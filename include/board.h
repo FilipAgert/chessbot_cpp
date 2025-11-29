@@ -87,5 +87,30 @@ struct Board {
      * @param sq
      */
     void piece_loc_remove(uint8_t sq);
+
+    /**
+     * @brief Handles moving piece on bitboard.
+     * board.
+     *
+     * @param[in] from index of from square
+     * @param[in] to index of to square
+     */
+    void bb_move(const uint8_t from, const uint8_t to, const Piece p);
+    /**
+     * @brief Handles removing piece on bitboard. WARNING: Must be called before removing piece on
+     * board.
+     *
+     * @param[in] sq index of square to remove piece from
+     * @param[in] piece to add
+     */
+    void bb_remove(const uint8_t sq, const Piece p);
+    /**
+     * @brief Handles moving piece on bitboard.
+     * board.
+     *
+     * @param[in] from index of from square
+     * @param[in] piece to add
+     */
+    void bb_add(const uint8_t sq, const Piece p);
 };
 #endif
