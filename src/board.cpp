@@ -1,5 +1,6 @@
 // Copyright 2025 Filip Agert
 #include <board.h>
+#include <cassert>
 #include <iostream>
 #include <movegen.h>
 using namespace movegen;
@@ -14,14 +15,14 @@ void Board::bb_move(const uint8_t from, const uint8_t to, const Piece p) {
 }
 void Board::bb_remove(const uint8_t sq, const Piece p) {
     bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
-    uint8_t bb = BitBoard::one_high(sq);
+    uint64_t bb = BitBoard::one_high(sq);
     bit_boards[p.get_value()] &= ~bb;
     bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
 }
 void Board::bb_add(const uint8_t sq, const Piece p) {
     bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
 
-    uint8_t bb = BitBoard::one_high(sq);
+    uint64_t bb = BitBoard::one_high(sq);
     bit_boards[p.get_value()] |= bb;
 
     bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
@@ -168,7 +169,6 @@ size_t Board::get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t 
             to_squares = movegen::king_moves(bb, friendly_bb);
             break;
         }
-        //  From to_squares create list of moves.
         uint8_t to_sq = 0;
         while (to_squares > 0) {
             uint8_t to = BitBoard::lsb(to_squares);  // Extract LSB loc.

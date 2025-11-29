@@ -54,6 +54,7 @@ struct Board {
 
     inline uint8_t get_num_pieces() { return num_pieces; }
     void print_piece_loc() const;
+    inline const uint64_t get_bb(const uint8_t bb_idx) { return bit_boards[bb_idx]; }
 
  protected:
     std::array<Piece, 64> game_board;
