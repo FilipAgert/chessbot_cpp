@@ -116,8 +116,11 @@ void Board::promote_piece(const uint8_t square, const Piece promotion) {
 
 void Board::clear_board() {
     piece_locations.fill(0);
-    for (int i = 0; i < 64; i++) {
+    for (size_t i = 0; i < 64; i++) {
         this->game_board[i] = Piece();
+    }
+    for (size_t i = 0; i < bit_boards.size(); i++) {
+        bit_boards[i] = 0;
     }
     num_pieces = 0;
 }
