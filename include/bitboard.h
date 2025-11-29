@@ -46,6 +46,12 @@ static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir) {
 
 constexpr uint64_t one_high(int sq) { return 1ULL << sq; }
 inline constexpr int bitcount(uint64_t bb) { return __builtin_popcountll(bb); }
+/**
+ * @brief Extracts least significant bit location. Rightmost = 0
+ *
+ * @param[in] bb Bitboard
+ * @return lsb index
+ */
 inline constexpr int lsb(uint64_t bb) { return __builtin_ctzll(bb); }
 
 // print bitboard for debugging
