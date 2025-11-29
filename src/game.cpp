@@ -1,24 +1,20 @@
+// Copyright 2025 Filip Agert
 #include <game.h>
 #include <string>
-#include <stdexcept>
 
-
-bool Game::set_fen(std::string FEN){
+bool Game::set_fen(std::string FEN) {
     bool success = state.read_fen(FEN);
     return success;
 }
 
-std::string Game::get_fen() const{
-    return "";
-}
+std::string Game::get_fen() const { return ""; }
 
-
-void Game::make_move(Move move){
+void Game::make_move(Move move) {
     state.do_move(move);
     move_stack.push(move);
 }
 
-void Game::undo_move(){
+void Game::undo_move() {
     Move move = move_stack.top();
     move_stack.pop();
     state.undo_move(move);
