@@ -1,7 +1,8 @@
 // Copyright 2025 Filip Agert
 #include <board.h>
 #include <iostream>
-
+#include <movegen.h>
+using namespace movegen;
 void Board::piece_loc_move(uint8_t from, uint8_t to) {
     uint8_t idx = 0;
     while (idx < num_pieces) {
@@ -100,20 +101,51 @@ size_t Board::get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t 
     //    bitmap NOW, then a piece might be pinned. Need to check if we're moving the pinned piece.
     //    Move generation is likely easier with bitmap since we can just shift.
     size_t num_moves = 0;
-    for (int i = 0; i < this->num_pieces; i++) {
+    uint64_t friendly_bb = bit_boards[turn_color];
+    uint64_t enemy_bb = bit_boards[pieces::color_mask ^ turn_color];
+    uint64_t en_passant_bb = 0;  // TODO: Set actual en_passant value somehow.
+
+    for (int i = 0; i < num_pieces; i++) {
         uint8_t square = piece_locations[i];
         Piece p = game_board[square];
-        if (p.get_color() == turn_color) {
-            uint64_t bb = BitBoard::one_high(square);
-            switch (p.get_type()) {
-            case pieces::king:
-                break;
-            }
+        if (p.get_color() != turn_color)  // Cycle if not correct color.
+            continue;
+        uint64_t bb = BitBoard::one_high(square);
+        uint64_t to_squares;
+        switch (p.get_type()) {
+        case pieces::pawn:
+            to_squares = movegen::pawn_moves(bb, friendly_bb, enemy_bb, en_passant_bb, turn_color);
+
+            break;
+        case pieces::bishop:
+            to_squares = movegen::bishop_moves(bb, friendly_bb, enemy_bb);
+            break;
+        case pieces::knight:
+            to_squares = movegen::knight_moves(bb, friendly_bb);
+            break;
+        case pieces::rook:
+            to_squares = movegen::rook_moves(bb, friendly_bb, enemy_bb);
+            break;
+        case pieces::queen:
+            to_squares = movegen::queen_moves(bb, friendly_bb, enemy_bb);
+            break;
+        case pieces::king:
+            to_squares = movegen::king_moves(bb, friendly_bb);
+            break;
+        }
+        //  From to_squares create list of moves.
+        uint8_t to_sq = 0;
+        while (to_squares > 0) {
+            uint8_t to = BitBoard::lsb(to_squares);  // Extract LSB loc.
+            to_sq += to;
+            to_squares >>= (to + 1);  // Clear LSB
+            // TODO: Handle promotions for pawns.
+            moves[num_moves++] = Move(square, to_sq);
         }
     }
-
-    return 0;
+    return num_moves;
 }
+
 bool Board::operator==(const Board &other) const {
     for (int i = 0; i < 64; i++)
         if (!(game_board[i] == other.game_board[i]))
