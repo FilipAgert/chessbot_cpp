@@ -12,6 +12,19 @@ using namespace movegen;
 using namespace dirs;
 using namespace masks;
 using namespace pieces;
+TEST(BitBoardTest, onehigh) {
+    uint8_t sq = 4;
+    uint64_t bb = BitBoard::one_high(sq);
+    uint64_t expected = 0b10000;
+    ASSERT_EQ(bb, expected);
+
+    sq = 63;
+    bb = BitBoard::one_high(sq);
+    expected = 0b1000000000000000000000000000000000000000000000000000000000000000;
+    ASSERT_EQ(bb, expected) << ". Expected/actual:\n"
+                            << BitBoard::bb_str(expected) << "\n"
+                            << BitBoard::bb_str(bb) << "\n";
+}
 TEST(BitBoardTest, shift) {
     uint64_t bb = 0b1;
     uint64_t shifted = shift_bb(bb, N);
