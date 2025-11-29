@@ -5,17 +5,18 @@
 #include <move.h>
 #include <movegen_benchmark.h>
 #include <string>
-int movegen_benchmark::gen_num_moves(std::string FEN, int depth) {
+int movegen_benchmark::gen_num_moves(std::string FEN, int print_depth, int depth) {
     BoardState boardState;
     bool success = boardState.read_fen(FEN);
     if (!success) {
         std::cerr << "There was an error reading the FEN. Exiting." << std::endl;
         exit(EXIT_FAILURE);
     }
-    return recurse_moves(boardState, 0, depth);
+    return recurse_moves(boardState, print_depth, 0, depth);
 }
 
-int movegen_benchmark::recurse_moves(BoardState state, int curr_depth, int to_depth) {
+int movegen_benchmark::recurse_moves(BoardState state, int print_depth, int curr_depth,
+                                     int to_depth) {
     if (curr_depth == to_depth)
         return 1;
 
@@ -24,7 +25,13 @@ int movegen_benchmark::recurse_moves(BoardState state, int curr_depth, int to_de
     int total_moves = 0;
     for (int i = 0; i < num_moves; i++) {
         state.do_move(moves[i]);
-        total_moves += recurse_moves(state, curr_depth + 1, to_depth);
+        int this_move_nbr = recurse_moves(state, print_depth, curr_depth + 1, to_depth);
+        if (curr_depth <= print_depth) {
+            for (int j = 0; j < curr_depth; j++)
+                std::cout << "    ";  // indent by depth
+            std::cout << moves[i].toString() << ": " << this_move_nbr << "\n";
+        }
+        total_moves += this_move_nbr;
         state.undo_move(moves[i]);
     }
     return total_moves;
