@@ -17,6 +17,7 @@ namespace BitBoard {
  * @param steps How many steps to move in this direction
  * @return shifted bitboard
  */
+[[nodiscard("The return value should be handled as a uint64_t.")]]
 static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir,
                                           const uint8_t steps) {
     int left_shift = (dir > 0) * dir * steps;
@@ -34,6 +35,7 @@ static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir,
  * @param dir direction to move in (N,E,S,W etc)
  * @return shifted bitboard
  */
+[[nodiscard("The return value should be handled as a uint64_t.")]]
 static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir) {
     int left_shift = (dir > 0) * dir;
     int right_shift = (dir < 0) * (-dir);
@@ -43,8 +45,10 @@ static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir) {
     uint64_t right = (board >> right_shift) & right_mask;
     return left | right;
 }
-
-constexpr uint64_t one_high(int sq) { return 1ULL << sq; }
+[[nodiscard("The return value should be handled as a uint64_t.")]]
+constexpr uint64_t one_high(uint8_t sq) {
+    return 1ULL << sq;
+}
 inline constexpr int bitcount(uint64_t bb) { return __builtin_popcountll(bb); }
 /**
  * @brief Extracts least significant bit location. Rightmost = 0
@@ -54,16 +58,23 @@ inline constexpr int bitcount(uint64_t bb) { return __builtin_popcountll(bb); }
  */
 inline constexpr int lsb(uint64_t bb) { return __builtin_ctzll(bb); }
 
-// print bitboard for debugging
+/**
+ * @brief Gets bitboard as a string of 0 and 1.
+ */
 inline std::string bb_str(uint64_t bb) {
     std::bitset<64> b(bb);
     return b.to_string();
 }
 inline void print(uint64_t bb) { std::cout << bb_str(bb) << "\n"; }
 
+/**
+ * @brief Gets bitboard as a 8x8 square filled with 1s. 0s are empty squares.
+ *
+ * @param[[TODO:direction]] bb [TODO:description]
+ */
 std::string to_string_bb(uint64_t bb);
 void print_full(uint64_t bb);
-
+[[nodiscard("The return value should be handled as a uint64_t.")]]
 static inline constexpr uint64_t bb_from_array(std::array<uint8_t, 64> arr) {
     uint64_t bb = 0;
     for (int i = 0; i < 64; i++) {
@@ -93,9 +104,14 @@ static constexpr uint64_t left = 0x0101010101010101;
 static constexpr uint64_t right = BitBoard::shift_bb(left, dirs::E, 7);
 static constexpr uint64_t sides = left | right;
 static constexpr uint64_t fill = 0xFFFFFFFFFFFFFFFF;
-
-static inline constexpr uint64_t row(uint8_t r) { return bottom << 8 * r; }  // mask for row.
-static inline constexpr uint64_t col(uint8_t c) { return left << c; }        // mask for col.
+[[nodiscard("The return value should be handled as a uint64_t.")]]
+static inline constexpr uint64_t row(uint8_t r) {
+    return bottom << 8 * r;
+}  // mask for row.
+[[nodiscard("The return value should be handled as a uint64_t.")]]
+static inline constexpr uint64_t col(uint8_t c) {
+    return left << c;
+}  // mask for col.
 
 uint64_t edge_mask(int dir);
 
