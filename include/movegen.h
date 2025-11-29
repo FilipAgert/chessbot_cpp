@@ -11,6 +11,14 @@ namespace movegen {
  * @return uint64_t Bitboard of all the knight moves.
  */
 uint64_t knight_moves(const uint64_t knight_bb, const uint64_t friendly_bb);
+/**
+ * @brief Generates all moves for rooks given a bitboard of its location
+ * @param[in] rook_bb Bitboard of rooks
+ * @param[in] friendly_bb Bitboard of friendly pieces. These will block the rook ray.
+ * @param[in] enemy_bb Bitboard of enemy pieces. These will be captured by the rook ray but block
+ * further progress
+ * @return Bitboard with all available move squares set to 1.
+ */
 uint64_t rook_moves(const uint64_t rook_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
 uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
                       const uint64_t enemy_bb);
