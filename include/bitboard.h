@@ -56,7 +56,7 @@ inline std::string bb_str(uint64_t bb) {
 inline void print(uint64_t bb) { std::cout << bb_str(bb) << "\n"; }
 
 std::string to_string_bb(uint64_t bb);
-void print_full(uint64_t bb) { std::cout << BitBoard::to_string_bb(bb) << "\n"; }
+void print_full(uint64_t bb);
 
 /**
  * @brief Gets the bitboard for the available knight moves.
@@ -88,7 +88,8 @@ uint64_t ray(const uint64_t origin, const int dir);
 static inline constexpr uint64_t bb_from_array(std::array<uint8_t, 64> arr) {
     uint64_t bb = 0;
     for (int i = 0; i < 64; i++) {
-        if (arr[i] > 0) bb |= 1ULL << i;
+        if (arr[i] > 0)
+            bb |= 1ULL << i;
     }
     return bb;
 }

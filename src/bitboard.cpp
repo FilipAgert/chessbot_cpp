@@ -124,6 +124,8 @@ std::string to_string_bb(uint64_t bb) {
     return ss.str();
 }
 
+void print_full(uint64_t bb) { std::cout << BitBoard::to_string_bb(bb) << "\n"; }
+
 }  // namespace BitBoard
 
 namespace masks {
