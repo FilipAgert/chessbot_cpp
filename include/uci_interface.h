@@ -1,14 +1,14 @@
+// Copyright 2025 Filip Agert
 #ifndef UCI_INTERFACE_H
 #define UCI_INTERFACE_H
 #include <game.h>
-#include <iostream>
+
 #include <string>
-#include "constants.h"
 
 class UCIInterface {
-public:
+ public:
     static void process_uci_command();
-    static void uci_response(std::string response); 
+    static void uci_response(std::string response);
     static void process_isready_command();
     static void process_quit_command();
     static void process_new_game_command();
@@ -18,7 +18,8 @@ public:
     static void process_go_command(std::string command);
     static void process_position_command(std::string command);
     static void process_fen_command(std::string command);
-private:
+
+ private:
     UCIInterface() = delete;
 };
 #endif

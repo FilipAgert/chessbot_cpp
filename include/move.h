@@ -1,33 +1,39 @@
+// Copyright 2025 Filip Agert
 #ifndef MOVE_H
 #define MOVE_H
-#include <cstdint>
-#include <piece.h>
 #include <constants.h>
 #include <notation_interface.h>
+#include <piece.h>
+
+#include <cstdint>
 #include <string>
-#include <exception>
-struct Move{
-    Piece captured_piece = none_piece; //captured.
-    Piece promotion = none_piece; //Piece to be promoted into
+struct Move {
+    Piece captured_piece = none_piece;  // captured.
+    Piece promotion = none_piece;       // Piece to be promoted into
     uint8_t start_square, end_square;
     uint8_t en_passant_square = err_val8;
     uint8_t castling_rights;
-    uint8_t check;//This way we don't have to recompute if checked when we undo a move.
-    
-    Move(std::string move_str){
-        if (move_str.length() < 4 || move_str.length() > 5) throw new std::invalid_argument("Move string invalid: " + move_str);
-        this->start_square = NotationInterface::idx_from_string(move_str.substr(0,2));
-        this->end_square = NotationInterface::idx_from_string(move_str.substr(2,2));
-        this->promotion = (move_str.length()==5) ? Piece(move_str[4]) : Piece();
-    };
-    Move(uint8_t from, uint8_t to){start_square = from; end_square = to;};
-    std::string toString()const{
-        std::string out = NotationInterface::string_from_idx(start_square)+NotationInterface::string_from_idx(end_square);
-        if(!(promotion == none_piece)) out += promotion.get_char();
-        return out; 
-    }
-    Move(){};
-};
+    uint8_t check;  // This way we don't have to recompute if checked when we undo a move.
 
+    explicit Move(std::string move_str) {
+        if (move_str.length() < 4 || move_str.length() > 5)
+            throw new std::invalid_argument("Move string invalid: " + move_str);
+        this->start_square = NotationInterface::idx_from_string(move_str.substr(0, 2));
+        this->end_square = NotationInterface::idx_from_string(move_str.substr(2, 2));
+        this->promotion = (move_str.length() == 5) ? Piece(move_str[4]) : Piece();
+    }
+    Move(uint8_t from, uint8_t to) {
+        start_square = from;
+        end_square = to;
+    }
+    std::string toString() const {
+        std::string out = NotationInterface::string_from_idx(start_square) +
+                          NotationInterface::string_from_idx(end_square);
+        if (!(promotion == none_piece))
+            out += promotion.get_char();
+        return out;
+    }
+    Move() {}
+};
 
 #endif
