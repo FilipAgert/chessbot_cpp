@@ -46,8 +46,8 @@ struct Board {
     /**
      * @brief Get the all possible moves for specified player.
      *
-     * @param moves Array containing the moves
-     * @param turn_color Color of player to find moves for.
+     * @param[out] Array containing the moves
+     * @param[in] Color of player to find moves for.
      * @return size_t Number of legal moves found.
      */
     size_t get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t turn_color) const;
@@ -62,6 +62,7 @@ struct Board {
     // Color                 W          B
     // Bitboards: Pieces: [9-14]   [17-22].
     //            Attack: 15         23
+    //            All p : 8          16
 
     std::array<uint64_t, 32> bit_boards{};
 
