@@ -8,6 +8,7 @@
 #include <integer_representation.h>
 #include <move.h>
 #include <movegen.h>
+#include <movegen_benchmark.h>
 #include <notation_interface.h>
 #include <string>
 using namespace BitBoard;
@@ -25,4 +26,30 @@ TEST(Movegentest, gen_moves) {
     size_t expected = 20;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves)
         << "Expected number of moves is 20. Actual found moves is" << num_moves;
+}
+
+TEST(Movegentest, two_deep) {
+    movegen_benchmark bench;
+    int depth = 1;
+    std::string starting_fen = NotationInterface::starting_FEN();
+    int num_moves = bench.gen_num_moves(starting_fen, depth);
+    size_t expected = 20;  // First position offers 20 legal moves;
+    ASSERT_EQ(expected, num_moves)
+        << "Expected number of moves is 20. Actual found moves is" << num_moves;
+
+    depth = 2;
+    num_moves = bench.gen_num_moves(starting_fen, depth);
+    expected = 20 * 20;
+    ASSERT_EQ(expected, num_moves)
+        << "Expected number of moves is 40. Actual found moves is" << num_moves;
+}
+
+TEST(Movegentest, three_deep) {
+    movegen_benchmark bench;
+    int depth = 3;
+    std::string starting_fen = NotationInterface::starting_FEN();
+    int num_moves = bench.gen_num_moves(starting_fen, depth);
+    size_t expected = 8902;
+    ASSERT_EQ(expected, num_moves)
+        << "Expected number of moves is 8902. Actual found moves is" << num_moves;
 }
