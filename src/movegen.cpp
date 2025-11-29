@@ -79,6 +79,7 @@ uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const 
            bishop_moves(queen_bb, friendly_bb, enemy_bb);
 }
 uint64_t king_moves(const uint64_t king_bb, const uint64_t friendly_bb) {
+    // TODO: Implement castling.
     uint64_t hit = ray(king_bb, N, 0, 1);
     hit |= ray(king_bb, NE, 0, 1);
     hit |= ray(king_bb, E, 0, 1);
