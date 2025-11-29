@@ -64,33 +64,6 @@ inline void print(uint64_t bb) { std::cout << bb_str(bb) << "\n"; }
 std::string to_string_bb(uint64_t bb);
 void print_full(uint64_t bb);
 
-/**
- * @brief Gets the bitboard for the available knight moves.
- *
- * @param knight_loc Location of knights.
- * @param friendly_bb location of friendly pieces.
- * @return uint64_t Bitboard of all the knight moves.
- */
-uint64_t knight_moves(const uint64_t knight_bb, const uint64_t friendly_bb);
-uint64_t rook_moves(const uint64_t rook_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
-uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
-                      const uint64_t enemy_bb);
-uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
-uint64_t king_moves(const uint64_t king_bb, const uint64_t friendly_bb);
-uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                    const uint64_t ep_bb, const uint8_t pawn_color);
-
-/**
- * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.
- *
- * @param origin
- * @param dir
- * @return uint64_t
- */
-uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb, const int steps);
-uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb);
-uint64_t ray(const uint64_t origin, const int dir);
-
 static inline constexpr uint64_t bb_from_array(std::array<uint8_t, 64> arr) {
     uint64_t bb = 0;
     for (int i = 0; i < 64; i++) {

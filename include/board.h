@@ -19,7 +19,7 @@ struct Board {
 
     inline Piece get_piece_at(uint8_t row, uint8_t col) const {
         return get_piece_at(NotationInterface::idx(row, col));
-    };
+    }
 
     inline Piece get_piece_at(uint8_t square) const { return game_board[square]; }
 

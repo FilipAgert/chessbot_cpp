@@ -99,6 +99,19 @@ size_t Board::get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t 
     //    and we can have a bitmap ignoring first piece (first piece seethrough). If King is ON this
     //    bitmap NOW, then a piece might be pinned. Need to check if we're moving the pinned piece.
     //    Move generation is likely easier with bitmap since we can just shift.
+    size_t num_moves = 0;
+    for (int i = 0; i < this->num_pieces; i++) {
+        uint8_t square = piece_locations[i];
+        Piece p = game_board[square];
+        if (p.get_color() == turn_color) {
+            uint64_t bb = BitBoard::one_high(square);
+            switch (p.get_type()) {
+            case pieces::king:
+                break;
+            }
+        }
+    }
+
     return 0;
 }
 bool Board::operator==(const Board &other) const {
