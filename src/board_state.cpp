@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include <board_state.h>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 using namespace pieces;
