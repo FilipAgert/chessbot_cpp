@@ -5,7 +5,7 @@
 #include <move.h>
 #include <movegen_benchmark.h>
 #include <string>
-int movegen_benchmark::gen_num_moves(std::string FEN, int print_depth, int depth) {
+int movegen_benchmark::gen_num_moves(std::string FEN, int depth, int print_depth) {
     BoardState boardState;
     bool success = boardState.read_fen(FEN);
     if (!success) {
