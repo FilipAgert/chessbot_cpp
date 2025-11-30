@@ -1,4 +1,5 @@
 // Copyright 2025 Filip Agert
+#include <algorithm>
 #include <array>
 #include <bitboard.h>
 #include <board_state.h>
@@ -11,6 +12,7 @@
 #include <movegen_benchmark.h>
 #include <notation_interface.h>
 #include <string>
+#include <vector>
 using namespace BitBoard;
 using namespace movegen;
 using namespace dirs;
@@ -59,6 +61,26 @@ TEST(bbgentest, black_pawns) {
     uint64_t actual = movegen::pawn_moves(b_pawn_bb, b_pawn_bb, 0, 0, black);
     ASSERT_EQ(expected, actual) << BitBoard::to_string_bb(actual) << " "
                                 << BitBoard::to_string_bb(expected) << "\n";
+}
+TEST(bbgentest, black_pawns_fen) {
+    BoardState state;
+    std::string fen = "8/p7/8/8/8/8/8/8 b - - 0 1";
+    state.read_fen(fen);
+    std::array<Move, max_legal_moves> moves;
+    size_t num_moves = state.get_moves(moves);
+    std::vector<std::string> expected_moves = {"a7a6", "a7a5"};
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves[i].toString());
+    }
+
+    // 3. Sort both lists for order-independent comparison
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    // 4. Assert that the sorted lists are identical
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
 }
 TEST(Movegentest, three_deep) {
     int depth = 3;
