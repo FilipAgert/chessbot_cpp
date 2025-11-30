@@ -30,6 +30,31 @@ TEST(Movegentest, gen_moves) {
     ASSERT_EQ(expected, num_moves)
         << "Expected number of moves is 20. Actual found moves is" << num_moves;
 }
+TEST(Movegentest, capture_check) {
+    // Fen: King move out of check or capture checker valid moves.
+    BoardState state;
+    std::string fen = "8/8/8/8/4r2R/8/8/R3K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: NONE allowed because King is in check.
+
+        // King Escape Moves (e1 can't go to e2 or d1/f1 if they were attacked,
+        // but here e4 rook only attacks file. so diagonals/horizontals OK)
+        "e1d1", "e1f1", "e1d2", "e1f2",
+        // Note: e1e2 is illegal (still on e-file)
+        "h4e4"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
 TEST(Movegentest, two_deep) {
     int depth = 1;
     std::string starting_fen = NotationInterface::starting_FEN();
