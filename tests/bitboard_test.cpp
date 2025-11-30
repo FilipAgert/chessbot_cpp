@@ -280,7 +280,7 @@ TEST(BitBoardTest, test_king_moves) {
         attack[NotationInterface::idx_from_string(sq)] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = movegen::king_moves(king, f_bb);
+    uint64_t actual = movegen::king_moves(king, f_bb, f_bb, 0, 0, 0);
     ASSERT_EQ(actual, expected);
 
     // Friendly on f4 blocks that move
@@ -288,7 +288,7 @@ TEST(BitBoardTest, test_king_moves) {
 
     attack[NotationInterface::idx_from_string("f4")] = 0;
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::king_moves(king, f_bb);
+    actual = movegen::king_moves(king, f_bb, f_bb, 0, 0, 0);
     ASSERT_EQ(actual, expected);
 }
 

@@ -84,7 +84,7 @@ TEST(bbgentest, black_pawns_fen) {
 }
 TEST(bbgentest, fen1) {
     BoardState state;
-    std::string fen = "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1";
+    std::string fen = "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1";
     state.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
     size_t num_moves = state.get_moves(moves);
