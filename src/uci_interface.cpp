@@ -50,7 +50,7 @@ void UCIInterface::process_go_command(std::string command) {
                 int nodes =
                     movegen_benchmark::gen_num_moves(Game::instance().get_state(), depth, 0);
                 std::string nodes_searched = std::to_string(nodes);
-                UCIInterface::uci_response("Nodes searched: " + nodes_searched);
+                UCIInterface::uci_response("\nNodes searched: " + nodes_searched);
             } catch (const ::std::exception &e) {
                 UCIInterface::uci_response(
                     "Error: \"perft\" command should be followed by an integer but found: " +
