@@ -12,19 +12,19 @@ size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) {
     uint8_t opposite_color = turn_color ^ color_mask;
 
     size_t num_moves = 0;
-    for (int m = 0; m < num_pseudolegal_moves;
+    for (size_t m = 0; m < num_pseudolegal_moves;
          m++) {  // For movechecker, we can have cheaper do_move
                  // undo_move. Dont need to handle everything.
                  // E.g. board could have a bitboard version only.
                  // PERF: Implement method in Board that only does/undoes moves in the bitboards for
                  // performance.
         do_move(moves[m]);
-        bool checked = board.king_checked(turn_color);
+        bool checked = board.king_checked(king_color);
         if (!checked) {
             // PERF: Check how expensive this king_checked thing is. Is it worth the move ordering
             // benefit?
             bool opponent_checked = board.king_checked(opposite_color);
-            moves[m].check = true;
+            moves[m].check = opponent_checked;
             moves[num_moves++] = moves[m];
         }
         undo_move(moves[m]);
