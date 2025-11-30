@@ -48,10 +48,14 @@ struct Board {
      *
      * @param[out] Array containing the moves
      * @param[in] Color of player to find moves for.
+     * @param[in] en_passant bool flag for en passant
+     * @param[in] en_passant_sq square index containing en_passant square
+     * @param[in] castle_info integer containing information for castling.
      * @return size_t Number of legal moves found.
      */
-    size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
-                                 const uint8_t turn_color) const;
+    size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves, const uint8_t turn_color,
+                                 const bool en_passant, const uint8_t en_passant_sq,
+                                 uint8_t castle_info) const;
 
     /**
      * @brief Calculates if king is in check.

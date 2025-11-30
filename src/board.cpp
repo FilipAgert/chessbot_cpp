@@ -126,7 +126,8 @@ void Board::clear_board() {
     num_pieces = 0;
 }
 size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
-                                    const uint8_t turn_color) const {
+                                    const uint8_t turn_color, const bool en_passant,
+                                    const uint8_t en_passant_sq, const uint8_t castleinfo) const {
     // Iterate over the locations of the pieces. Get all their available moves, add into array and
     // return number of moves.
     // 1. Generate all possible movemaps for each piece
@@ -140,7 +141,9 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
     size_t num_moves = 0;
     uint64_t friendly_bb = bit_boards[turn_color];
     uint64_t enemy_bb = bit_boards[pieces::color_mask ^ turn_color];
-    uint64_t en_passant_bb = 0;  // TODO(filip): Set actual en_passant value somehow.
+    uint64_t en_passant_bb =
+        en_passant * (BitBoard::one_high(en_passant_sq));  // 0 if no en_passant.
+    int promorow = (turn_color == pieces::white) * 7;      // Row for pawn promotions.
 
     for (int i = 0; i < num_pieces; i++) {
         uint8_t square = piece_locations[i];
@@ -174,8 +177,17 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
             uint8_t to = BitBoard::lsb(to_squares);  // Extract LSB loc.
             to_sq += to;
             to_squares = (to_squares >> to) & ~1;  // Clear LSB
-            // TODO(filip): Handle promotions for pawns.
-            moves[num_moves++] = Move(square, to_sq);
+            // Handle promotion
+            if (p.get_type() == pieces::pawn &&
+                (masks::row(promorow) & BitBoard::one_high(to_sq)) > 0) {
+                // If to_sq is in last row or first row (depending on col)
+                // TODO: Add settings for promotion selection.
+                for (uint8_t p = pieces::queen; p < pieces::pawn; p++) {
+                    moves[num_moves++] = Move(square, to_sq, Piece(p | turn_color));
+                }
+            } else {
+                moves[num_moves++] = Move(square, to_sq);
+            }
         }
     }
     return num_moves;

@@ -26,6 +26,11 @@ struct Move {
         start_square = from;
         end_square = to;
     }
+    Move(uint8_t from, uint8_t to, Piece promo) {
+        start_square = from;
+        end_square = to;
+        promotion = promo;
+    }
     std::string toString() const {
         std::string out = NotationInterface::string_from_idx(start_square) +
                           NotationInterface::string_from_idx(end_square);
