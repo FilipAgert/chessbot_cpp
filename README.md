@@ -23,23 +23,30 @@ Welcome to the UCI interface!
 ```
 if its running correctly.
 
+### Setup board
 Setting up a position can be done in one of two ways, as seen below.
-### From FEN
+#### From FEN
 From a FEN string, it can be set up by launching the command
 ```bash
 position fen <fen> moves <moves>
 ```
-where ```moves <moves>``` is optional but allows for doing moves after the FEN string. The moves must be 4 or 5 characters, in full chess notation. All moves are 4 length except promotions which are 5. Examples:
-- ```a2a4``` move piece from a2 to a4.
-- ```a7a8Q``` promote pawn from a7 to a8.
+where ```moves <moves>``` is optional but allows for doing moves after the FEN string. 
 
 
-### From start position
+#### From start position
 To generate a board from the start position put the command
 ```bash
 position startpos moves <moves>
 ```
 where the syntax for moves is the same as above.
+
+#### Move syntax
+The moves must be 4 or 5 characters, in full chess notation. All moves are 4 length except promotions which are 5. The letters are case insensitive.
+
+Examples:
+- ```a2a4``` move piece from a2 to a4.
+- ```a7a8Q``` promote pawn to queen from a7 to a8.
+The fifth character must be one of ```Q,B,R,N``` for queen, bishop, rook, knight.
 
 ### PERFT
 Move generation / PERFT can be performed after setting up the position by typing the command
