@@ -104,7 +104,478 @@ TEST(bbgentest, fen1) {
     ASSERT_EQ(expected_moves, generated_moves)
         << "The generated moves do not match the expected moves for FEN: " << fen;
 }
-TEST(Movegentest, castle) {
+
+// 1.1 Castling disallowed (White, FEN Flag Not Present)
+TEST(castle_test, Disallowed_White_NoFlag) {
+    BoardState state;
+    std::string fen = "r3k2r/8/8/8/8/8/8/R3K2R w - - 0 1";
+    state.read_fen(fen);
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // King moves (e1)
+        "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
+        // Rook moves (a1)
+        "a1b1", "a1c1", "a1d1", "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+        // Rook moves (h1)
+        "h1f1", "h1g1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves_array[i].toString());
+    }
+
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    ASSERT_EQ(expected_moves.size(), num_moves);
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
+TEST(castle_test, Allowed_White_Kingside_Queenside) {
+    // FEN: Full castling rights for White, empty board for simplicity
+    BoardState state;
+    std::string fen = "8/8/8/8/8/8/8/R3K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    // Expected moves include O-O (e1g1) and O-O-O (e1c1), plus King/Rook normal moves
+    std::vector<std::string> expected_moves = {
+        // Castling Moves
+        "e1g1",  // White Kingside (O-O)
+        "e1c1",  // White Queenside (O-O-O)
+        // King Moves
+        "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
+        // Rook moves (a1)
+        "a1b1", "a1c1", "a1d1", "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+        // Rook moves (h1)
+        "h1f1", "h1g1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves_array[i].toString());
+    }
+
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    ASSERT_EQ(expected_moves.size(), num_moves);
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
+TEST(castle_test, Disallowed_White_Kingside_Blocked) {
+    // FEN: Kingside path blocked by Knight on g1.
+    BoardState state;
+    std::string fen = "8/8/8/8/8/8/8/R3K1NR w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: Only Queenside allowed (e1c1)
+        "e1c1",
+        // King Moves (g1 is occupied)
+        "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
+        // Rook a1 (Full range)
+        "a1b1", "a1c1", "a1d1", "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+        // Rook h1 (Blocked by Knight at g1)
+        "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8",
+        // Knight g1 Moves
+        "g1f3", "g1h3", "g1e2"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, Disallowed_White_Queenside_Blocked) {
+    // FEN: Queenside path blocked by a Knight on c1. White has both flags.
+    BoardState state;
+    std::string fen = "8/8/8/8/8/8/8/R1N1K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    // Expected: O-O (e1g1) is allowed. O-O-O (e1c1) is NOT allowed.
+    std::vector<std::string> expected_moves = {
+        // Castling Move (Kingside only)
+        "e1g1",
+
+        // King Moves (e1)
+        "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
+
+        // Rook Moves (a1) - Blocked horizontally past c1, but free vertically
+        "a1b1",  // Path stops at c1
+        "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+
+        // Rook Moves (h1) - Full range
+        "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8",
+
+        // Knight Moves (c1)
+        "c1b3", "c1d3", "c1a2", "c1e2"  // Added c1a2, c1b2 for completeness
+    };
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves_array[i].toString());
+    }
+
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    ASSERT_EQ(expected_moves.size(), num_moves);
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
+TEST(castle_test, Disallowed_Black_Kingside_Blocked) {
+    // FEN: Black Kingside blocked by Knight on g8.
+    BoardState state;
+    std::string fen = "r3k1nr/8/8/8/8/8/8/8 b kq - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: Only Queenside allowed
+        "e8c8",
+        // King Moves
+        "e8d8", "e8f8", "e8d7", "e8e7", "e8f7",
+        // Rook a8 (Full range)
+        "a8b8", "a8c8", "a8d8", "a8a7", "a8a6", "a8a5", "a8a4", "a8a3", "a8a2", "a8a1",
+        // Rook h8 (Blocked by Knight at g8)
+        "h8h7", "h8h6", "h8h5", "h8h4", "h8h3", "h8h2", "h8h1",
+        // Knight g8 Moves
+        "g8f6", "g8h6", "g8e7"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, Disallowed_Black_Queenside_Blocked) {
+    // FEN: Black Queenside blocked by Knight on c8.
+    BoardState state;
+    std::string fen = "r1n1k2r/8/8/8/8/8/8/8 b kq - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: Only Kingside allowed
+        "e8g8",
+        // King Moves
+        "e8d8", "e8f8", "e8d7", "e8e7", "e8f7",
+        // Rook h8 (Full range)
+        "h8g8", "h8f8", "h8h7", "h8h6", "h8h5", "h8h4", "h8h3", "h8h2", "h8h1",
+        // Rook a8 (Blocked at c8)
+        "a8b8", "a8a7", "a8a6", "a8a5", "a8a4", "a8a3", "a8a2", "a8a1",
+        // Knight c8 Moves
+        "c8b6", "c8d6", "c8a7", "c8e7"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, Disallowed_Black_Both_Blocked) {
+    // FEN: Black Queenside blocked by knights next to king.
+    BoardState state;
+    std::string fen = "r2nkn1r/8/8/8/8/8/8/8 b kq - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: Only Kingside allowed
+        // King Moves
+        "e8d7", "e8e7", "e8f7",
+        // Rook h8 (Full range)
+        "h8g8", "h8h7", "h8h6", "h8h5", "h8h4", "h8h3", "h8h2", "h8h1",
+        // Rook a8 (Blocked at c8)
+        "a8b8", "a8c8", "a8a7", "a8a6", "a8a5", "a8a4", "a8a3", "a8a2", "a8a1",
+        // Knight d8 Moves
+        "d8b7", "d8c6", "d8e6", "d8f7", "f8h7", "f8g6", "f8e6", "f8d7"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+
+TEST(castle_test, Disallowed_White_bothsides_ThruCheck1) {
+    // FEN: Black Bishop on g4 attacks d1 (path for Queenside).
+    BoardState state;
+    std::string fen = "8/8/8/8/8/8/4b3/R3K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // King Moves (d1 is attacked, so King cannot move there normally either)
+        "e1d2", "e1e2", "e1f2",
+        // Rook a1 (Full)
+        "a1b1", "a1c1", "a1d1", "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+        // Rook h1 (Full)
+        "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, Disallowed_White_bothsides_ThruCheck2) {
+    // FEN: Black Bishop on g4 attacks d1 (path for Queenside).
+    BoardState state;
+    std::string fen = "8/8/8/8/8/4b3/8/R3K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // King moves
+        "e1e2", "e1d1", "e1f1",
+        // Rook a1 (Full)
+        "a1b1", "a1c1", "a1d1", "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+        // Rook h1 (Full)
+        "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, allowed_White_bothsides_next2check) {
+    // Should be allowed. check is after.
+    BoardState state;
+    std::string fen = "8/8/8/8/4b3/8/8/R3K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // King moves
+        "e1e2", "e1d1", "e1f1", "e1d2", "e1f2",
+        // Castles
+        "e1g1", "e1c1",
+
+        // Rook a1 (Full)
+        "a1b1", "a1c1", "a1d1", "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+        // Rook h1 (Full)
+        "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, Disallowed_Black_StartInCheck) {
+    // FEN: Black King is in check from the White Rook on e5. Black has Kingside and queenside
+    // rights.
+    BoardState state;
+    std::string fen = "r3k2r/8/8/4R3/8/8/8/8 b kq - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    // Expected: No O-O (e8g8). King must move to a safe square.
+    std::vector<std::string> expected_moves = {// King Escape Moves
+                                               "e8d7", "e8f7", "e8d8", "e8f8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves_array[i].toString());
+    }
+
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    ASSERT_EQ(expected_moves.size(), num_moves);
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
+TEST(castle_test, Disallowed_White_ToCheck) {
+    // FEN: White King has Kingside rights. Black Bishop on d4 attacks g1. King destination.
+    BoardState state;
+    std::string fen = "8/8/8/8/3b4/8/8/4K2R w K - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    // Expected: No O-O (e1g1). King can move to e2, d1, f1, etc.
+    std::vector<std::string> expected_moves = {// King Moves (g1 is NOT included)
+                                               "e1d1", "e1d2", "e1e2", "e1f1",
+
+                                               // Rook Moves (h1) - Full range
+                                               "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5",
+                                               "h1h6", "h1h7", "h1h8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves_array[i].toString());
+    }
+
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
+TEST(castle_test, Disallowed_White_ThruCheck) {
+    // FEN: White King has Kingside rights. Black Bishop on d4 attacks g1. King destination.
+    BoardState state;
+    std::string fen = "8/8/8/8/2b5/8/8/4K2R w K - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    // Expected: No O-O (e1g1). King can move to e2, d1, f1, etc.
+    std::vector<std::string> expected_moves = {// King Moves (g1 is NOT included)
+                                               "e1d1", "e1d2", "e1f2",
+
+                                               // Rook Moves (h1) - Full range
+                                               "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5",
+                                               "h1h6", "h1h7", "h1h8"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves_array[i].toString());
+    }
+
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
+
+TEST(castle_test, Disallowed_Black_both_ThruCheck1) {
+    // FEN: White Bishop on c5 attacks f8.
+    BoardState state;
+    std::string fen = "r3k2r/4B3/8/8/8/8/8/8 b kq - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: Queenside OK (e8c8). Kingside Disallowed.
+        // King Moves (f8 is attacked)
+        "e8d7", "e8e7", "e8f7",
+        // Rook a8
+        "a8b8", "a8c8", "a8d8", "a8a7", "a8a6", "a8a5", "a8a4", "a8a3", "a8a2", "a8a1",
+        // Rook h8
+        "h8g8", "h8f8", "h8h7", "h8h6", "h8h5", "h8h4", "h8h3", "h8h2", "h8h1"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, Disallowed_Black_both_ThruCheck2) {
+    // FEN: White Bishop on c5 attacks f8.
+    BoardState state;
+    std::string fen = "r3k2r/8/4B3/8/8/8/8/8 b kq - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: Queenside OK (e8c8). Kingside Disallowed.
+        // King Moves (f8 is attacked)
+        "e8d8", "e8e7", "e8f8",
+        // Rook a8
+        "a8b8", "a8c8", "a8d8", "a8a7", "a8a6", "a8a5", "a8a4", "a8a3", "a8a2", "a8a1",
+        // Rook h8
+        "h8g8", "h8f8", "h8h7", "h8h6", "h8h5", "h8h4", "h8h3", "h8h2", "h8h1"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, allowed_Black_both_enemyclose) {
+    // FEN: White Bishop on c5 attacks f8.
+    BoardState state;
+    std::string fen = "r3k2r/8/8/4B3/8/8/8/8 b kq - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        "e8d8", "e8e7", "e8f8", "e8d7", "e8f7", "e8g8", "e8c8",
+        // Rook a8
+        "a8b8", "a8c8", "a8d8", "a8a7", "a8a6", "a8a5", "a8a4", "a8a3", "a8a2", "a8a1",
+        // Rook h8
+        "h8g8", "h8f8", "h8h7", "h8h6", "h8h5", "h8h4", "h8h3", "h8h2", "h8h1"};
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+
+TEST(castle_test, Disallowed_White_StartInCheck) {
+    // FEN: White King is in check from Black Rook on e4.
+    BoardState state;
+    std::string fen = "8/8/8/8/4r3/8/8/R3K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    std::vector<std::string> expected_moves = {
+        // Castling: NONE allowed because King is in check.
+
+        // King Escape Moves (e1 can't go to e2 or d1/f1 if they were attacked,
+        // but here e4 rook only attacks file. so diagonals/horizontals OK)
+        "e1d1", "e1f1", "e1d2", "e1f2"
+        // Note: e1e2 is illegal (still on e-file)
+    };
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
+TEST(castle_test, kingside_white) {
     BoardState state;
     std::string fen = "8/8/8/8/8/8/7P/4K2R w K - 0 1";
     state.read_fen(fen);
