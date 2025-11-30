@@ -11,13 +11,13 @@ static constexpr uint8_t cast_black_queenside = 0b1000;
 };  // namespace castling
 
 namespace pieces {
-static constexpr uint8_t none = 0b000;
-static constexpr uint8_t pawn = 0b110;
-static constexpr uint8_t bishop = 0b101;
-static constexpr uint8_t knight = 0b100;
-static constexpr uint8_t rook = 0b011;
-static constexpr uint8_t queen = 0b010;
-static constexpr uint8_t king = 0b001;
+static constexpr uint8_t none = 0b000;    // 0
+static constexpr uint8_t king = 0b001;    // 1
+static constexpr uint8_t queen = 0b010;   // 2
+static constexpr uint8_t rook = 0b011;    // 3
+static constexpr uint8_t knight = 0b100;  // 4
+static constexpr uint8_t bishop = 0b101;  // 5
+static constexpr uint8_t pawn = 0b110;    // 6
 
 static constexpr uint8_t white = 0b01000;  // 8
 static constexpr uint8_t black = 0b10000;  // 16
