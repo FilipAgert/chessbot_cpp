@@ -72,6 +72,17 @@ TEST(Movegentest, p5) {
         ASSERT_EQ(expected, num_moves);
     }
 }
+TEST(Movegentest, p6) {
+    std::vector<int> moves = {46, 2079, 89890, 3894594};
+    std::string starting_fen =
+        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10";
+    int max = 3;
+    for (int i = 0; i < max; i++) {
+        int num_moves = movegen_benchmark::gen_num_moves(starting_fen, i + 1);
+        size_t expected = moves[i];
+        ASSERT_EQ(expected, num_moves);
+    }
+}
 TEST(Movegentest, gen_moves) {
     BoardState state;
     std::string starting_fen = NotationInterface::starting_FEN();
