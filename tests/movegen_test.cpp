@@ -82,6 +82,27 @@ TEST(bbgentest, black_pawns_fen) {
     ASSERT_EQ(expected_moves, generated_moves)
         << "The generated moves do not match the expected moves for FEN: " << fen;
 }
+TEST(Movegentest, castle) {
+    BoardState state;
+    std::string fen = "8/8/8/8/8/8/7P/4K2R w K - 0 1";
+    state.read_fen(fen);
+    std::array<Move, max_legal_moves> moves;
+    size_t num_moves = state.get_moves(moves);
+    std::vector<std::string> expected_moves = {"e1f1", "e1g1", "h1g1", "h1f1", "h2h3",
+                                               "h2h4", "e1d1", "e1d2", "e1e2", "e1f2"};
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves[i].toString());
+    }
+
+    // 3. Sort both lists for order-independent comparison
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    // 4. Assert that the sorted lists are identical
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
 TEST(Movegentest, three_deep) {
     int depth = 3;
     std::string starting_fen = NotationInterface::starting_FEN();
@@ -89,4 +110,12 @@ TEST(Movegentest, three_deep) {
     size_t expected = 8902;
     ASSERT_EQ(expected, num_moves)
         << "Expected number of moves is 8902. Actual found moves is" << num_moves;
+}
+TEST(Movegentest, four_deep) {
+    int depth = 4;
+    std::string starting_fen = NotationInterface::starting_FEN();
+    int num_moves = movegen_benchmark::gen_num_moves(starting_fen, depth);
+    size_t expected = 197281;
+    ASSERT_EQ(expected, num_moves)
+        << "Expected number of moves is 197281. Actual found moves is" << num_moves;
 }
