@@ -283,7 +283,7 @@ TEST(castle_test, Disallowed_White_Kingside_Blocked) {
     std::sort(generated_moves.begin(), generated_moves.end());
     ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
 }
-TEST(castle_test, Disallowed_White_Queenside_Blocked) {
+TEST(castle_test, Disallowed_White_Queenside_Blocked1) {
     // FEN: Queenside path blocked by a Knight on c1. White has both flags.
     BoardState state;
     std::string fen = "8/8/8/8/8/8/8/R1N1K2R w KQ - 0 1";
@@ -309,6 +309,45 @@ TEST(castle_test, Disallowed_White_Queenside_Blocked) {
 
         // Knight Moves (c1)
         "c1b3", "c1d3", "c1a2", "c1e2"  // Added c1a2, c1b2 for completeness
+    };
+
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves_array[i].toString());
+    }
+
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    ASSERT_EQ(expected_moves.size(), num_moves);
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
+TEST(castle_test, Disallowed_White_Queenside_Blocked) {
+    // FEN: Queenside path blocked by a Knight on c1. White has both flags.
+    BoardState state;
+    std::string fen = "8/8/8/8/8/8/8/RN2K2R w KQ - 0 1";
+    state.read_fen(fen);
+
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = state.get_moves(moves_array);
+
+    // Expected: O-O (e1g1) is allowed. O-O-O (e1c1) is NOT allowed.
+    std::vector<std::string> expected_moves = {
+        // Castling Move (Kingside only)
+        "e1g1",
+
+        // King Moves (e1)
+        "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
+
+        // Rook Moves (a1) - Blocked horizontally past c1, but free vertically
+        "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
+
+        // Rook Moves (h1) - Full range
+        "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8",
+
+        // Knight Moves (c1)
+        "b1a3", "b1c3", "b1d2"  // Added c1a2, c1b2 for completeness
     };
 
     std::vector<std::string> generated_moves;

@@ -122,12 +122,12 @@ uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
             (turn_color == pieces::black) +
         0b0000000000000000000000000000000000000000000000000000000001100000 *
             (turn_color == pieces::white);
-    const uint64_t queenside_move_board =  // No pieces may attack these positions
-        0b0000110000000000000000000000000000000000000000000000000000000000 *
+    const uint64_t queenside_move_board =  // No pieces may block these positions
+        0b0000111000000000000000000000000000000000000000000000000000000000 *
             (turn_color == pieces::black) +
-        0b0000000000000000000000000000000000000000000000000000000000001100 *
+        0b0000000000000000000000000000000000000000000000000000000000001110 *
             (turn_color == pieces::white);
-    const uint64_t queenside_atk_board =  // No pieces may block these positions
+    const uint64_t queenside_atk_board =  // No pieces may atk these positions
         0b0001110000000000000000000000000000000000000000000000000000000000 *
             (turn_color == pieces::black) +
         0b0000000000000000000000000000000000000000000000000000000000011100 *
