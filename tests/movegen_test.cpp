@@ -122,6 +122,7 @@ TEST(Movegentest, castle) {
     std::sort(generated_moves.begin(), generated_moves.end());
 
     // 4. Assert that the sorted lists are identical
+    ASSERT_EQ(state.castling, 0b1);
     ASSERT_EQ(expected_moves, generated_moves)
         << "The generated moves do not match the expected moves for FEN: " << fen;
 }

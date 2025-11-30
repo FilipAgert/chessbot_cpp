@@ -83,8 +83,8 @@ uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const 
 }
 uint64_t king_moves(const uint64_t king_bb, const uint64_t friendly_bb, const uint64_t all_bb,
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color) {
-    return king_move_moves(king_bb, friendly_bb, 0);
-    king_castle_moves(king_bb, all_bb, enemy_atk_bb, castle, turn_color);
+    return king_move_moves(king_bb, friendly_bb, 0) |
+           king_castle_moves(king_bb, all_bb, enemy_atk_bb, castle, turn_color);
 }
 uint64_t king_move_moves(const uint64_t king_bb, const uint64_t friendly_bb,
                          const uint64_t enemy_atk_bb) {
@@ -133,7 +133,7 @@ uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
     const uint64_t kingside_to =  // Where king moves kingside
         0b0100000000000000000000000000000000000000000000000000000000000000 *
             (turn_color == pieces::black) +
-        0b0000000000000000000000000000000000000000000000000000000000010000 *
+        0b0000000000000000000000000000000000000000000000000000000001000000 *
             (turn_color == pieces::white);
     const uint64_t queenside_to =  // Where king moves queenside
         0b0000010000000000000000000000000000000000000000000000000000000000 *
