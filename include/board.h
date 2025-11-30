@@ -50,7 +50,16 @@ struct Board {
      * @param[in] Color of player to find moves for.
      * @return size_t Number of legal moves found.
      */
-    size_t get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t turn_color) const;
+    size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
+                                 const uint8_t turn_color) const;
+
+    /**
+     * @brief Calculates if king is in check.
+     *
+     * @param[in] turn_color Color of the king to be check if in check
+     * @return True if checked, false if not in check
+     */
+    bool king_checked(const uint8_t turn_color) const;
 
     inline uint8_t get_num_pieces() { return num_pieces; }
     void print_piece_loc() const;

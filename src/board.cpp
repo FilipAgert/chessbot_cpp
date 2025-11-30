@@ -125,7 +125,8 @@ void Board::clear_board() {
     }
     num_pieces = 0;
 }
-size_t Board::get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t turn_color) const {
+size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
+                                    const uint8_t turn_color) const {
     // Iterate over the locations of the pieces. Get all their available moves, add into array and
     // return number of moves.
     // 1. Generate all possible movemaps for each piece
@@ -139,7 +140,7 @@ size_t Board::get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t 
     size_t num_moves = 0;
     uint64_t friendly_bb = bit_boards[turn_color];
     uint64_t enemy_bb = bit_boards[pieces::color_mask ^ turn_color];
-    uint64_t en_passant_bb = 0;  // TODO: Set actual en_passant value somehow.
+    uint64_t en_passant_bb = 0;  // TODO(filip): Set actual en_passant value somehow.
 
     for (int i = 0; i < num_pieces; i++) {
         uint8_t square = piece_locations[i];
@@ -174,11 +175,30 @@ size_t Board::get_moves(std::array<Move, max_legal_moves> &moves, const uint8_t 
             uint8_t to = BitBoard::lsb(to_squares);  // Extract LSB loc.
             to_sq += to;
             to_squares >>= (to + 1);  // Clear LSB
-            // TODO: Handle promotions for pawns.
+            // TODO(filip): Handle promotions for pawns.
             moves[num_moves++] = Move(square, to_sq);
         }
     }
     return num_moves;
+}
+
+bool Board::king_checked(const uint8_t turn_color) const {
+    uint64_t king_bb = bit_boards[turn_color | pieces::king];
+    uint8_t other_col = turn_color ^ pieces::color_mask;
+
+    uint64_t other_pieces = bit_boards[other_col];
+    uint64_t king_friendlies = bit_boards[turn_color];
+    uint64_t other_queen = bit_boards[other_col | pieces::queen];
+    uint64_t other_bishop = bit_boards[other_col | pieces::bishop];
+    uint64_t other_rook = bit_boards[other_col | pieces::rook];
+    uint64_t other_pawn = bit_boards[other_col | pieces::pawn];
+    uint64_t other_knight = bit_boards[other_col | pieces::knight];
+    other_queen = movegen::queen_moves(other_queen, other_pieces, king_friendlies);
+    other_bishop = movegen::bishop_moves(other_bishop, other_pieces, king_friendlies);
+    other_rook = movegen::rook_moves(other_rook, other_pieces, king_friendlies);
+    other_knight = movegen::knight_moves(other_knight, other_pieces);
+    other_pawn = movegen::pawn_moves(other_pawn, other_pieces, king_friendlies, 0, other_col);
+    return (king_bb & (other_queen | other_bishop | other_rook | other_knight | other_pawn)) > 0;
 }
 
 bool Board::operator==(const Board &other) const {
