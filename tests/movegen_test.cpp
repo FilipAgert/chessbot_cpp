@@ -82,6 +82,28 @@ TEST(bbgentest, black_pawns_fen) {
     ASSERT_EQ(expected_moves, generated_moves)
         << "The generated moves do not match the expected moves for FEN: " << fen;
 }
+TEST(bbgentest, fen1) {
+    BoardState state;
+    std::string fen = "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1";
+    state.read_fen(fen);
+    std::array<Move, max_legal_moves> moves;
+    size_t num_moves = state.get_moves(moves);
+    std::vector<std::string> expected_moves = {
+        "a7a6", "b7b6", "c7c6", "d7d6", "e7e6", "f7f6", "g7g6", "h7h6", "a7a5", "b7b5",
+        "c7c5", "d7d5", "e7e5", "f7f5", "g7g5", "h7h5", "b8a6", "b8c6", "g8f6", "g8h6"};
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        generated_moves.push_back(moves[i].toString());
+    }
+
+    // 3. Sort both lists for order-independent comparison
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+
+    // 4. Assert that the sorted lists are identical
+    ASSERT_EQ(expected_moves, generated_moves)
+        << "The generated moves do not match the expected moves for FEN: " << fen;
+}
 TEST(Movegentest, castle) {
     BoardState state;
     std::string fen = "8/8/8/8/8/8/7P/4K2R w K - 0 1";
