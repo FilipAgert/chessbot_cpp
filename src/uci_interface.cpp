@@ -83,10 +83,34 @@ void UCIInterface::process_position_command(std::string command) {
             Game::instance().set_fen(NotationInterface::starting_FEN());
         } else if (token == "moves") {
         } else if (token == "fen") {
-            while (pos < command.size() && command[pos] != ' ')
+            while (pos < command.size() && command[pos] != ' ')  // Start of fen
                 pos++;
-            UCIInterface::process_fen_command(command.substr(pos + 1, command.length() - pos));
-            break;
+            start = pos + 1;
+            while (pos < command.size() && command[pos] == ' ')  // end of fen.
+                pos++;
+            while (pos < command.size() && command[pos] != ' ')  // start col
+                pos++;
+            while (pos < command.size() && command[pos] == ' ')  // end col
+                pos++;
+            while (pos < command.size() && command[pos] != ' ')  // start cast
+                pos++;
+            while (pos < command.size() && command[pos] == ' ')  // end cast
+                pos++;
+            while (pos < command.size() && command[pos] != ' ')  // start ply
+                pos++;
+            while (pos < command.size() && command[pos] == ' ')  // end ply
+                pos++;
+            while (pos < command.size() && command[pos] != ' ')  // start move
+                pos++;
+            while (pos < command.size() && command[pos] == ' ')  // end move
+                pos++;
+            while (pos < command.size() && command[pos] != ' ')  // start move
+                pos++;
+            while (pos < command.size() && command[pos] == ' ')  // end move
+                pos++;
+            while (pos < command.size() && command[pos] != ' ')  // start move
+                pos++;
+            UCIInterface::process_fen_command(command.substr(start, pos - start + 1));
         } else {
             try {
                 Move move = Move(token);
