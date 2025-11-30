@@ -78,9 +78,9 @@ void BoardState::do_move(Move &move) {
             0b0001 |  // kingside w
         ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e8"))) != 0) *
             0b1100 |  // king b
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e8"))) != 0) *
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("a8"))) != 0) *
             0b1000 |  // queenside b
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e8"))) != 0) *
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("h8"))) != 0) *
             0b0100;  // kingside b
     this->castling &= ~castlemask;
 
