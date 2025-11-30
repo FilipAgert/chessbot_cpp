@@ -436,14 +436,31 @@ TEST(BitBoardTest, test_pawn_moves) {
     ASSERT_EQ(actual, expected) << "Black pawn on d7 failed 1/2 square move."
                                 << BitBoard::bb_str(actual);
 
-    // --- SCENARIO 8: black PAWN - CAPTURES & EN PASSANT ---
-    // Pawn on e4. Enemy on d3 and f3. Ep target square is d3.
+    // --- SCENARIO 8: black PAWN - CAPTUREST ---
+    // Pawn on e4. Friendly on d3. enemy on f3.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
     friendly = pawn | BitBoard::one_high(NotationInterface::idx_from_string(
                           "d3"));  // This spot is now a friendly to test no capture
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("f3"));  // Normal capture
-    ep = BitBoard::one_high(NotationInterface::idx_from_string("d3"));     // Ep target square
+    ep = 0;
+
+    // Expected moves: e3 (forward), f3 (capture).
+    for (auto sq : {"e3", "f3"})
+        attack_map[NotationInterface::idx_from_string(sq)] = 1;
+
+    expected = BitBoard::bb_from_array(attack_map);
+    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    ASSERT_EQ(actual, expected) << "Black pawn on e4 failed mixed captures.";
+
+    // --- SCENARIO 8: black PAWN - CAPTUREST ---
+    // Pawn on e4. Friendly on d3. enemy on f3.
+    attack_map.fill(0);
+    pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
+    friendly = pawn;
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("d4")) |
+            BitBoard::one_high(NotationInterface::idx_from_string("f3"));  // Normal capture
+    ep = BitBoard::one_high(NotationInterface::idx_from_string("d3"));
 
     // Expected moves: e3 (forward), f3 (capture), d3 (ep capture).
     for (auto sq : {"e3", "f3", "d3"})
@@ -451,8 +468,7 @@ TEST(BitBoardTest, test_pawn_moves) {
 
     expected = BitBoard::bb_from_array(attack_map);
     actual = pawn_moves(pawn, friendly, enemy, ep, black);
-    ASSERT_EQ(actual, expected) << "Black pawn on e4 failed mixed captures and en passant.";
-
+    ASSERT_EQ(actual, expected) << "Black pawn on e4 failed mixed captures.";
     // --- SCENARIO 9: black PAWN - NO WRAPAROUND (H file) ---
     // Pawn on h6. Enemy on g5. No wrap to a5.
     attack_map.fill(0);

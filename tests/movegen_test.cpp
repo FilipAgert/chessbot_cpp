@@ -16,6 +16,7 @@ using namespace movegen;
 using namespace dirs;
 using namespace masks;
 using namespace pieces;
+#define idx_from_string NotationInterface::idx_from_string
 TEST(Movegentest, gen_moves) {
     BoardState state;
     std::string starting_fen = NotationInterface::starting_FEN();
@@ -41,7 +42,24 @@ TEST(Movegentest, two_deep) {
     ASSERT_EQ(expected, num_moves)
         << "Expected number of moves is 40. Actual found moves is" << num_moves;
 }
+TEST(bbgentest, white_pawns) {
+    uint64_t w_pawn_bb = BitBoard::one_high(idx_from_string("a2"));
+    uint64_t expected =
+        BitBoard::one_high(idx_from_string("a3")) | BitBoard::one_high(idx_from_string("a4"));
+    uint64_t actual = movegen::pawn_moves(w_pawn_bb, w_pawn_bb, 0, 0, white);
 
+    ASSERT_EQ(expected, actual) << BitBoard::to_string_bb(actual) << " "
+                                << BitBoard::to_string_bb(expected) << "\n";
+}
+TEST(bbgentest, black_pawns) {
+    uint64_t b_pawn_bb = BitBoard::one_high(idx_from_string("a7"));
+    uint64_t expected =
+        BitBoard::one_high(idx_from_string("a6")) | BitBoard::one_high(idx_from_string("a5"));
+
+    uint64_t actual = movegen::pawn_moves(b_pawn_bb, b_pawn_bb, 0, 0, black);
+    ASSERT_EQ(expected, actual) << BitBoard::to_string_bb(actual) << " "
+                                << BitBoard::to_string_bb(expected) << "\n";
+}
 TEST(Movegentest, three_deep) {
     int depth = 3;
     std::string starting_fen = NotationInterface::starting_FEN();
