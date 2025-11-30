@@ -46,7 +46,10 @@ uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb, in
     uint64_t mask =
         edge_mask(dir) | blocker_bb;  // The edge mask ensures we do not wrap-around.The blocker
                                       // mask ensures that we do not keep going through somebody.
-    for (int i = 1; i <= steps; i++) {
+    hit |= BitBoard::shift_bb(
+        ~edge_mask(dir) & hit,
+        dir);  // Take first step without the blocker bb, since the blocker bb includes self.
+    for (int i = 2; i <= steps; i++) {
         hit |= BitBoard::shift_bb(
             (~mask) & hit,
             dir);  // Shift the mask in dir direction, but only on non-masked places.
