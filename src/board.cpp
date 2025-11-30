@@ -152,7 +152,6 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
         switch (p.get_type()) {
         case pieces::pawn:
             to_squares = movegen::pawn_moves(bb, friendly_bb, enemy_bb, en_passant_bb, turn_color);
-
             break;
         case pieces::bishop:
             to_squares = movegen::bishop_moves(bb, friendly_bb, enemy_bb);
@@ -174,7 +173,7 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
         while (to_squares > 0) {
             uint8_t to = BitBoard::lsb(to_squares);  // Extract LSB loc.
             to_sq += to;
-            to_squares >>= (to + 1);  // Clear LSB
+            to_squares = (to_squares >> to) & ~1;  // Clear LSB
             // TODO(filip): Handle promotions for pawns.
             moves[num_moves++] = Move(square, to_sq);
         }
