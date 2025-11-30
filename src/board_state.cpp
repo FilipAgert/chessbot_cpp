@@ -328,6 +328,6 @@ std::string BoardState::fen_from_state() const {
 }
 void BoardState::print_piece_loc() const { board.print_piece_loc(); }
 size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) const {
-    uint8_t num_moves = board.get_moves(moves, turn_color);
+    uint8_t num_moves = board.get_pseudolegal_moves(moves, turn_color);
     return num_moves;
 }
