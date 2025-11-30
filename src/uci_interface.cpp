@@ -65,7 +65,6 @@ void UCIInterface::process_go_command(std::string command) {
 void UCIInterface::process_position_command(std::string command) {
     // Example: "position startpos moves e2e4 e7e5"
     // Initialize board:
-    Game::instance().set_fen(NotationInterface::starting_FEN());
 
     size_t pos = 0;
     while (pos < command.size()) {
@@ -81,6 +80,7 @@ void UCIInterface::process_position_command(std::string command) {
 
         std::string token = command.substr(start, pos - start);
         if (token == "startpos") {
+            Game::instance().set_fen(NotationInterface::starting_FEN());
         } else if (token == "moves") {
         } else {
             try {
