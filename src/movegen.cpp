@@ -18,13 +18,15 @@ uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const
 }
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
                            const uint8_t pawn_col) {
+    return pawn_threaten_moves(pawn_bb, pawn_col) &
+           (enemy_bb | ep_bb);  // Require enemy or en passant there.
+}
+
+uint64_t pawn_threaten_moves(const uint64_t pawn_bb, const uint8_t pawn_col) {
     int dir =
         (pawn_col == pieces::white) * N + (pawn_col == pieces::black) * S;  // branchless assignment
     uint64_t moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
                      BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
-    // dir + 1 is either NE or SE. Cannot go to the right if we are in the rightmost column.
-    // Likewise for dir -1 with left column.
-    moves &= (enemy_bb | ep_bb);  // Require either enemy there or en_passant there.
     return moves;
 }
 uint64_t knight_moves(const uint64_t knight_loc, const uint64_t friendly_bb) {

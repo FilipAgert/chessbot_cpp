@@ -70,13 +70,13 @@ struct Board {
     inline const uint64_t get_bb(const uint8_t bb_idx) { return bit_boards[bb_idx]; }
 
     /**
-     * @brief Gets the attack bitboard for a given color
+     * @brief Gets the attack bitboard for a given color. These are squares that are threatened by
+     * this player.
      *
      * @param[in] color Color of player you want to get atk bitboard for
-     * @param[in] ep_bb En passant bitboart
      * @return [ALl squares under attack by given player.]
      */
-    uint64_t get_atk_bb(const uint8_t color, const uint64_t ep_bb) const;
+    uint64_t get_atk_bb(const uint8_t color) const;
 
  protected:
     std::array<Piece, 64> game_board;

@@ -32,6 +32,8 @@ uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
                            const uint8_t turn_color);
 uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
                     const uint64_t ep_bb, const uint8_t pawn_color);
+uint64_t pawn_threaten_moves(const uint64_t pawn_bb,
+                             const uint8_t pawn_col);  // Squares THREATENED. By pawns.
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
                            const uint8_t pawn_col);
 

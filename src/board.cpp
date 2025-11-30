@@ -171,7 +171,7 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
             break;
         case pieces::king:
             to_squares = movegen::king_moves(bb, friendly_bb, friendly_bb | enemy_bb,
-                                             get_atk_bb(enemy_col, 0), castleinfo, turn_color);
+                                             get_atk_bb(enemy_col), castleinfo, turn_color);
             break;
         }
         uint8_t to_sq = 0;
@@ -195,7 +195,7 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
     return num_moves;
 }
 
-uint64_t Board::get_atk_bb(const uint8_t color, const uint64_t ep_bb) const {
+uint64_t Board::get_atk_bb(const uint8_t color) const {
     uint8_t enemy_color = color ^ pieces::color_mask;
 
     uint64_t friendly_pieces = bit_boards[color];
@@ -209,13 +209,13 @@ uint64_t Board::get_atk_bb(const uint8_t color, const uint64_t ep_bb) const {
     bishop_bb = movegen::bishop_moves(bishop_bb, friendly_pieces, enemy_pieces);
     rook_bb = movegen::rook_moves(rook_bb, friendly_pieces, enemy_pieces);
     knight_bb = movegen::knight_moves(knight_bb, friendly_pieces);
-    pawn_bb = movegen::pawn_attack_moves(pawn_bb, enemy_pieces, ep_bb, color);
+    pawn_bb = movegen::pawn_threaten_moves(pawn_bb, color);
     return queen_bb | bishop_bb | rook_bb | knight_bb | pawn_bb;
 }
 bool Board::king_checked(const uint8_t turn_color) const {
     uint64_t king_bb = bit_boards[turn_color | pieces::king];
     uint8_t other_col = turn_color ^ pieces::color_mask;
-    uint64_t enemy_atk_bb = get_atk_bb(other_col, 0);
+    uint64_t enemy_atk_bb = get_atk_bb(other_col);
     return (king_bb & enemy_atk_bb) != 0;
 }
 
