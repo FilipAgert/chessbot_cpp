@@ -82,6 +82,11 @@ void UCIInterface::process_position_command(std::string command) {
         if (token == "startpos") {
             Game::instance().set_fen(NotationInterface::starting_FEN());
         } else if (token == "moves") {
+        } else if (token == "fen") {
+            while (pos < command.size() && command[pos] != ' ')
+                pos++;
+            UCIInterface::process_fen_command(command.substr(pos + 1, command.length() - pos));
+            break;
         } else {
             try {
                 Move move = Move(token);
