@@ -18,16 +18,16 @@ size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) {
                  // E.g. board could have a bitboard version only.
                  // PERF: Implement method in Board that only does/undoes moves in the bitboards for
                  // performance.
-        do_move(moves[m]);
+        do_move(pseudolegal_moves[m]);
         bool checked = board.king_checked(king_color);
         if (!checked) {
             // PERF: Check how expensive this king_checked thing is. Is it worth the move ordering
             // benefit?
             bool opponent_checked = board.king_checked(opposite_color);
-            moves[m].check = opponent_checked;
-            moves[num_moves++] = moves[m];
+            pseudolegal_moves[m].check = opponent_checked;
+            moves[num_moves++] = pseudolegal_moves[m];
         }
-        undo_move(moves[m]);
+        undo_move(pseudolegal_moves[m]);
     }
     return num_moves;
 }
