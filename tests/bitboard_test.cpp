@@ -124,7 +124,7 @@ TEST(BitBoardTest, test_ray) {
 TEST(BitBoardTest, test_rook_moves) {
     // Rook on A1
     uint64_t rook = BitBoard::one_high(NotationInterface::idx_from_string("a1"));
-    uint64_t f_bb = 0;
+    uint64_t f_bb = rook;
     uint64_t e_bb = 0;
 
     // Expected: all squares on file a (a2..a8) + all squares on rank 1 (b1..h1)
@@ -154,7 +154,7 @@ TEST(BitBoardTest, test_rook_moves) {
     ASSERT_EQ(actual, expected);
 
     // Blockers: friendly piece on a4, enemy piece on d1
-    f_bb = BitBoard::one_high(NotationInterface::idx_from_string("a4"));
+    f_bb = rook | BitBoard::one_high(NotationInterface::idx_from_string("a4"));
     e_bb = BitBoard::one_high(NotationInterface::idx_from_string("d1"));
 
     attack.fill(0);
@@ -176,7 +176,7 @@ TEST(BitBoardTest, test_rook_moves) {
 TEST(BitBoardTest, test_bishop_moves) {
     // Bishop on c1
     uint64_t bishop = BitBoard::one_high(NotationInterface::idx_from_string("c1"));
-    uint64_t f_bb = 0;
+    uint64_t f_bb = bishop;
     uint64_t e_bb = 0;
 
     std::array<uint8_t, 64> attack{};
@@ -198,7 +198,7 @@ TEST(BitBoardTest, test_bishop_moves) {
     ASSERT_EQ(actual, expected);
 
     // Add enemy at f4, friendly at b2
-    f_bb = BitBoard::one_high(NotationInterface::idx_from_string("b2"));
+    f_bb = bishop | BitBoard::one_high(NotationInterface::idx_from_string("b2"));
     e_bb = BitBoard::one_high(NotationInterface::idx_from_string("f4"));
 
     attack.fill(0);
@@ -217,7 +217,7 @@ TEST(BitBoardTest, test_bishop_moves) {
 TEST(BitBoardTest, test_queen_moves) {
     // Queen on d4
     uint64_t queen = BitBoard::one_high(NotationInterface::idx_from_string("d4"));
-    uint64_t f_bb = 0;
+    uint64_t f_bb = queen;
     uint64_t e_bb = 0;
 
     // Expected = rook + bishop moves from d4
@@ -271,7 +271,7 @@ TEST(BitBoardTest, test_queen_moves) {
 TEST(BitBoardTest, test_king_moves) {
     // King on e4, no blockers
     uint64_t king = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
-    uint64_t f_bb = 0;
+    uint64_t f_bb = king;
 
     std::array<uint8_t, 64> attack{};
     attack.fill(0);
@@ -284,7 +284,7 @@ TEST(BitBoardTest, test_king_moves) {
     ASSERT_EQ(actual, expected);
 
     // Friendly on f4 blocks that move
-    f_bb = BitBoard::one_high(NotationInterface::idx_from_string("f4"));
+    f_bb = king | BitBoard::one_high(NotationInterface::idx_from_string("f4"));
 
     attack[NotationInterface::idx_from_string("f4")] = 0;
     expected = BitBoard::bb_from_array(attack);
@@ -302,7 +302,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on d2, no blockers. Expected: d3, d4.
     attack_map.fill(0);
     uint64_t pawn = BitBoard::one_high(NotationInterface::idx_from_string("d2"));
-    uint64_t friendly = 0;
+    uint64_t friendly = pawn;
     uint64_t enemy = 0;
     uint64_t ep = 0;
 
@@ -327,7 +327,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on d3, blockers. Expected: 0.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("d3"));
-    friendly = BitBoard::one_high(NotationInterface::idx_from_string("d4"));
+    friendly = pawn | BitBoard::one_high(NotationInterface::idx_from_string("d4"));
     attack_map[NotationInterface::idx_from_string("d4")] = 1;
 
     expected = 0;
@@ -338,7 +338,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on e4. Enemy on d5 (capture) and e5 (block). Friendly on f5 (no move/capture).
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
-    friendly = BitBoard::one_high(NotationInterface::idx_from_string("f5"));
+    friendly = pawn | BitBoard::one_high(NotationInterface::idx_from_string("f5"));
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("d5"));
 
     // Expected moves: capture on d5. Forward move e5. f5 is friendly.
@@ -355,7 +355,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // The pawn to capture is actually on f5, but the target is f6.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("e5"));
-    friendly = 0;
+    friendly = pawn;
     enemy = 0;  // The captured enemy piece is assumed to be handled internally by ep_bb logic.
     ep = BitBoard::one_high(NotationInterface::idx_from_string("f6"));  // Ep target square
 
@@ -371,7 +371,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on a2 (start rank). Blocked on a3 by friendly, a4 by enemy.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("a2"));
-    friendly = BitBoard::one_high(NotationInterface::idx_from_string("a3"));
+    friendly = pawn | BitBoard::one_high(NotationInterface::idx_from_string("a3"));
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("a4"));
     ep = 0;
 
@@ -381,7 +381,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     ASSERT_EQ(actual, expected) << "White pawn on a2 failed when blocked by friendly on a3.";
 
     // Pawn on a2. Blocked on a3 by enemy.
-    friendly = 0;
+    friendly = pawn;
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("a3"));
 
     // No expected moves, as a3 is blocked by enemy piece.
@@ -393,7 +393,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on a3. Enemy on b4. No wrap to h4.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("a3"));
-    friendly = 0;
+    friendly = pawn;
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("b4"));
 
     for (auto sq : {"a4", "b4"})  // Forward move a4, capture b4
@@ -406,7 +406,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on h3. Enemy on g4. No wrap to a4.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("h3"));
-    friendly = 0;
+    friendly = pawn;
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("g4"));
 
     for (auto sq : {"h4", "g4"})  // Forward move h4, capture g4
@@ -424,7 +424,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on d7, no blockers. Expected: d6, d5.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("d7"));
-    friendly = 0;
+    friendly = pawn;
     enemy = 0;
     ep = 0;
 
@@ -440,8 +440,8 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on e4. Enemy on d3 and f3. Ep target square is d3.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
-    friendly = BitBoard::one_high(NotationInterface::idx_from_string(
-        "d3"));  // This spot is now a friendly to test no capture
+    friendly = pawn | BitBoard::one_high(NotationInterface::idx_from_string(
+                          "d3"));  // This spot is now a friendly to test no capture
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("f3"));  // Normal capture
     ep = BitBoard::one_high(NotationInterface::idx_from_string("d3"));     // Ep target square
 
@@ -457,7 +457,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     // Pawn on h6. Enemy on g5. No wrap to a5.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("h6"));
-    friendly = 0;
+    friendly = pawn;
     enemy = BitBoard::one_high(NotationInterface::idx_from_string("g5"));
 
     for (auto sq : {"h5", "g5"})  // Forward move h5, capture g5
