@@ -5,10 +5,35 @@
 #include <string>
 
 using namespace pieces;
+size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) {
+    std::array<Move, max_legal_moves> pseudolegal_moves;
+    size_t num_pseudolegal_moves = board.get_pseudolegal_moves(pseudolegal_moves, turn_color);
+    uint8_t king_color = turn_color;
+    uint8_t opposite_color = turn_color ^ color_mask;
+
+    size_t num_moves = 0;
+    for (int m = 0; m < num_pseudolegal_moves;
+         m++) {  // For movechecker, we can have cheaper do_move
+                 // undo_move. Dont need to handle everything.
+                 // E.g. board could have a bitboard version only.
+                 // PERF: Implement method in Board that only does/undoes moves in the bitboards for
+                 // performance.
+        do_move(moves[m]);
+        bool checked = board.king_checked(turn_color);
+        if (!checked) {
+            // PERF: Check how expensive this king_checked thing is. Is it worth the move ordering
+            // benefit?
+            bool opponent_checked = board.king_checked(opposite_color);
+            moves[m].check = true;
+            moves[num_moves++] = moves[m];
+        }
+        undo_move(moves[m]);
+    }
+    return num_moves;
+}
 void BoardState::do_move(Move &move) {
     move.castling_rights = this->castling;
     move.en_passant_square = this->en_passant ? this->en_passant_square : err_val8;
-    move.check = check;
     ply_moves += 1;
     if (this->turn_color == black)
         full_moves += 1;
@@ -57,7 +82,6 @@ void BoardState::undo_move(const Move move) {
     castling = move.castling_rights;
     en_passant_square = move.en_passant_square;
     en_passant = en_passant_square < 64;
-    check = move.check;
     board.move_piece(move.end_square, move.start_square);
     if (move.promotion.get_value()) {
         board.promote_piece(move.start_square,
@@ -327,7 +351,3 @@ std::string BoardState::fen_from_state() const {
     return FEN;
 }
 void BoardState::print_piece_loc() const { board.print_piece_loc(); }
-size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) const {
-    uint8_t num_moves = board.get_pseudolegal_moves(moves, turn_color);
-    return num_moves;
-}

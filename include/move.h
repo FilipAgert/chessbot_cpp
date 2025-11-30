@@ -13,7 +13,7 @@ struct Move {
     uint8_t start_square, end_square;
     uint8_t en_passant_square = err_val8;
     uint8_t castling_rights;
-    uint8_t check;  // This way we don't have to recompute if checked when we undo a move.
+    bool check = false;  // Flag if move leads to check or not. For use in move order selection.
 
     explicit Move(std::string move_str) {
         if (move_str.length() < 4 || move_str.length() > 5)

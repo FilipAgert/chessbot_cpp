@@ -44,7 +44,7 @@ struct BoardState {
      * @param moves array containing moves
      * @return * size_t: number of legal moves in array.
      */
-    size_t get_moves(std::array<Move, max_legal_moves> &moves) const;
+    size_t get_moves(std::array<Move, max_legal_moves> &moves);
     void reset() {
         castling = err_val8;
         turn_color = err_val8;
