@@ -1,5 +1,6 @@
 // board_test.cpp
 #include "constants.h"
+#include <bitboard.h>
 #include <board.h>
 #include <board_state.h>
 #include <gtest/gtest.h>
@@ -21,7 +22,6 @@ TEST(BoardTest, AddPiece) {
     ASSERT_EQ(b.get_piece_at(8), p);
     uint64_t bb = BitBoard::one_high(8);
     ASSERT_EQ(b.get_bb(p.get_value()), bb);
-    ASSERT_EQ(b.get_bb(p.get_value()), bb);
 }
 
 TEST(BoardTest, MovePiece) {
@@ -33,6 +33,44 @@ TEST(BoardTest, MovePiece) {
     b.move_piece(8, 16);
     ASSERT_EQ(b.get_piece_at(16), p1);
     ASSERT_EQ(b.get_piece_at(8).get_type(), none);
+}
+
+TEST(BoardTest, bb_validation) {
+    BoardState state;
+
+    std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    state.read_fen(fen);
+
+    uint64_t expected = masks::row(0) | masks::row(1);
+    uint64_t actual = state.board.get_bb(white);
+    ASSERT_EQ(actual, expected);
+    expected = masks::row(6) | masks::row(7);
+    actual = state.board.get_bb(black);
+    ASSERT_EQ(actual, expected);
+
+    // Test pawns
+    expected = masks::row(1);
+    actual = state.board.get_bb(pawn | white);
+    ASSERT_EQ(actual, expected);
+    expected = masks::row(6);
+    actual = state.board.get_bb(pawn | black);
+    ASSERT_EQ(actual, expected);
+
+    // Test kings
+    expected = BitBoard::one_high(4);
+    actual = state.board.get_bb(king | white);
+    ASSERT_EQ(actual, expected);
+    expected = BitBoard::one_high(60);
+    actual = state.board.get_bb(king | black);
+    ASSERT_EQ(actual, expected);
+
+    // Test queen
+    expected = BitBoard::one_high(3);
+    actual = state.board.get_bb(queen | white);
+    ASSERT_EQ(actual, expected);
+    expected = BitBoard::one_high(59);
+    actual = state.board.get_bb(queen | black);
+    ASSERT_EQ(actual, expected);
 }
 
 TEST(BoardTest, RemovePiece) {

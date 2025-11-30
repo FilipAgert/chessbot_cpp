@@ -121,7 +121,7 @@ void Board::clear_board() {
         this->game_board[i] = Piece();
     }
     for (size_t i = 0; i < bit_boards.size(); i++) {
-        bit_boards[i] = 0;
+        this->bit_boards[i] = 0;
     }
     num_pieces = 0;
 }
