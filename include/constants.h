@@ -7,6 +7,8 @@ inline std::string const ID_name = "filip_bot";
 inline std::string const ID_author = "filipagert";
 inline std::string const ID_version = "0.1";
 
+inline bool const debug_mode = false;
+
 inline uint8_t const err_val8 = 0b11111111;
 
 inline size_t const max_legal_moves = 267;

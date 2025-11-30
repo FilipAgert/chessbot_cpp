@@ -33,6 +33,8 @@ class Game {
      */
     bool set_fen(std::string FEN);
 
+    BoardState get_state() { return state; }
+
  private:
     std::stack<Move> move_stack;
     BoardState state;

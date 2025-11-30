@@ -14,6 +14,9 @@ int movegen_benchmark::gen_num_moves(std::string FEN, int depth, int print_depth
     }
     return recurse_moves(boardState, print_depth, 0, depth);
 }
+int movegen_benchmark::gen_num_moves(BoardState state, int depth, int print_depth) {
+    return recurse_moves(state, print_depth, 0, depth);
+}
 
 int movegen_benchmark::recurse_moves(BoardState state, int print_depth, int curr_depth,
                                      int to_depth) {

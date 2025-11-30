@@ -18,9 +18,10 @@ class movegen_benchmark {
      * printing. Default = -1.
      * @return Number of moves at this depth.
      */
-    int gen_num_moves(std::string FEN, int depth, int print_depth = -1);
+    static int gen_num_moves(std::string FEN, int depth, int print_depth = -1);
+    static int gen_num_moves(BoardState state, int depth, int print_depth = -1);
 
  private:
-    int recurse_moves(BoardState state, int print_depth, int curr_depth, int to_depth);
+    static int recurse_moves(BoardState state, int print_depth, int curr_depth, int to_depth);
 };
 #endif
