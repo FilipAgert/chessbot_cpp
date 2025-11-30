@@ -48,6 +48,42 @@ void BoardState::do_move(Move &move) {
         move.captured_piece = this->board.get_piece_at(move.end_square);
     }
 
+    // Exception: castle
+    if (moved.get_type() == king && abs(NotationInterface::col(move.end_square) -
+                                        NotationInterface::col(move.start_square)) > 1) {
+        // If kingside: (diff is positive)
+        int diff =
+            NotationInterface::col(move.end_square) - NotationInterface::col(move.start_square);
+
+        uint8_t rook_from;
+        uint8_t rook_to;
+        if (diff > 0) {  // kingside
+            rook_from = move.start_square + 3;
+            rook_to = move.start_square + 1;
+        } else {
+            rook_from = move.start_square - 4;
+            rook_to = move.start_square - 1;
+        }
+        board.move_piece(rook_from, rook_to);
+    }
+    // Set castling rights. If one of king squares moved -> remove castling right for that color.
+    // If one of rooks moved or captured -> remove that sides castling rights.
+    uint64_t from_to = BitBoard::one_high(move.start_square) | BitBoard::one_high(move.end_square);
+    uint8_t castlemask =
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e1"))) != 0) *
+            0b0011 |  // king w
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("a1"))) != 0) *
+            0b0010 |  // queenside w
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("h1"))) != 0) *
+            0b0001 |  // kingside w
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e8"))) != 0) *
+            0b1100 |  // king b
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e8"))) != 0) *
+            0b1000 |  // queenside b
+        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e8"))) != 0) *
+            0b0100;  // kingside b
+    this->castling &= ~castlemask;
+
     if (move.captured_piece.get_value()) {
         if (en_passant && moved.get_type() == pawn && move.end_square == en_passant_square) {
             uint8_t captured_pawn_loc =
@@ -87,6 +123,26 @@ void BoardState::undo_move(const Move move) {
     if (move.promotion.get_value()) {
         board.promote_piece(move.start_square,
                             Piece(move.promotion.get_color() | pawn));  // Replace with pawn.
+    }
+
+    Piece moved = board.get_piece_at(move.start_square);
+    // Exception2: Castle.
+    if (moved.get_type() == king && abs(NotationInterface::col(move.end_square) -
+                                        NotationInterface::col(move.start_square)) > 1) {
+        // If kingside: (diff is positive)
+        int diff =
+            NotationInterface::col(move.end_square) - NotationInterface::col(move.start_square);
+
+        uint8_t rook_from;
+        uint8_t rook_to;
+        if (diff > 0) {  // kingside
+            rook_from = move.start_square + 3;
+            rook_to = move.start_square + 1;
+        } else {
+            rook_from = move.start_square - 4;
+            rook_to = move.start_square - 1;
+        }
+        board.move_piece(rook_to, rook_from);
     }
 
     if (move.captured_piece.get_value()) {

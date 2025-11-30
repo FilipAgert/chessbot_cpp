@@ -50,6 +50,14 @@ class NotationInterface {
      * @param idx Square idx [0-63]
      */
     static void row_col(uint8_t &row, uint8_t &col, const uint8_t idx);
+    /**
+     * @brief Gets row from idx.
+     *
+     * @param idx Square idx [0-63]
+     * @return row
+     */
+    inline constexpr static int row(const uint8_t idx) { return idx / 8; }
+    inline constexpr static int col(const uint8_t idx) { return idx % 8; }
 };
 
 #endif
