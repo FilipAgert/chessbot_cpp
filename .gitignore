@@ -32,3 +32,5 @@ core
 *.sublime-project
 compile*
 .cache
+
+bench/*.json
