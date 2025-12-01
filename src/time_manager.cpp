@@ -1,3 +1,4 @@
+// Copyright 2025 Filip Agert
 #include <algorithm>
 #include <atomic>
 #include <thread>

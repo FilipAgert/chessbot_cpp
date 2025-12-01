@@ -1,3 +1,4 @@
+// Copyright 2025 Filip Agert
 #ifndef TIME_MANAGER_H
 #define TIME_MANAGER_H
 #include <atomic>
@@ -6,7 +7,7 @@
 using namespace std::chrono;
 class TimeManager {
  private:
-    std::atomic<bool> should_stop;
+    std::atomic<bool> should_stop;  // Shared variable between threads.
     std::thread timer_thread;
     int remtime, inc, enemy_remtime, enemy_inc;
     bool infinite;
@@ -27,7 +28,7 @@ class TimeManager {
      * @brief Set the stop flag. If time class, this will stop game loop. If game loop class, this
      * will stop time thread.
      *
-     * @param[[TODO:direction]] stop_flag [TODO:description]
+     * @param[in] stop_flag true if loops should stop.
      */
     void set_should_stop(bool stop_flag);
 
@@ -40,7 +41,7 @@ class TimeManager {
     void stop_and_join();
 
     TimeManager(int remtime, int inc, int enemy_remtime, int enemy_inc);
-    TimeManager(bool infinite);
+    explicit TimeManager(bool infinite);
 
     ~TimeManager();
 };
