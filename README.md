@@ -92,10 +92,12 @@ The bisect.py and most of the unit tests were generated mainly with clankers. Th
 
 ## TODO List
 - Pregenerate move bitboards for each piece and lookup.
-- Interface bestmove to Game class.
 - Handle ponder loop
-- Handle time management
 - Implement alpha-beta pruning
 - Implement move exploring
 - Thread management to abort move search
 - Implement move scoring.
+
+## Feature list
+- Time management on another thread.
+- Can generate all legal moves.
