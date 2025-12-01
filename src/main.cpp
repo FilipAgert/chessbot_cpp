@@ -27,23 +27,23 @@ int main() {
             UCIInterface::process_go_command(body);
         } else if (command == "position") {
             UCIInterface::process_position_command(body);
-        } else if (command == "fen") {
-            UCIInterface::process_fen_command(body);
         } else if (command == "bestmove") {
             UCIInterface::send_bestmove();
         } else if (command == "ponder") {
             UCIInterface::process_ponder_command();
         } else if (command == "newgame") {
             UCIInterface::process_new_game_command();
-        } else if (command == "board") {
-            UCIInterface::process_board_command();
+        } else if (command == "d") {
+            UCIInterface::process_d_command();
+        } else if (command == "bench") {
+            UCIInterface::process_bench_command(body);
         } else if (command == "quit") {
             UCIInterface::process_quit_command();
         } else if (command == "debug") {
             std::cout << "Debug mode is not implemented yet." << std::endl;
         } else if (command == "help") {
-            std::cout << "Available commands: uci, isready, go, position, fen, bestmove, ponder, "
-                         "newgame, stop, debug, board, help"
+            std::cout << "Available commands: uci, isready, go, position, bestmove, ponder, "
+                         "newgame, quit, debug, d, board, help"
                       << std::endl;
         } else {
             std::cout << "Unknown command: " << input << std::endl;

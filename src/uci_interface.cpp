@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <movegen_benchmark.h>
+#include <sstream>
 #include <string>
 
 void UCIInterface::process_uci_command() {
@@ -132,7 +133,11 @@ void UCIInterface::process_ponder_command() {
 }
 void UCIInterface::send_bestmove() { UCIInterface::uci_response("bestmove e2e4 ponder e7e5"); }
 
-void UCIInterface::process_board_command() { Game::instance().display_board(); }
+void UCIInterface::process_d_command() {
+    Game::instance().display_board();
+    UCIInterface::uci_response(Game::instance().get_fen());
+}
+void UCIInterface::process_bench_command(std::string command) {}
 
 void UCIInterface::process_fen_command(std::string command) {
     UCIInterface::uci_response("Processing FEN command: " + command);
@@ -143,3 +148,26 @@ void UCIInterface::process_fen_command(std::string command) {
 }
 
 void UCIInterface::uci_response(std::string response) { std::cout << response << std::endl; }
+std::vector<std::string> UCIInterface::split(std::string full, char del) {
+    std::stringstream ss(full);
+    std::string temp;
+    std::vector<std::string> out;
+    while (std::getline(ss, temp, del)) {
+        out.push_back(temp);
+    }
+    return out;
+}
+std::string UCIInterface::trim(std::string full) {
+    std::string out = "";
+    int i;
+    for (i = 0; i < full.length() && full[i] == ' '; i++) {
+    }
+    int start = i;
+
+    for (i = full.length() - 1; i >= 0 && full[i] == ' '; i--) {
+    }
+    int stop = i;
+    if (start <= stop)
+        out = full.substr(start, stop - start + 1);
+    return out;
+}
