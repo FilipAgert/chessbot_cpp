@@ -1,0 +1,33 @@
+{
+    "a8403ff324c1b67536f6f1905b85dda6bba16854": {
+        "date": "2025-12-01T21:10:14.122697",
+        "commit_hash": "a8403ff324c1b67536f6f1905b85dda6bba16854",
+        "commit_msg": "rename bisect->bisect_moves due to conflict",
+        "overall_avg_nps": 2073800,
+        "overall_avg_std": 50486,
+        "overall_sample_stdev_nps": 225783,
+        "overall_n": 20,
+        "relative_error": 0.108874,
+        "options": {
+            "threads": 1,
+            "runs_per_fen": 10,
+            "fen_config_file": "bench/fen_benchmarks.txt"
+        },
+        "fen_depth_stats": {
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1|4": {
+                "avg_nps": 1895266,
+                "avg_std": 46935,
+                "sample_stdev_nps": 148424,
+                "threads": 1,
+                "runs_per_fen": 10
+            },
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 1 1|4": {
+                "avg_nps": 2252335,
+                "avg_std": 38415,
+                "sample_stdev_nps": 121481,
+                "threads": 1,
+                "runs_per_fen": 10
+            }
+        }
+    }
+}
