@@ -5,8 +5,8 @@ DOBJ = ./bin
 DEXE = ./exe
 DTEST = ./tests
 
-EXEN = main.exe
-TEST_EXE = test.exe
+EXEN = filipbot
+TEST_EXE = testsuite
 
 # flags
 FLAGS = -Wall -std=c++17 -O1 -I$(DINC)
