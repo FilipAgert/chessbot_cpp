@@ -1,4 +1,5 @@
 #include "uci_interface.h"
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <movegen_benchmark.h>
@@ -168,8 +169,14 @@ void UCIInterface::process_bench_command(std::string command) {
     int depth = std::stoi(parts[depthloc]);
     int threads = std::stoi(parts[depthloc + 1]);
     UCIInterface::uci_response("Generating moves to depth: " + std::to_string(depth));
+    auto start = std::chrono::high_resolution_clock::now();
     int nummoves = movegen_benchmark::gen_num_moves(Game::instance().get_state(), depth, -1);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     UCIInterface::uci_response(std::to_string(nummoves) + " nodes found at this depth.");
+    UCIInterface::uci_response("Time taken: " + std::to_string(duration.count()) + " ms.");
+    int mps = (1000 * nummoves / duration.count());
+    UCIInterface::uci_response("Nodes per second: " + std::to_string(mps));
 }
 
 void UCIInterface::process_fen_command(std::string command) {
