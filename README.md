@@ -89,3 +89,13 @@ If stockfish is not installed, you can modify ```bisect.py``` to replace stockfi
 
 ## Clanker use
 The bisect.py and most of the unit tests were generated mainly with clankers. The src code is not.
+
+## TODO List
+- Pregenerate move bitboards for each piece and lookup.
+- Interface bestmove to Game class.
+- Handle ponder loop
+- Handle time management
+- Implement alpha-beta pruning
+- Implement move exploring
+- Thread management to abort move search
+- Implement move scoring.
