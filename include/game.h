@@ -17,6 +17,17 @@ class Game {
     void end_game();
 
     /**
+     * @brief Enter the game loop logic. This should be called when UCI command GO is received.
+     *
+     */
+    void start_thinking();
+
+    /**
+     * @brief Gets the current best known move to send to GUI.
+     *
+     */
+    std::string get_bestmove() const;
+    /**
      * @brief Set game to start position.
      *
      */
@@ -42,6 +53,7 @@ class Game {
 
  private:
     std::stack<Move> move_stack;
+    Move bestmove;
     BoardState state;
     Game() = default;
 };

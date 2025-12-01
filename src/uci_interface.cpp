@@ -58,10 +58,11 @@ void UCIInterface::process_go_command(std::string command) {
                     "Error: \"perft\" command should be followed by an integer but found: " +
                     int_token);
             }
-
-        } else {
+            return;
         }
     }
+    Game::instance().start_thinking();  // Enter ponder loop
+    UCIInterface::send_bestmove();
 }
 
 void UCIInterface::process_position_command(std::string command) {
@@ -132,7 +133,11 @@ void UCIInterface::process_position_command(std::string command) {
 void UCIInterface::process_ponder_command() {
     UCIInterface::uci_response("Processing ponder command.");
 }
-void UCIInterface::send_bestmove() { UCIInterface::uci_response("bestmove e2e4 ponder e7e5"); }
+void UCIInterface::send_bestmove() {
+    std::string bestmove = Game::instance().get_bestmove();
+    UCIInterface::uci_response("bestmove " + bestmove);
+    // TODO: handle if there is no best move (mate).
+}
 
 void UCIInterface::process_d_command() {
     Game::instance().display_board();
