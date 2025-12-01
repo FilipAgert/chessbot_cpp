@@ -8,9 +8,18 @@ DTEST = ./tests
 EXEN = filipbot
 TEST_EXE = testsuite
 
-# flags
-FLAGS = -Wall -std=c++17 -O1 -I$(DINC)
+
+type?=dev
+ifeq ($(type), release)
+	FLAGS = -Wall -std=c++17 -O3
+else
+	FLAGS = -DDEBUG -g -Wall -std=c++17 -O0
+endif
+
+
+
 LIBS = -lgtest -lgtest_main -pthread  # Google Test and pthread libs
+
 
 # commands for compilation
 CCL = g++ -o
