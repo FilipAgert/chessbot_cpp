@@ -1,9 +1,10 @@
 // Copyright 2025 Filip Agert
 #include <array>
+#include <chrono>
 #include <game.h>
 #include <move.h>
 #include <string>
-
+#include <time_manager.h>
 bool Game::set_fen(std::string FEN) {
     bool success = state.read_fen(FEN);
     return success;
@@ -15,6 +16,25 @@ void Game::start_thinking() {
         bestmove = moves[0];
     else
         bestmove = Move("a2a4");
+}
+
+void Game::think_loop() {
+    int max_depth = 5;
+
+    TimeManager time_manager =
+        TimeManager(3000, 500, 10000, 50);  // Todo: Input actual args from UCI.
+    time_manager.start_time_management();
+
+    for (int depth = 1; depth <= max_depth; depth++) {
+        if (time_manager.get_should_stop()) {
+            break;
+        }
+    }
+
+    if (!time_manager.get_should_stop()) {
+        time_manager.set_should_stop(true);
+        time_manager.stop_and_join();
+    }
 }
 
 std::string Game::get_bestmove() const { return bestmove.toString(); }

@@ -22,6 +22,8 @@ class Game {
      */
     void start_thinking();
 
+    void eval_board(size_t depth);
+
     /**
      * @brief Gets the current best known move to send to GUI.
      *
@@ -56,4 +58,9 @@ class Game {
     Move bestmove;
     BoardState state;
     Game() = default;
+    /**
+     * @brief Main game logic loop for thinking about a position.
+     *
+     */
+    void think_loop();
 };
