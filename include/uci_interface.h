@@ -36,12 +36,19 @@ class UCIInterface {
      * @param[[TODO:direction]] full [TODO:description]
      * @param[[TODO:direction]] del [TODO:description]
      */
-    std::vector<std::string> split(std::string full, char del);
+    static std::vector<std::string> split(std::string full, char del);
     /**
      * @brief Trim whitespaces from a string
      *
      * @param[[TODO:direction]] full [TODO:description]
      */
-    std::string trim(std::string full);
+    static std::string trim(std::string full);
+    /**
+     * @brief Join together vector of strings separated by delimiter.
+     *
+     * @param[[TODO:direction]] strings [TODO:description]
+     * @param[[TODO:direction]] del [TODO:description]
+     */
+    static std::string join(std::vector<std::string> strings, char del);
 };
 #endif

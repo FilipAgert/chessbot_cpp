@@ -15,6 +15,11 @@ class Game {
     }
     void start_game();
     void end_game();
+
+    /**
+     * @brief Set game to start position.
+     *
+     */
     void reset_game();
     void make_move(Move move);
     void undo_move();

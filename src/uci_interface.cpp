@@ -137,7 +137,40 @@ void UCIInterface::process_d_command() {
     Game::instance().display_board();
     UCIInterface::uci_response(Game::instance().get_fen());
 }
-void UCIInterface::process_bench_command(std::string command) {}
+void UCIInterface::process_bench_command(std::string command) {
+    // Should be structured like:
+    // <fentype> <depth> <threads>
+    std::vector<std::string> parts = UCIInterface::split(command, ' ');
+    int depthloc = 1;
+    if (parts.size() == 8) {
+        std::vector<std::string> fenparts = parts;
+        int fenl = 6;
+        for (int i = 0; i < fenl; i++)
+            fenparts[i] = parts[i];
+        depthloc = fenl;
+        std::string fen = UCIInterface::join(fenparts, ' ');
+        Game::instance().set_fen(fen);
+    } else if (parts.size() == 3) {
+        if (parts[0] == "current") {
+        } else if (parts[0] == "default") {
+            Game::instance().reset_game();
+        } else {
+            UCIInterface::uci_response(
+                "fentype must be one of: current, default, or a literal <fen> string ");
+            return;
+        }
+    } else {
+        UCIInterface::uci_response(
+            "Invalid bench command structure. Must be <fentype> <depth> <threads>.");
+        return;
+    }
+
+    int depth = std::stoi(parts[depthloc]);
+    int threads = std::stoi(parts[depthloc + 1]);
+    UCIInterface::uci_response("Generating moves to depth: " + std::to_string(depth));
+    int nummoves = movegen_benchmark::gen_num_moves(Game::instance().get_state(), depth, -1);
+    UCIInterface::uci_response(std::to_string(nummoves) + " nodes found at this depth.");
+}
 
 void UCIInterface::process_fen_command(std::string command) {
     UCIInterface::uci_response("Processing FEN command: " + command);
@@ -170,4 +203,13 @@ std::string UCIInterface::trim(std::string full) {
     if (start <= stop)
         out = full.substr(start, stop - start + 1);
     return out;
+}
+std::string UCIInterface::join(std::vector<std::string> strings, char del) {
+    std::string str = "";
+    for (int i = 0; i < strings.size(); i++) {
+        if (i != 0)
+            str.push_back(del);
+        str.append(strings[i]);
+    }
+    return str;
 }

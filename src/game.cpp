@@ -7,6 +7,7 @@ bool Game::set_fen(std::string FEN) {
     return success;
 }
 
+void Game::reset_game() { bool success = state.read_fen(NotationInterface::starting_FEN()); }
 std::string Game::get_fen() const { return ""; }
 
 void Game::make_move(Move move) {
