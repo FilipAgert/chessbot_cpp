@@ -1,8 +1,8 @@
 # paths
 DSRC = ./src
 DINC = ./include
-DOBJ = ./bin
-DEXE = ./exe
+DOBJ = ./build
+DEXE = ./bin
 DTEST = ./tests
 
 EXEN = filipbot
