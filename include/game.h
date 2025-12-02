@@ -4,7 +4,9 @@
 #include <move.h>
 #include <notation_interface.h>
 #include <piece.h>
+#include <time_manager.h>
 
+#include <memory>
 #include <stack>
 #include <string>
 #include <vector>
@@ -36,7 +38,21 @@ class Game {
      */
     void start_thinking();
 
-    void eval_board(size_t depth);
+    /**
+     * @brief Alpha beta pruning. This is quite complicated. alpha is the maximal guaranteed score
+     * that the maximising player (white) can achive. Beta is the minimum guaranteed score that the
+     * minimising player (black) can achive. This results in searching fewer branches. The reason is
+     * that if the minimising player can GUARANTEE a score lower than the maximum score the
+     * maximising player can achieve, then there is not point of searching this branch.
+     *
+     *
+     * @param[in] depth Depth to go to. Breaks when depth is 0.
+     * @param[[TODO:direction]] alpha Maximum guaranteed score of maximising player.
+     * @param[[TODO:direction]] beta Minimum guaranteeds core of minimising player
+     * @param[[TODO:direction]] is_maximiser If maximiser.
+     * @return Score of current state.
+     */
+    int alpha_beta(size_t depth, int alpha, int beta, bool is_maximiser);
 
     /**
      * @brief Gets the current best known move to send to GUI.
@@ -78,6 +94,9 @@ class Game {
     std::stack<Move> move_stack;
     Move bestmove;
     BoardState state;
+    uint64_t moves_generated;
+    uint64_t nodes_evaluated;
+    TimeManager time_manager;
     Game() = default;
     /**
      * @brief Main game logic loop for thinking about a position.

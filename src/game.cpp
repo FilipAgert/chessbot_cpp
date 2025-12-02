@@ -1,8 +1,11 @@
 // Copyright 2025 Filip Agert
+#include <algorithm>
 #include <array>
 #include <chrono>
+#include <climits>  // For infinity
 #include <eval.h>
 #include <game.h>
+#include <memory>
 #include <move.h>
 #include <string>
 #include <time_manager.h>
@@ -11,12 +14,13 @@ bool Game::set_fen(std::string FEN) {
     return success;
 }
 void Game::start_thinking() {
-    std::array<Move, max_legal_moves> moves;
-    size_t num_moves = state.get_moves(moves);
-    if (num_moves > 0)
-        bestmove = moves[0];
-    else
-        bestmove = Move("a2a4");
+    reset_infos();
+    think_loop();
+}
+
+void Game::reset_infos() {
+    moves_generated = 0;
+    nodes_evaluated = 0;
 }
 
 void Game::think_loop() {
@@ -24,19 +28,102 @@ void Game::think_loop() {
     int buffer = 50;    // ms
     int fraction = 20;  // spend 1/20th of remaining time.
 
-    TimeManager time_manager =
-        TimeManager(3000, 500, 10000, 50, buffer, fraction);  // Todo: Input actual args from UCI.
-    time_manager.start_time_management();
+    std::array<Move, max_legal_moves> moves;
+    int num_moves = state.get_moves(moves);
+    if (num_moves == 0)
+        return;
+
+    std::shared_ptr<TimeManager> time_manager(
+        new TimeManager(3000, 500, 10000, 50, buffer, fraction));
+    time_manager->start_time_management();
+
+    std::array<int, max_legal_moves> evaluations;
+    bool is_maximiser = state.turn_color == pieces::white;
 
     for (int depth = 1; depth <= max_depth; depth++) {
-        if (time_manager.get_should_stop()) {
-            break;
+        Move best_current_move;
+        int eval;
+        int best_eval;
+        int init_alpha = INT_MIN;
+        int init_beta = INT_MAX;
+        int num_moves_evaluated = 0;
+
+        if (is_maximiser) {
+            best_eval = INT_MIN;
+            for (int i = 0; i < num_moves; i++) {
+                this->make_move(moves[i]);
+                eval = alpha_beta(depth - 1, init_alpha, init_beta, false);
+                evaluations[i] = eval;
+                this->undo_move();
+                if (eval > best_eval) {
+                    best_eval = eval;
+                    best_current_move = moves[i];
+                }
+                num_moves_evaluated++;
+                if (time_manager->get_should_stop())
+                    break;
+            }
+        } else {
+            best_eval = INT_MAX;
+            for (int i = 0; i < num_moves; i++) {
+                this->make_move(moves[i]);
+                eval = alpha_beta(depth - 1, init_alpha, init_beta, true);
+                evaluations[i] = eval;
+                this->undo_move();
+                if (eval < best_eval) {
+                    best_eval = eval;
+                    best_current_move = moves[i];
+                }
+                num_moves_evaluated++;
+                if (time_manager->get_should_stop())
+                    break;
+            }
         }
+        EvalState::partial_move_sort(moves, evaluations, num_moves_evaluated, !is_maximiser);
+        bestmove = moves[0];
+        // Sort move list by the score list.
     }
 
-    if (!time_manager.get_should_stop()) {
-        time_manager.set_should_stop(true);
-        time_manager.stop_and_join();
+    time_manager->stop_and_join();  // Join time manager thread to this one.
+}
+
+int Game::alpha_beta(size_t depth, int alpha, int beta, bool is_maximiser) {
+    if (depth == 0) {
+        nodes_evaluated++;
+        return EvalState::eval(this->state);
+    }
+
+    int eval;
+    std::array<Move, max_legal_moves> moves;
+    int num_moves = state.get_moves(moves);
+    if (is_maximiser) {  // white
+        int max_eval = INT_MIN;
+        moves_generated += num_moves;
+        for (int i = 0; i < num_moves; i++) {
+            this->make_move(moves[i]);
+            eval = alpha_beta(depth - 1, alpha, beta, false);
+            this->undo_move();
+            max_eval = std::max(max_eval, eval);
+            alpha = std::max(alpha, eval);
+            if (beta <= alpha) {
+                break;  // beta cutoff.
+            }
+        }
+        return max_eval;
+    } else {  // black
+        int min_eval = INT_MAX;
+        moves_generated += num_moves;
+        for (int i = 0; i < num_moves; i++) {
+            this->make_move(moves[i]);
+            eval = alpha_beta(depth - 1, alpha, beta, true);
+            this->undo_move();
+            min_eval = std::min(min_eval, eval);
+            beta = std::min(beta, eval);
+            if (beta <= alpha) {
+                break;  // Alpha cutoff.
+            }
+        }
+        return min_eval;
     }
 }
 
