@@ -12,12 +12,9 @@ class TimeManager {
     int remtime, inc, enemy_remtime, enemy_inc, buffer, remtime_frac;
     bool infinite;
     time_point<high_resolution_clock> start;
-    std::atomic<int> time_elapsed;
-    int calculate_time_elapsed_ms();
+    int calculate_time_elapsed_ms() const;
     void time_loop_function(int64_t target_move_time_ms);
     int64_t calculate_target_move_time_ms();
-
-    void set_time_elapsed(int time);
 
  public:
     /**
