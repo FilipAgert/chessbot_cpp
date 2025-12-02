@@ -63,6 +63,11 @@ void Game::think_loop() {
                 }
                 num_moves_evaluated++;
                 if (time_manager->get_should_stop()) {
+                    // Even if we break early we get information from this evaluation.
+                    // Due to the move ordering after each depth, we search the best moves first.
+                    // This means that even if we only evaluate say the top 3 moves out of 20
+                    // possible, we will get the best one of these 3 at the current depth. This is
+                    // good.
                     ponder = false;
                     break;
                 }
@@ -85,8 +90,11 @@ void Game::think_loop() {
                 }
             }
         }
-        EvalState::partial_move_sort(moves, evaluations, num_moves_evaluated, !is_maximiser);
+        EvalState::partial_move_sort(moves, evaluations, num_moves_evaluated,
+                                     !is_maximiser);  // Sort moves by score in order to help next
+                                                      // depth improve move ordering.
         bestmove = moves[0];
+
         InfoMsg new_msg;
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
