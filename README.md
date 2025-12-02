@@ -1,7 +1,7 @@
 # Chessbot in C++
 This README provides basic information on compiling, running.
 
-The chessbot aims to communicate with the UCI interface.
+The chessbot communicates with the UCI interface.
 
 ---
 
@@ -11,10 +11,10 @@ Running the command
 make
 ```
 Will output the executeable in
-```app/main.exe```
+```app/filipbot```
 which can be ran with the command
 ```bash
-app/main.exe
+app/filipbot
 ```
 ## UCI interface
 After launching the executeable, the program will output
@@ -48,6 +48,17 @@ Examples:
 - ```a7a8Q``` promote pawn to queen from a7 to a8.
 The fifth character must be one of ```Q,B,R,N``` for queen, bishop, rook, knight.
 
+### Engine moves
+To evaluate the engine and its moves run the command
+```bash
+go
+```
+This will compute from the current position the best possible moves.
+The chess engine will output an <info> string for each depth evaluated. It will then output its bestmove with
+```bash
+bestmove <move>
+```
+
 ### PERFT
 Move generation / PERFT can be performed after setting up the position by typing the command
 ```bash
@@ -67,8 +78,9 @@ Nodes searched: 18
 ```
 
 If the move ```a2a4``` leads to 15 countermoves by the other color and ```b7b8``` leads to 3.
+
 ### Other commands
-- board: Will print the board human readable to console.
+For a full list of commands and their explanations, check out commands.md.
 
 ## Testing
 To run the unit tests, type
