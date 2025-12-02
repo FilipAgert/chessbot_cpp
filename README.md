@@ -10,7 +10,7 @@ Running the command
 ```bash
 make
 ```
-Will output the executeable in 
+Will output the executeable in
 ```app/main.exe```
 which can be ran with the command
 ```bash
@@ -30,7 +30,7 @@ From a FEN string, it can be set up by launching the command
 ```bash
 position fen <fen> moves <moves>
 ```
-where ```moves <moves>``` is optional but allows for doing moves after the FEN string. 
+where ```moves <moves>``` is optional but allows for doing moves after the FEN string.
 
 
 #### From start position
@@ -65,7 +65,7 @@ b7b8: 3
 
 Nodes searched: 18
 ```
-  
+
 If the move ```a2a4``` leads to 15 countermoves by the other color and ```b7b8``` leads to 3.
 ### Other commands
 - board: Will print the board human readable to console.
@@ -92,12 +92,18 @@ The bisect.py and most of the unit tests were generated mainly with clankers. Th
 
 ## TODO List
 - Pregenerate move bitboards for each piece and lookup.
-- Handle ponder loop
-- Implement alpha-beta pruning
-- Implement move exploring
-- Thread management to abort move search
-- Implement move scoring.
+- Implement more move scoring.
+    - Position of pieces scoring
+    - num_moves scoring (maybe something like up to 20% more value (prob also capped) when increasing number of available moves)
+    - Passed pawn scoring
+    - unsupported pawn punishment
+    - safe king score
+- Couple to a GUI for ease of testing.
+- Change alpha-beta pruning for only one call for ease of coding.
+- Set UI thread to be its own thread. Communicate with game thread through atomics. This way we can abort the ponder.
 
 ## Feature list
 - Time management on another thread.
 - Can generate all legal moves.
+- Alpha beta pruning
+
