@@ -17,7 +17,7 @@ int EvalState::eval(BoardState state) {
     return score;
 }
 void EvalState::partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                                  std::array<int, max_legal_moves> &scores, int num_moves,
+                                  std::array<int, max_legal_moves> &scores, size_t num_moves,
                                   bool ascending) {
     std::vector<std::pair<Move, int>> zipped;
 

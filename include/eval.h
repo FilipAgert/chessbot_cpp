@@ -15,7 +15,7 @@ class EvalState {
      * True if minimiser, false if maximiser.
      */
     static void partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                                  std::array<int, max_legal_moves> &scores, int num_moves,
+                                  std::array<int, max_legal_moves> &scores, size_t num_moves,
                                   bool ascending);
 };
 

@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <movegen.h>
+#include <vector>
 using namespace movegen;
 
 void Board::bb_move(const uint8_t from, const uint8_t to, const Piece p) {
@@ -124,6 +125,13 @@ void Board::clear_board() {
         this->bit_boards[i] = 0;
     }
     num_pieces = 0;
+}
+std::vector<Piece> Board::get_pieces() {
+    std::vector<Piece> pieces;
+    for (int i = 0; i < num_pieces; i++) {
+        pieces.push_back(game_board[piece_locations[i]]);
+    }
+    return pieces;
 }
 size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
                                     const uint8_t turn_color, const bool en_passant,
