@@ -128,10 +128,58 @@ void Board::clear_board() {
 }
 std::vector<Piece> Board::get_pieces() {
     std::vector<Piece> pieces;
-    for (int i = 0; i < num_pieces; i++) {
+    for (uint8_t i = 0; i < num_pieces; i++) {
         pieces.push_back(game_board[piece_locations[i]]);
     }
     return pieces;
+}
+std::vector<std::pair<Piece, uint8_t>> Board::get_piece_num_moves() {
+    std::vector<std::pair<Piece, uint8_t>> piece_moves;
+    uint64_t white_bb = bit_boards[pieces::white];
+    uint64_t black_bb = bit_boards[pieces::black];
+    uint64_t friendly, enemy;
+    for (uint8_t i = 0; i < num_pieces; i++) {
+        uint8_t sq = piece_locations[i];
+        Piece p = game_board[sq];
+        uint8_t pcol = p.get_color();
+        uint64_t piece_bb = BitBoard::one_high(sq);
+        friendly = (pcol == pieces::white) * white_bb + (pcol == pieces::black) * black_bb;
+        enemy = (pcol == pieces::black) * white_bb + (pcol == pieces::white) * black_bb;
+
+        uint64_t to_squares_bb = to_squares(p.get_type(), piece_bb, friendly, enemy, 0, 0, pcol);
+        uint8_t move_cnt = BitBoard::bitcount(to_squares_bb);
+
+        piece_moves.push_back({p, move_cnt});
+    }
+    return piece_moves;
+}
+uint64_t Board::to_squares(uint8_t ptype, uint64_t piece_bb, uint64_t friendly_bb,
+                           uint64_t enemy_bb, uint64_t ep_bb, uint8_t castleinfo,
+                           uint8_t turn_color) const {
+    uint8_t enemy_col = turn_color ^ pieces::color_mask;
+    uint64_t to_squares;
+    switch (ptype) {
+    case pieces::pawn:
+        to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, turn_color);
+        break;
+    case pieces::bishop:
+        to_squares = movegen::bishop_moves(piece_bb, friendly_bb, enemy_bb);
+        break;
+    case pieces::knight:
+        to_squares = movegen::knight_moves(piece_bb, friendly_bb);
+        break;
+    case pieces::rook:
+        to_squares = movegen::rook_moves(piece_bb, friendly_bb, enemy_bb);
+        break;
+    case pieces::queen:
+        to_squares = movegen::queen_moves(piece_bb, friendly_bb, enemy_bb);
+        break;
+    case pieces::king:
+        to_squares = movegen::king_moves(piece_bb, friendly_bb, friendly_bb | enemy_bb,
+                                         get_atk_bb(enemy_col), castleinfo, turn_color);
+        break;
+    }
+    return to_squares;
 }
 size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
                                     const uint8_t turn_color, const bool en_passant,
@@ -160,33 +208,13 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
         if (p.get_color() != turn_color)  // Cycle if not correct color.
             continue;
         uint64_t bb = BitBoard::one_high(square);
-        uint64_t to_squares;
-        switch (p.get_type()) {
-        case pieces::pawn:
-            to_squares = movegen::pawn_moves(bb, friendly_bb, enemy_bb, en_passant_bb, turn_color);
-            break;
-        case pieces::bishop:
-            to_squares = movegen::bishop_moves(bb, friendly_bb, enemy_bb);
-            break;
-        case pieces::knight:
-            to_squares = movegen::knight_moves(bb, friendly_bb);
-            break;
-        case pieces::rook:
-            to_squares = movegen::rook_moves(bb, friendly_bb, enemy_bb);
-            break;
-        case pieces::queen:
-            to_squares = movegen::queen_moves(bb, friendly_bb, enemy_bb);
-            break;
-        case pieces::king:
-            to_squares = movegen::king_moves(bb, friendly_bb, friendly_bb | enemy_bb,
-                                             get_atk_bb(enemy_col), castleinfo, turn_color);
-            break;
-        }
+        uint64_t to_squares_bb = to_squares(p.get_type(), bb, friendly_bb, enemy_bb, en_passant_bb,
+                                            castleinfo, turn_color);
         uint8_t to_sq = 0;
-        while (to_squares > 0) {
-            uint8_t to = BitBoard::lsb(to_squares);  // Extract LSB loc.
+        while (to_squares_bb > 0) {
+            uint8_t to = BitBoard::lsb(to_squares_bb);  // Extract LSB loc.
             to_sq += to;
-            to_squares = (to_squares >> to) & ~1;  // Clear LSB
+            to_squares_bb = (to_squares_bb >> to) & ~1;  // Clear LSB
             // Handle promotion
             if (p.get_type() == pieces::pawn &&
                 (masks::row(promorow) & BitBoard::one_high(to_sq)) > 0) {

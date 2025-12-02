@@ -93,6 +93,8 @@ struct Board {
      */
     std::vector<Piece> get_pieces();
 
+    std::vector<std::pair<Piece, uint8_t>> get_piece_num_moves();
+
  protected:
     std::array<Piece, 64> game_board;
     std::array<uint8_t, 32>
@@ -113,6 +115,20 @@ struct Board {
      */
     inline void piece_loc_add(const uint8_t sq) { piece_locations[num_pieces] = sq; }
 
+    /**
+     * @brief For a given piece type, generate all possible to squares.
+     *
+     * @param[in] ptype Piece type
+     * @param[in] piece_bb Bit board of piece
+     * @param[in] friendly_bb Bit board of all friendly pieces
+     * @param[in] enemy_bb Bit board of all enemy pieces
+     * @param[in] ep_bb En passant bit board
+     * @param[in] castleinfo Integer containing castle information
+     * @param[in] turn_color Color of player to eval
+     * @return bitboard containing ones in the squares where this piece (or pieces) can move to.
+     */
+    uint64_t to_squares(uint8_t ptype, uint64_t piece_bb, uint64_t friendly_bb, uint64_t enemy_bb,
+                        uint64_t ep_bb, uint8_t castleinfo, uint8_t turn_color) const;
     /** @brief in the piece_loc array, for the element with "from" as its square, change it to to.
      *
      * @param from square to be replaced
