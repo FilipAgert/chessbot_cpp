@@ -6,7 +6,6 @@
 #include <piece.h>
 #include <time_manager.h>
 
-#include <memory>
 #include <stack>
 #include <string>
 #include <vector>
@@ -96,7 +95,6 @@ class Game {
     BoardState state;
     uint64_t moves_generated;
     uint64_t nodes_evaluated;
-    TimeManager time_manager;
     Game() = default;
     /**
      * @brief Main game logic loop for thinking about a position.
