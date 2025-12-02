@@ -48,7 +48,7 @@ void Game::think_loop() {
         int init_beta = INT_MAX;
         int num_moves_evaluated = 0;
 
-        if (is_maximiser) {
+        if (is_maximiser) {  // TODO: Make only one call to alpha_beta.
             best_eval = INT_MIN;
             for (int i = 0; i < num_moves; i++) {
                 this->make_move(moves[i]);
