@@ -11,12 +11,12 @@
 #include <vector>
 
 struct InfoMsg {
-    int depth;     // half-ply
-    int seldepth;  // Depth reached in quiesence
-    int time;      // Time elapsed since start of search
-    int nodes;     // Number of positions evaluated.
-    int moves_generated;
-    int nps;
+    int depth;             // half-ply
+    int seldepth;          // Depth reached in quiesence
+    int time;              // Time elapsed since start of search
+    int nodes;             // Number of positions evaluated.
+    int moves_generated;   // Number of total moves generated.
+    int nps;               // Nodes per second evaluated.
     std::vector<Move> pv;  // Principal line
     Move currmove;         // Current move (root) being evaluated.
     int score;             // Current evaluated best move score

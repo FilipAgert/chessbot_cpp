@@ -15,6 +15,14 @@ class UCIInterface {
     static void send_bestmove();
     static void process_d_command();
     static void process_ponder_command();
+    /**
+     * @brief The go command has the following functionality:
+     * "go perft <depth>": gets number of nodes at a certain depth.
+     * "go eval": Evaluates current board state with eval function.
+     * "go": Gets bestmove and plays it.
+     *
+     * @param[[TODO:direction]] command [TODO:description]
+     */
     static void process_go_command(std::string command);
     static void process_position_command(std::string command);
     static void process_fen_command(std::string command);

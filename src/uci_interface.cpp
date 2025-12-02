@@ -1,6 +1,7 @@
 #include "uci_interface.h"
 #include <chrono>
 #include <cstdlib>
+#include <eval.h>
 #include <iostream>
 #include <movegen_benchmark.h>
 #include <sstream>
@@ -58,6 +59,10 @@ void UCIInterface::process_go_command(std::string command) {
                     "Error: \"perft\" command should be followed by an integer but found: " +
                     int_token);
             }
+            return;
+        } else if (token == "eval") {
+            int evaluation = EvalState::eval(Game::instance().get_state());
+            UCIInterface::uci_response("State evaluation is: " + std::to_string(evaluation));
             return;
         }
     }
@@ -142,6 +147,8 @@ void UCIInterface::send_bestmove() {
 void UCIInterface::process_d_command() {
     Game::instance().display_board();
     UCIInterface::uci_response(Game::instance().get_fen());
+    int eval = EvalState::eval(Game::instance().get_state());
+    UCIInterface::uci_response("Board evaluation (0 depth): " + std::to_string(eval));
 }
 void UCIInterface::process_bench_command(std::string command) {
     // Should be structured like:
