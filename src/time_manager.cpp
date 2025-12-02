@@ -21,9 +21,10 @@ int64_t TimeManager::calculate_target_move_time_ms() {
     if (this->infinite) {
         return -1;
     } else {
-        int64_t base_time = remtime / 20;  // Use up 1/20th of the remaining time plus increment.
+        int64_t base_time =
+            remtime / this->remtime_frac;  // Use up 1/20th of the remaining time plus increment.
 
-        target_time = base_time + inc - 50;  // With a 50 ms buffer.
+        target_time = base_time + inc - buffer;  // With a buffer.
     }
 
     int64_t mintime = 1;
@@ -68,12 +69,15 @@ int TimeManager::calculate_time_elapsed_ms() {
     return duration.count();
 }
 
-TimeManager::TimeManager(int remtime, int inc, int enemy_remtime, int enemy_inc) {
+TimeManager::TimeManager(int remtime, int inc, int enemy_remtime, int enemy_inc, int buffer,
+                         int remtime_frac) {
     this->remtime = remtime;
     this->inc = inc;
     this->enemy_remtime = enemy_remtime;
     this->enemy_inc = enemy_inc;
     this->infinite = false;
+    this->buffer = buffer;
+    this->remtime_frac = remtime_frac;
     this->set_should_stop(false);
 }
 TimeManager::TimeManager(bool infinite) {

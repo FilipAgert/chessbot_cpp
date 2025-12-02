@@ -9,7 +9,7 @@ class TimeManager {
  private:
     std::atomic<bool> should_stop;  // Shared variable between threads.
     std::thread timer_thread;
-    int remtime, inc, enemy_remtime, enemy_inc;
+    int remtime, inc, enemy_remtime, enemy_inc, buffer, remtime_frac;
     bool infinite;
     time_point<high_resolution_clock> start;
     int calculate_time_elapsed_ms();
@@ -40,7 +40,8 @@ class TimeManager {
      */
     void stop_and_join();
 
-    TimeManager(int remtime, int inc, int enemy_remtime, int enemy_inc);
+    TimeManager(int remtime, int inc, int enemy_remtime, int enemy_inc, int buffer,
+                int remtime_frac);
     explicit TimeManager(bool infinite);
 
     ~TimeManager();

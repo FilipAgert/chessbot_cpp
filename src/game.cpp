@@ -20,9 +20,11 @@ void Game::start_thinking() {
 
 void Game::think_loop() {
     int max_depth = 5;
+    int buffer = 50;    // ms
+    int fraction = 20;  // spend 1/20th of remaining time.
 
     TimeManager time_manager =
-        TimeManager(3000, 500, 10000, 50);  // Todo: Input actual args from UCI.
+        TimeManager(3000, 500, 10000, 50, buffer, fraction);  // Todo: Input actual args from UCI.
     time_manager.start_time_management();
 
     for (int depth = 1; depth <= max_depth; depth++) {
