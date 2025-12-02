@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include <algorithm>
 #include <atomic>
+#include <iostream>
 #include <thread>
 #include <time_manager.h>
 
@@ -24,7 +25,7 @@ int64_t TimeManager::calculate_target_move_time_ms() {
         int64_t base_time =
             remtime / this->remtime_frac;  // Use up 1/20th of the remaining time plus increment.
 
-        target_time = base_time + inc - buffer;  // With a buffer.
+        target_time = base_time + inc - buffer;  // With a 50 ms buffer.
     }
 
     int64_t mintime = 1;
