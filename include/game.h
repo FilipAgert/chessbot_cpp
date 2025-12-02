@@ -7,6 +7,20 @@
 
 #include <stack>
 #include <string>
+#include <vector>
+
+struct InfoMsg {
+    int depth;     // half-ply
+    int seldepth;  // Depth reached in quiesence
+    int time;      // Time elapsed since start of search
+    int nodes;     // Number of positions evaluated.
+    int moves_generated;
+    int nps;
+    std::vector<Move> pv;  // Principal line
+    Move currmove;         // Current move (root) being evaluated.
+    int score;             // Current evaluated best move score
+    int d0score;           // Score of state (no going deep)
+};
 class Game {
  public:
     static Game &instance() {
@@ -53,7 +67,14 @@ class Game {
 
     BoardState get_state() { return state; }
 
+    /**
+     * @brief Reset the game info such as number of moves explored when starting a new search.
+     *
+     */
+    void reset_infos();
+
  private:
+    std::stack<InfoMsg> info_stack;
     std::stack<Move> move_stack;
     Move bestmove;
     BoardState state;
