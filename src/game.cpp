@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include <array>
 #include <chrono>
+#include <eval.h>
 #include <game.h>
 #include <move.h>
 #include <string>

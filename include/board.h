@@ -7,6 +7,7 @@
 #include <move.h>
 #include <notation_interface.h>
 #include <piece.h>
+#include <vector>
 
 #include <array>
 #include <cstdint>
@@ -77,6 +78,20 @@ struct Board {
      * @return [ALl squares under attack by given player.]
      */
     uint64_t get_atk_bb(const uint8_t color) const;
+
+    /**
+     * @brief Gets the number of pieces on the board of a certain type (type + color)
+     *
+     * @param[[TODO:direction]] p [TODO:description]
+     * @return [TODO:description]
+     */
+    size_t get_piece_cnt(Piece p);
+
+    /**
+     * @brief Gets a vector of the pieces on the board.
+     *
+     */
+    std::vector<Piece> get_pieces();
 
  protected:
     std::array<Piece, 64> game_board;
