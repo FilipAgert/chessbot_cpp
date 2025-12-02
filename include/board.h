@@ -93,7 +93,7 @@ struct Board {
      */
     std::vector<Piece> get_pieces();
 
-    std::vector<std::pair<Piece, uint8_t>> get_piece_num_moves();
+    std::vector<std::pair<Piece, uint8_t>> get_piece_num_moves(uint8_t castleinfo, uint64_t ep_bb);
 
  protected:
     std::array<Piece, 64> game_board;

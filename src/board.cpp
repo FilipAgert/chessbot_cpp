@@ -133,7 +133,8 @@ std::vector<Piece> Board::get_pieces() {
     }
     return pieces;
 }
-std::vector<std::pair<Piece, uint8_t>> Board::get_piece_num_moves() {
+std::vector<std::pair<Piece, uint8_t>> Board::get_piece_num_moves(uint8_t castleinfo,
+                                                                  uint64_t ep_bb) {
     std::vector<std::pair<Piece, uint8_t>> piece_moves;
     uint64_t white_bb = bit_boards[pieces::white];
     uint64_t black_bb = bit_boards[pieces::black];
@@ -146,7 +147,8 @@ std::vector<std::pair<Piece, uint8_t>> Board::get_piece_num_moves() {
         friendly = (pcol == pieces::white) * white_bb + (pcol == pieces::black) * black_bb;
         enemy = (pcol == pieces::black) * white_bb + (pcol == pieces::white) * black_bb;
 
-        uint64_t to_squares_bb = to_squares(p.get_type(), piece_bb, friendly, enemy, 0, 0, pcol);
+        uint64_t to_squares_bb =
+            to_squares(p.get_type(), piece_bb, friendly, enemy, ep_bb, castleinfo, pcol);
         uint8_t move_cnt = BitBoard::bitcount(to_squares_bb);
 
         piece_moves.push_back({p, move_cnt});

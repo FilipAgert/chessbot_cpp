@@ -6,11 +6,19 @@ int EvalState::eval(BoardState state) {
     int score = 0;
 
     // Eval by piece scoring.
-    std::vector<Piece> pieces = state.board.get_pieces();
-    for (Piece p : pieces) {
+    std::vector<std::pair<Piece, uint8_t>> piece_move_cnt =
+        state.board.get_piece_num_moves(state.castling, 0);  // TODO: Handle en passant
+    // PERFT: eval performance of get_piece_num_moves. expensive calculation.
+    // std::vector<Piece> pieces = state.board.get_pieces();
+
+    for (std::pair<Piece, uint8_t> pa : piece_move_cnt) {
+        Piece p = pa.first;
+        uint8_t mvcnt = pa.second;
         int sign =
             2 * (p.get_color() == pieces::white) - 1;  // Evaluates to -1 if black or 1 if white.
         int val = PieceValue::piecevals[p.get_type()];
+        val += PieceValue::movevals[p.get_type()] *
+               mvcnt;  // Evaluation from having a large amount of moves possible.
         score += sign * val;
     }
 

@@ -26,6 +26,18 @@ struct PieceValue {
     static constexpr int rook = 500;
     static constexpr int queen = 800;
     static constexpr std::array<int, 7> piecevals = {0, 0, queen, rook, knight, bishop, pawn};
+
+    static constexpr int inv_frac =
+        5;  // Fraction of extra value piece is worth extra from having more spaces to move to.
+    // Formula is : frac * piece_val * num_moves / max_possible_moves
+    static constexpr int pawn_moveval = 0;
+    static constexpr int knight_moveval = knight / (8 * inv_frac);
+    static constexpr int bishop_moveval = bishop / (14 * inv_frac);
+    static constexpr int rook_moveval = rook / (14 * inv_frac);
+    static constexpr int queen_moveval = bishop_moveval + rook_moveval;
+    static constexpr int king_moveval = -10;
+    static constexpr std::array<int, 7> movevals = {
+        0, king_moveval, queen_moveval, rook_moveval, knight_moveval, bishop_moveval, pawn_moveval};
 };
 
 #endif
