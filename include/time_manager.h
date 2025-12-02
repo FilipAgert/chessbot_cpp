@@ -12,9 +12,12 @@ class TimeManager {
     int remtime, inc, enemy_remtime, enemy_inc, buffer, remtime_frac;
     bool infinite;
     time_point<high_resolution_clock> start;
+    std::atomic<int> time_elapsed;
     int calculate_time_elapsed_ms();
     void time_loop_function(int64_t target_move_time_ms);
     int64_t calculate_target_move_time_ms();
+
+    void set_time_elapsed(int time);
 
  public:
     /**
@@ -23,6 +26,13 @@ class TimeManager {
      * @return True if calculation should stop.
      */
     bool get_should_stop() const;
+
+    /**
+     * @brief Gets time elapsed at latest update of time clock.
+     *
+     * @return Time elapsed.
+     */
+    int get_time_elapsed() const;
 
     /**
      * @brief Set the stop flag. If time class, this will stop game loop. If game loop class, this

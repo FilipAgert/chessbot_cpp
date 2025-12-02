@@ -8,6 +8,8 @@
 using namespace std::chrono;
 bool TimeManager::get_should_stop() const { return should_stop.load(); }
 void TimeManager::set_should_stop(bool stop_flag) { should_stop.store(stop_flag); }
+void TimeManager::set_time_elapsed(int time) { time_elapsed.store(time); }
+int TimeManager::get_time_elapsed() const { return time_elapsed.load(); }
 
 void TimeManager::start_time_management() {
     int64_t target_time = calculate_target_move_time_ms();
@@ -43,6 +45,7 @@ void TimeManager::time_loop_function(int64_t target_move_time_ms) {
         std::this_thread::sleep_for(check_interval);
 
         int64_t elapsed_time = calculate_time_elapsed_ms();
+        this->set_time_elapsed(elapsed_time);
 
         if (elapsed_time >= target_move_time_ms) {
             this->set_should_stop(true);
