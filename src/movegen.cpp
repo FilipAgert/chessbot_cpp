@@ -2,7 +2,13 @@
 #include <movegen.h>
 using namespace dirs;
 using namespace masks;
+void MoveGenerator::precompute() {
+    for (int sq = 0; sq < 64; sq++) {
+        knight_attack_table[sq] = 0;
+    }
+}
 namespace movegen {
+
 uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const uint8_t pawn_col) {
     int dir =
         (pawn_col == pieces::white) * N + (pawn_col == pieces::black) * S;  // branchless assignment
