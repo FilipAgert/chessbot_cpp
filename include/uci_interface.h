@@ -15,6 +15,18 @@ class UCIInterface {
     static void send_bestmove();
     static void process_d_command();
     static void process_ponder_command();
+
+    /**
+     * @brief Checks if game has info to send, if so: send info. Empties game queue.
+     *
+     */
+    static void send_info_if_has();
+    /**
+     * @brief Sends info message to console
+     *
+     * @param[[TODO:direction]] msg [TODO:description]
+     */
+    static void send_info_msg(InfoMsg msg);
     /**
      * @brief The go command has the following functionality:
      * "go perft <depth>": gets number of nodes at a certain depth.

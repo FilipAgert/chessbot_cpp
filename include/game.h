@@ -6,6 +6,7 @@
 #include <piece.h>
 #include <time_manager.h>
 
+#include <queue>
 #include <stack>
 #include <string>
 #include <vector>
@@ -16,11 +17,11 @@ struct InfoMsg {
     int time;              // Time elapsed since start of search
     int nodes;             // Number of positions evaluated.
     int moves_generated;   // Number of total moves generated.
-    int nps;               // Nodes per second evaluated.
     std::vector<Move> pv;  // Principal line
     Move currmove;         // Current move (root) being evaluated.
     int score;             // Current evaluated best move score
     int d0score;           // Score of state (no going deep)
+    int mate;              // Number of moves to mate.
 };
 class Game {
  public:
@@ -88,8 +89,9 @@ class Game {
      */
     void reset_infos();
 
+    std::queue<InfoMsg> info_queue;
+
  private:
-    std::stack<InfoMsg> info_stack;
     std::stack<Move> move_stack;
     Move bestmove;
     BoardState state;

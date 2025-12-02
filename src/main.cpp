@@ -1,12 +1,14 @@
 // Copyright 2025 Filip Agert
 #include "iostream"
 #include "string"
+#include "thread"
 #include "uci_interface.h"
 
 int main() {
     std::string input;
     std::cout << "Welcome to the UCI interface!" << std::endl;
     std::string command, body;
+    auto sleeptime = 1ms;
 
     do {
         std::getline(std::cin, input);
@@ -48,6 +50,8 @@ int main() {
         } else {
             std::cout << "Unknown command: " << input << std::endl;
         }
+        UCIInterface::send_info_if_has();
+        std::this_thread::sleep_for(sleeptime);
     } while (true);
     return 0;
 }

@@ -20,6 +20,32 @@ void UCIInterface::process_quit_command() {
 }
 
 void UCIInterface::process_new_game_command() { UCIInterface::uci_response("New game started."); }
+void UCIInterface::send_info_msg(InfoMsg msg) {
+    std::string str_depth = "depth: " + std::to_string(msg.depth);
+    std::string str_seldepth = "seldepth: " + std::to_string(msg.seldepth);
+    std::string str_time = "time: " + std::to_string(msg.time);
+    std::string str_nodes = "nodes: " + std::to_string(msg.nodes);
+    std::string str_nmoves = "nmoves: " + std::to_string(msg.moves_generated);
+    std::string str_nps = "nps: " + std::to_string(msg.nodes / msg.time);
+    std::string str_pv = "pv: ";
+    for (Move m : msg.pv)
+        str_pv.append(m.toString() + " ");
+
+    std::string str_currmove = "currmove: " + msg.currmove.toString();
+    std::string str_score = "score: " + std::to_string(msg.score);
+    std::string str_d0score = "d0: " + std::to_string(msg.d0score);
+    std::string str_mate = "mate: " + std::to_string(msg.mate);
+
+    std::string str_infostub = "info ";
+    std::string str = join({str_infostub, str_depth, str_time, str_nodes, str_pv, str_score}, ' ');
+    UCIInterface::uci_response(str);
+}
+void UCIInterface::send_info_if_has() {
+    for (; !Game::instance().info_queue.empty(); Game::instance().info_queue.pop()) {
+        InfoMsg info = Game::instance().info_queue.front();
+        UCIInterface::send_info_msg(info);
+    }
+}
 void UCIInterface::process_go_command(std::string command) {
     // Initialize board:
     if (debug_mode)
