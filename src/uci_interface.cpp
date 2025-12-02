@@ -26,7 +26,12 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     std::string str_time = "time: " + std::to_string(msg.time);
     std::string str_nodes = "nodes: " + std::to_string(msg.nodes);
     std::string str_nmoves = "nmoves: " + std::to_string(msg.moves_generated);
-    std::string str_nps = "nps: " + std::to_string(msg.nodes / msg.time);
+    std::string str_nps = "nps: ";
+    if (msg.time > 0) {
+        str_nps.append(std::to_string((1000 * msg.nodes) / msg.time));
+    } else {
+        str_nps.append("NaN");
+    }
     std::string str_pv = "pv: ";
     for (Move m : msg.pv)
         str_pv.append(m.toString() + " ");
@@ -37,7 +42,8 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     std::string str_mate = "mate: " + std::to_string(msg.mate);
 
     std::string str_infostub = "info ";
-    std::string str = join({str_infostub, str_depth, str_time, str_nodes, str_pv, str_score}, ' ');
+    std::string str =
+        join({str_infostub, str_depth, str_pv, str_score, str_time, str_nodes, str_nps}, ' ');
     UCIInterface::uci_response(str);
 }
 void UCIInterface::send_info_if_has() {

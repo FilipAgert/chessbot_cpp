@@ -24,7 +24,6 @@ void Game::reset_infos() {
 }
 
 void Game::think_loop() {
-    int max_depth = 5;
     int buffer = 50;    // ms
     int fraction = 20;  // spend 1/20th of remaining time.
 
@@ -40,7 +39,10 @@ void Game::think_loop() {
     std::array<int, max_legal_moves> evaluations;
     bool is_maximiser = state.turn_color == pieces::white;
 
-    for (int depth = 1; depth <= max_depth; depth++) {
+    int depth = 1;
+    bool ponder = true;
+
+    while (ponder) {
         Move best_current_move;
         int eval;
         int best_eval;
@@ -60,8 +62,10 @@ void Game::think_loop() {
                     best_current_move = moves[i];
                 }
                 num_moves_evaluated++;
-                if (time_manager->get_should_stop())
+                if (time_manager->get_should_stop()) {
+                    ponder = false;
                     break;
+                }
             }
         } else {
             best_eval = INT_MAX;
@@ -75,13 +79,23 @@ void Game::think_loop() {
                     best_current_move = moves[i];
                 }
                 num_moves_evaluated++;
-                if (time_manager->get_should_stop())
+                if (time_manager->get_should_stop()) {
+                    ponder = false;
                     break;
+                }
             }
         }
         EvalState::partial_move_sort(moves, evaluations, num_moves_evaluated, !is_maximiser);
         bestmove = moves[0];
+        InfoMsg new_msg;
+        new_msg.nodes = this->nodes_evaluated;
+        new_msg.time = time_manager->get_time_elapsed();
+        new_msg.depth = depth;
+        new_msg.pv = {bestmove};
+        new_msg.score = best_eval;
+        info_queue.push(new_msg);
         // Sort move list by the score list.
+        depth++;
     }
 
     time_manager->stop_and_join();  // Join time manager thread to this one.
