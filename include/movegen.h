@@ -138,14 +138,15 @@ constexpr uint64_t occupancy_bits_rook(uint8_t sq) {
     return occbits;
 }
 
-constexpr std::array<uint64_t, 64> rook_occupancy_table =
+constexpr std::array<uint64_t, 64> rook_occupancy_table =  // Will be used as a key.
     generate_simple_move_table_uint8_t<uint64_t, 64, occupancy_bits_rook>();
 
 constexpr uint64_t occupancy_bits_bishop(uint8_t sq) {
     uint64_t bb = BitBoard::one_high(sq);
     return bishop_atk(bb, 0) & ~(masks::around | BitBoard::one_high(sq));
 }
-constexpr std::array<uint64_t, 64> bishop_occupancy_table =
+constexpr std::array<uint64_t, 64>
+    bishop_occupancy_table =  // Will be used as a key for magic bitboard.
     generate_simple_move_table_uint8_t<uint64_t, 64, occupancy_bits_bishop>();
 
 /**
