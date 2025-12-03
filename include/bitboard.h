@@ -104,6 +104,7 @@ static constexpr uint64_t left = 0x0101010101010101;
 static constexpr uint64_t right = BitBoard::shift_bb(left, dirs::E, 7);
 static constexpr uint64_t sides = left | right;
 static constexpr uint64_t fill = 0xFFFFFFFFFFFFFFFF;
+static constexpr uint64_t around = sides | top | bottom;
 [[nodiscard("The return value should be handled as a uint64_t.")]]
 static inline constexpr uint64_t row(uint8_t r) {
     return bottom << 8 * r;

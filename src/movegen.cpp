@@ -63,12 +63,8 @@ uint64_t rook_moves_bb(const uint64_t rook_bb, const uint64_t friendly_bb,
 }
 uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
                       const uint64_t enemy_bb) {
-    uint64_t all = friendly_bb | enemy_bb;
-    uint64_t hit = ray(bishop_bb, NE, all);
-    hit |= ray(bishop_bb, SE, all);
-    hit |= ray(bishop_bb, SW, all);
-    hit |= ray(bishop_bb, NW, all);
-    return hit & ~friendly_bb;
+    uint64_t occ = friendly_bb | enemy_bb;
+    return bishop_atk(bishop_bb, occ) & ~friendly_bb;
 }
 uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb) {
     return (~friendly_bb & rook_atk_bb(queen_bb, friendly_bb | enemy_bb)) |

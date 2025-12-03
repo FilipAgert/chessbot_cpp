@@ -50,6 +50,15 @@ template <class T, size_t N, T (*F)(int)> constexpr std::array<T, N> generate_si
     }
     return table;
 }
+template <class T, uint8_t N, T (*F)(uint8_t)>
+constexpr std::array<T, N> generate_simple_move_table_uint8_t() {
+    std::array<T, N> table{};
+    for (uint8_t i = 0; i < N; ++i) {
+        // The compile-time loop populates the array
+        table[i] = F(i);
+    }
+    return table;
+}
 /**
  * @brief Bitboard for knight attack moves from bitboard.
  *
@@ -92,19 +101,52 @@ constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb, const uint8_t pawn_col) {
                      BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
     return moves;
 }
-constexpr uint64_t king_atk_sq(const int sq) {
+constexpr uint64_t king_atk_sq(const uint8_t sq) {
     uint64_t king_bb = BitBoard::one_high(sq);
     return king_atk_bb(king_bb);
 }
-constexpr uint64_t knight_atk_sq(const int sq) {
+constexpr uint64_t knight_atk_sq(const uint8_t sq) {
     uint64_t knight_bb = BitBoard::one_high(sq);
     return knight_atk_bb(knight_bb);
 }
 
+constexpr uint64_t bishop_atk(const uint64_t bishop_bb, const uint64_t occ) {
+    uint64_t hit = ray(bishop_bb, NE, occ);
+    hit |= ray(bishop_bb, SE, occ);
+    hit |= ray(bishop_bb, SW, occ);
+    hit |= ray(bishop_bb, NW, occ);
+    return hit;
+}
+
 constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
-    generate_simple_move_table<uint64_t, 64, king_atk_sq>();
+    generate_simple_move_table_uint8_t<uint64_t, 64, king_atk_sq>();
 constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
-    generate_simple_move_table<uint64_t, 64, knight_atk_sq>();
+    generate_simple_move_table_uint8_t<uint64_t, 64, knight_atk_sq>();
+
+// MAGIC BITBOARDFUCKERY
+/**
+ * @brief Gets the relevant occupancy when constructing a magic bitboard.
+ *
+ * @param[in] sq square of rook
+ * @return relevant occupancy bits are set to high.
+ */
+constexpr uint64_t occupancy_bits_rook(uint8_t sq) {
+    uint8_t row = NotationInterface::row(sq);
+    uint8_t col = NotationInterface::col(sq);
+    uint64_t occbits =
+        (masks::col(col) | masks::row(row)) & (~(masks::around | BitBoard::one_high(sq)));
+    return occbits;
+}
+
+constexpr std::array<uint64_t, 64> rook_occupancy_table =
+    generate_simple_move_table_uint8_t<uint64_t, 64, occupancy_bits_rook>();
+
+constexpr uint64_t occupancy_bits_bishop(uint8_t sq) {
+    uint64_t bb = BitBoard::one_high(sq);
+    return bishop_atk(bb, 0) & ~(masks::around | BitBoard::one_high(sq));
+}
+constexpr std::array<uint64_t, 64> bishop_occupancy_table =
+    generate_simple_move_table_uint8_t<uint64_t, 64, occupancy_bits_bishop>();
 
 /**
  * @brief Generates bitboard of possible moves for a rook on the first rank (1).
