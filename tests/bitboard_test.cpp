@@ -150,7 +150,7 @@ TEST(BitBoardTest, test_rook_moves) {
     attack[NotationInterface::idx_from_string("h1")] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = movegen::rook_moves(rook, f_bb, e_bb);
+    uint64_t actual = movegen::rook_moves_bb(rook, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 
     // Blockers: friendly piece on a4, enemy piece on d1
@@ -169,7 +169,7 @@ TEST(BitBoardTest, test_rook_moves) {
     attack[NotationInterface::idx_from_string("d1")] = 1;
 
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::rook_moves(rook, f_bb, e_bb);
+    actual = movegen::rook_moves_bb(rook, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 }
 

@@ -34,6 +34,7 @@ TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.
 # Targets
 main: $(DEXE)/$(EXEN)
 
+$(DOBJ)/movegen.o: $(DINC)/movegen.h
 # Link the main executable
 $(DEXE)/$(EXEN): $(OBJECTS) $(MAIN_OBJ)
 	$(CCL) $@ $(MAIN_OBJ) $(OBJECTS) $(LIBS)

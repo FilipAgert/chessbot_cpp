@@ -57,7 +57,9 @@ class NotationInterface {
      * @return row
      */
     inline constexpr static int row(const uint8_t idx) { return idx / 8; }
-    inline constexpr static int col(const uint8_t idx) { return idx % 8; }
+    inline constexpr static int col(const uint8_t idx) {
+        return idx & 0b111;
+    }  // Equivalent to mod 8
 };
 
 #endif

@@ -171,7 +171,7 @@ uint64_t Board::to_squares(uint8_t ptype, uint8_t sq, uint64_t friendly_bb, uint
         to_squares = movegen::knight_moves(sq, friendly_bb);
         break;
     case pieces::rook:
-        to_squares = movegen::rook_moves(piece_bb, friendly_bb, enemy_bb);
+        to_squares = movegen::rook_moves_sq(sq, friendly_bb, enemy_bb);
         break;
     case pieces::queen:
         to_squares = movegen::queen_moves(piece_bb, friendly_bb, enemy_bb);
@@ -237,16 +237,21 @@ uint64_t Board::get_atk_bb(const uint8_t color) const {
 
     uint64_t friendly_pieces = bit_boards[color];
     uint64_t enemy_pieces = bit_boards[enemy_color];
+    uint64_t occ = friendly_pieces | enemy_pieces;
     uint64_t queen_bb = bit_boards[color | pieces::queen];
     uint64_t bishop_bb = bit_boards[color | pieces::bishop];
     uint64_t rook_bb = bit_boards[color | pieces::rook];
     uint64_t pawn_bb = bit_boards[color | pieces::pawn];
     uint64_t knight_bb = bit_boards[color | pieces::knight];
     uint64_t king_bb = bit_boards[color | pieces::king];
-    queen_bb = movegen::queen_moves(queen_bb, friendly_pieces, enemy_pieces);
-    bishop_bb = movegen::bishop_moves(bishop_bb, friendly_pieces, enemy_pieces);
-    rook_bb = movegen::rook_moves(rook_bb, friendly_pieces, enemy_pieces);
-    knight_bb = movegen::knight_atk_bb(knight_bb);  // knight_moves(knight_bb, friendly_pieces);
+    // Ray bitboard are expensive to compute. Worthwhile to see if piece on board.
+    if (queen_bb > 0)
+        queen_bb = movegen::queen_moves(queen_bb, friendly_pieces, enemy_pieces);
+    if (bishop_bb > 0)
+        bishop_bb = movegen::bishop_moves(bishop_bb, friendly_pieces, enemy_pieces);
+    if (rook_bb > 0)
+        rook_bb = movegen::rook_atk_bb(rook_bb, occ);
+    knight_bb = movegen::knight_atk_bb(knight_bb);
     pawn_bb = movegen::pawn_atk_bb(pawn_bb, color);
     king_bb = movegen::king_atk_bb(king_bb);
     return queen_bb | bishop_bb | rook_bb | knight_bb | pawn_bb | king_bb;

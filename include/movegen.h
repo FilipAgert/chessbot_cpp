@@ -2,6 +2,8 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 #include <bitboard.h>
+#include <iostream>
+#include <notation_interface.h>
 using namespace dirs;
 using namespace masks;
 namespace movegen {
@@ -66,7 +68,6 @@ constexpr uint64_t knight_atk_bb(const uint64_t knight_bb) {
     out |= (knight_bb & (~(top | row(6))) & (~left)) << (N + N + W);        // NNW
     return out;
 }
-
 /**
  * @brief Generates the squares the king threatens from its bitboard representation.
  *
@@ -100,10 +101,54 @@ constexpr uint64_t knight_atk_sq(const int sq) {
     return knight_atk_bb(knight_bb);
 }
 
-constexpr std::array<uint64_t, 64> king_attack_table =
+constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
     generate_simple_move_table<uint64_t, 64, king_atk_sq>();
-constexpr std::array<uint64_t, 64> knight_attack_table =
+constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
     generate_simple_move_table<uint64_t, 64, knight_atk_sq>();
+
+/**
+ * @brief Generates bitboard of possible moves for a rook on the first rank (1).
+ *
+ * @param[in] bb Bitboard representing occupancy in the 6 middle columns.
+ * @param[in] col Column of rook.
+ * @return Bitboard representing the attacking moves for the rook.
+ */
+constexpr uint8_t first_rank_atk_bb(const int idx) {
+    // int idx = 8 * occ + col;
+    uint64_t col = idx % 8;
+    uint64_t occ = (idx - col) / 8;
+
+    uint64_t origin = BitBoard::one_high(col);
+    uint64_t blockers = occ << 1;  // rightshift by one.
+
+    uint8_t res = ray(origin, dirs::E, blockers) | ray(origin, dirs::W, blockers);
+    return res;
+}
+
+// Array storing the attacks of the first rank for rooks. Indexed by a*b where b is the rook
+// position (column) and [a] is the 6 bit bitboard for occupancy in the middle 6 columns. In
+// practice, take the 64 bit piece bitboard, shift 1 bit to the right and take first 6 bits as
+// index a.
+constexpr std::array<uint8_t, 512> first_rank_attack_table =  // 512 bytes
+    generate_simple_move_table<uint8_t, 512, first_rank_atk_bb>();
+
+/**
+ * @brief Gets the attack bitboard for the current rank (row) given an occupancy bitboard
+ *
+ * @param[in] occ bitboard of occupancy of all pieces
+ * @param[in] sq square of rook
+ * @return attack bitboard
+ */
+constexpr uint64_t rank_atk_bb(uint8_t sq, uint64_t occ) {
+    int rowx8 = NotationInterface::row(sq) * 8;
+    int col = NotationInterface::col(sq);
+    uint64_t occrank = ((occ >> rowx8) & 0b01111110) >> 1;
+    // The mask 0b1111110 masks out middle 6 columns
+    // Shifts the occupancy bitboard down to the first rank. Mask out the middle 6 bits from this to
+    // obtain index. Finally bitshift by one to the right a mask for the middle six squares in the
+    // first rank. Then bitshift it by one to the right.
+    return (uint64_t)first_rank_attack_table[occrank * 8 + col] << rowx8;
+}
 /**
  * @brief Gets the bitboard for the available knight moves.
  *
@@ -134,13 +179,30 @@ uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const ui
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color);
 /**
  * @brief Generates all moves for rooks given a bitboard of its location
- * @param[in] rook_bb Bitboard of rooks
+ * @param[in] rook_loc Location of rook.
  * @param[in] friendly_bb Bitboard of friendly pieces. These will block the rook ray.
  * @param[in] enemy_bb Bitboard of enemy pieces. These will be captured by the rook ray but
  * block further progress
  * @return Bitboard with all available move squares set to 1.
  */
-uint64_t rook_moves(const uint64_t rook_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
+uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly_bb, const uint64_t enemy_bb);
+uint64_t rook_moves_bb(const uint64_t rook_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
+/**
+ * @brief Generate all squares that all rooks atk
+ *
+ * @param[in] rook_bb bitboard of rooks
+ * @param[in] occ occupancy bitboard
+ * @return bitboard of all attacked squares by rooks
+ */
+uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ);
+/**
+ * @brief Gets squares threatened by a rook at a square
+ *
+ * @param[in] sq Square of rook
+ * @param[in] occ Occupancy bb
+ * @return [TODO:description]
+ */
+uint64_t rook_atk(const uint8_t sq, const uint64_t occ);
 uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
                       const uint64_t enemy_bb);
 uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
