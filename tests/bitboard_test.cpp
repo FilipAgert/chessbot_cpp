@@ -45,7 +45,7 @@ TEST(BitBoardTest, mask) {
 }
 
 TEST(BitBoardTest, test_knight_moves) {
-    uint64_t knight = 0b1;  // Knight in a1. CAN attack:
+    uint8_t knight = 0;  // Knight in a1. CAN attack:
     uint64_t f_bb = 0;
     std::array<uint8_t, 64> attack;
     attack.fill(0);
@@ -56,7 +56,7 @@ TEST(BitBoardTest, test_knight_moves) {
     uint64_t actual = movegen::knight_moves(knight, f_bb);
     ASSERT_EQ(actual, expected);
 
-    knight = 0x4000000000000000;
+    knight = 62;
     attack.fill(0);
     attack[NotationInterface::idx_from_string("e7")] = 1;
     attack[NotationInterface::idx_from_string("f6")] = 1;
@@ -71,12 +71,12 @@ TEST(BitBoardTest, test_knight_moves) {
     actual = movegen::knight_moves(knight, f_bb);
     ASSERT_EQ(actual, expected);
 
-    knight = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
+    knight = (NotationInterface::idx_from_string("e4"));
     expected = BitBoard::bitcount(movegen::knight_moves(knight, f_bb));
     actual = 8;
     ASSERT_EQ(expected, actual);
 
-    knight = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
+    knight = (NotationInterface::idx_from_string("e4"));
     expected = BitBoard::bitcount(movegen::knight_moves(knight, f_bb));
     actual = 8;
     ASSERT_EQ(expected, actual);
@@ -270,7 +270,7 @@ TEST(BitBoardTest, test_queen_moves) {
 
 TEST(BitBoardTest, test_king_moves) {
     // King on e4, no blockers
-    uint64_t king = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
+    uint8_t king = (NotationInterface::idx_from_string("e4"));
     uint64_t f_bb = king;
 
     std::array<uint8_t, 64> attack{};
@@ -284,7 +284,7 @@ TEST(BitBoardTest, test_king_moves) {
     ASSERT_EQ(actual, expected);
 
     // Friendly on f4 blocks that move
-    f_bb = king | BitBoard::one_high(NotationInterface::idx_from_string("f4"));
+    f_bb = BitBoard::one_high(king) | BitBoard::one_high(NotationInterface::idx_from_string("f4"));
 
     attack[NotationInterface::idx_from_string("f4")] = 0;
     expected = BitBoard::bb_from_array(attack);

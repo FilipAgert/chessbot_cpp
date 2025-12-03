@@ -34,43 +34,4 @@ std::string to_string_bb(uint64_t bb) {
 }
 
 void print_full(uint64_t bb) { std::cout << BitBoard::to_string_bb(bb) << "\n"; }
-
 }  // namespace BitBoard
-
-namespace masks {
-
-uint64_t edge_mask(int dir) {
-    uint64_t outmask = 0;
-    switch (dir) {
-    case E:
-        outmask = right;
-        break;
-    case W:
-        outmask = left;
-        break;
-    case S:
-        outmask = bottom;
-        break;
-    case N:
-        outmask = top;
-        break;
-    case NE:
-        outmask = top | right;
-        break;
-    case NW:
-        outmask = top | left;
-        break;
-    case SE:
-        outmask = bottom | right;
-        break;
-    case SW:
-        outmask = bottom | left;
-        break;
-    default:
-        std::cerr << "err: wrong dir" << std::endl;
-        abort();
-        break;
-    }
-    return outmask;
-}
-}  // namespace masks

@@ -2,11 +2,6 @@
 #include <movegen.h>
 using namespace dirs;
 using namespace masks;
-void MoveGenerator::precompute() {
-    for (int sq = 0; sq < 64; sq++) {
-        knight_attack_table[sq] = 0;
-    }
-}
 namespace movegen {
 
 uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const uint8_t pawn_col) {
@@ -24,50 +19,15 @@ uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const
 }
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
                            const uint8_t pawn_col) {
-    return pawn_threaten_moves(pawn_bb, pawn_col) &
+    return pawn_atk_bb(pawn_bb, pawn_col) &
            (enemy_bb | ep_bb);  // Require enemy or en passant there.
 }
+uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
+                    const uint64_t ep_bb, const uint8_t pawn_col) {
+    return pawn_forward_moves(pawn_bb, friendly_bb | enemy_bb, pawn_col) |
+           pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
+}
 
-uint64_t pawn_threaten_moves(const uint64_t pawn_bb, const uint8_t pawn_col) {
-    int dir =
-        (pawn_col == pieces::white) * N + (pawn_col == pieces::black) * S;  // branchless assignment
-    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
-                     BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
-    return moves;
-}
-uint64_t knight_moves(const uint64_t knight_loc, const uint64_t friendly_bb) {
-    // Gets all possible attack squares a knight can make by shifting bitboard a few times.
-    uint64_t out = (knight_loc & (~(top | row(6))) & (~right)) << (N + N + E);  // NNE
-    out |= (knight_loc & (~(top)) & (~(right | col(6)))) << (N + E + E);        // NEE
-    out |= (knight_loc & (~(bottom)) & (~(right | col(6)))) >> -(S + E + E);    // SEE
-    out |= (knight_loc & (~(bottom | row(1))) & (~(right))) >> -(S + S + E);    // SSE
-
-    out |= (knight_loc & (~(bottom | row(1))) & (~(left))) >> -(S + S + W);  // SSW
-    out |= (knight_loc & (~(bottom)) & (~(left | col(1)))) >> -(S + W + W);  // SWW
-    out |= (knight_loc & (~(top)) & (~(left | col(1)))) << (N + W + W);      // NWW
-    out |= (knight_loc & (~(top | row(6))) & (~left)) << (N + N + W);        // NNW
-    return out & ~friendly_bb;
-}
-uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb, int steps) {
-    // How to ensure no wrap-around?
-    uint64_t hit = origin;
-    uint64_t mask =
-        edge_mask(dir) | blocker_bb;  // The edge mask ensures we do not wrap-around.The blocker
-                                      // mask ensures that we do not keep going through somebody.
-    hit |= BitBoard::shift_bb(
-        ~edge_mask(dir) & hit,
-        dir);  // Take first step without the blocker bb, since the blocker bb includes self.
-    for (int i = 2; i <= steps; i++) {
-        hit |= BitBoard::shift_bb(
-            (~mask) & hit,
-            dir);  // Shift the mask in dir direction, but only on non-masked places.
-    }
-    return hit & ~origin;  // Exclude origin, since the piece does not attack itself.
-}
-uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb) {
-    return ray(origin, dir, blocker_bb, 7);
-}
-uint64_t ray(const uint64_t origin, const int dir) { return ray(origin, dir, 0, 7); }
 uint64_t rook_moves(const uint64_t rook_bb, const uint64_t friendly_bb, const uint64_t enemy_bb) {
     uint64_t all = friendly_bb | enemy_bb;
     uint64_t hit = ray(rook_bb, N, all);
@@ -89,22 +49,11 @@ uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const 
     return rook_moves(queen_bb, friendly_bb, enemy_bb) |
            bishop_moves(queen_bb, friendly_bb, enemy_bb);
 }
-uint64_t king_moves(const uint64_t king_bb, const uint64_t friendly_bb, const uint64_t all_bb,
+uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb,
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color) {
-    return king_move_moves(king_bb, friendly_bb, 0) |
-           king_castle_moves(king_bb, all_bb, enemy_atk_bb, castle, turn_color);
-}
-uint64_t king_move_moves(const uint64_t king_bb, const uint64_t friendly_bb,
-                         const uint64_t enemy_atk_bb) {
-    uint64_t hit = ray(king_bb, N, 0, 1);
-    hit |= ray(king_bb, NE, 0, 1);
-    hit |= ray(king_bb, E, 0, 1);
-    hit |= ray(king_bb, SE, 0, 1);
-    hit |= ray(king_bb, S, 0, 1);
-    hit |= ray(king_bb, SW, 0, 1);
-    hit |= ray(king_bb, W, 0, 1);
-    hit |= ray(king_bb, NW, 0, 1);
-    return hit & ~friendly_bb & ~enemy_atk_bb;
+    uint64_t king_bb = BitBoard::one_high(king_loc);
+    return king_castle_moves(king_bb, all_bb, enemy_atk_bb, castle, turn_color) |
+           (king_attack_table[king_loc] & ~(friendly_bb | enemy_atk_bb));
 }
 
 uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
@@ -158,10 +107,5 @@ uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
          ((queenside_move_board & all_bb) == 0)) *
             queenside_to;
     return castle_moves;
-}
-uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                    const uint64_t ep_bb, const uint8_t pawn_col) {
-    return pawn_forward_moves(pawn_bb, friendly_bb | enemy_bb, pawn_col) |
-           pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
 }
 }  // namespace movegen

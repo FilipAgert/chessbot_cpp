@@ -113,8 +113,40 @@ static inline constexpr uint64_t col(uint8_t c) {
     return left << c;
 }  // mask for col.
 
-uint64_t edge_mask(int dir);
-
+static constexpr uint64_t edge_mask(int dir) {
+    uint64_t outmask = 0;
+    switch (dir) {
+    case dirs::E:
+        outmask = right;
+        break;
+    case dirs::W:
+        outmask = left;
+        break;
+    case dirs::S:
+        outmask = bottom;
+        break;
+    case dirs::N:
+        outmask = top;
+        break;
+    case dirs::NE:
+        outmask = top | right;
+        break;
+    case dirs::NW:
+        outmask = top | left;
+        break;
+    case dirs::SE:
+        outmask = bottom | right;
+        break;
+    case dirs::SW:
+        outmask = bottom | left;
+        break;
+    default:
+        std::cerr << "err: wrong dir" << std::endl;
+        abort();
+        break;
+    }
+    return outmask;
+}
 }  // namespace masks
 
 #endif

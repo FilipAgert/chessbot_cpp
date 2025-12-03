@@ -155,9 +155,9 @@ std::vector<std::pair<Piece, uint8_t>> Board::get_piece_num_moves(uint8_t castle
     }
     return piece_moves;
 }
-uint64_t Board::to_squares(uint8_t ptype, uint64_t piece_bb, uint64_t friendly_bb,
-                           uint64_t enemy_bb, uint64_t ep_bb, uint8_t castleinfo,
-                           uint8_t turn_color) const {
+uint64_t Board::to_squares(uint8_t ptype, uint8_t sq, uint64_t friendly_bb, uint64_t enemy_bb,
+                           uint64_t ep_bb, uint8_t castleinfo, uint8_t turn_color) const {
+    uint64_t piece_bb = BitBoard::one_high(sq);
     uint8_t enemy_col = turn_color ^ pieces::color_mask;
     uint64_t to_squares;
     switch (ptype) {
@@ -168,7 +168,7 @@ uint64_t Board::to_squares(uint8_t ptype, uint64_t piece_bb, uint64_t friendly_b
         to_squares = movegen::bishop_moves(piece_bb, friendly_bb, enemy_bb);
         break;
     case pieces::knight:
-        to_squares = movegen::knight_moves(piece_bb, friendly_bb);
+        to_squares = movegen::knight_moves(sq, friendly_bb);
         break;
     case pieces::rook:
         to_squares = movegen::rook_moves(piece_bb, friendly_bb, enemy_bb);
@@ -177,7 +177,7 @@ uint64_t Board::to_squares(uint8_t ptype, uint64_t piece_bb, uint64_t friendly_b
         to_squares = movegen::queen_moves(piece_bb, friendly_bb, enemy_bb);
         break;
     case pieces::king:
-        to_squares = movegen::king_moves(piece_bb, friendly_bb, friendly_bb | enemy_bb,
+        to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
                                          get_atk_bb(enemy_col), castleinfo, turn_color);
         break;
     }
@@ -209,9 +209,8 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
         Piece p = game_board[square];
         if (p.get_color() != turn_color)  // Cycle if not correct color.
             continue;
-        uint64_t bb = BitBoard::one_high(square);
-        uint64_t to_squares_bb = to_squares(p.get_type(), bb, friendly_bb, enemy_bb, en_passant_bb,
-                                            castleinfo, turn_color);
+        uint64_t to_squares_bb = to_squares(p.get_type(), square, friendly_bb, enemy_bb,
+                                            en_passant_bb, castleinfo, turn_color);
         uint8_t to_sq = 0;
         while (to_squares_bb > 0) {
             uint8_t to = BitBoard::lsb(to_squares_bb);  // Extract LSB loc.
@@ -243,12 +242,14 @@ uint64_t Board::get_atk_bb(const uint8_t color) const {
     uint64_t rook_bb = bit_boards[color | pieces::rook];
     uint64_t pawn_bb = bit_boards[color | pieces::pawn];
     uint64_t knight_bb = bit_boards[color | pieces::knight];
+    uint64_t king_bb = bit_boards[color | pieces::king];
     queen_bb = movegen::queen_moves(queen_bb, friendly_pieces, enemy_pieces);
     bishop_bb = movegen::bishop_moves(bishop_bb, friendly_pieces, enemy_pieces);
     rook_bb = movegen::rook_moves(rook_bb, friendly_pieces, enemy_pieces);
-    knight_bb = movegen::knight_moves(knight_bb, friendly_pieces);
-    pawn_bb = movegen::pawn_threaten_moves(pawn_bb, color);
-    return queen_bb | bishop_bb | rook_bb | knight_bb | pawn_bb;
+    knight_bb = movegen::knight_atk_bb(knight_bb);  // knight_moves(knight_bb, friendly_pieces);
+    pawn_bb = movegen::pawn_atk_bb(pawn_bb, color);
+    king_bb = movegen::king_atk_bb(king_bb);
+    return queen_bb | bishop_bb | rook_bb | knight_bb | pawn_bb | king_bb;
 }
 bool Board::king_checked(const uint8_t turn_color) const {
     uint64_t king_bb = bit_boards[turn_color | pieces::king];
