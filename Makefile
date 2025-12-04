@@ -7,13 +7,14 @@ DTEST = ./tests
 
 EXEN = filipbot
 TEST_EXE = testsuite
+MAGIC_EXE = gen_magics
 
 
 type?=dev
 ifeq ($(type), release)
-	FLAGS = -Wall -std=c++17 -O3
+	FLAGS = -Wall -std=c++23 -O3
 else
-	FLAGS = -DDEBUG -g -Wall -std=c++17 -O0
+	FLAGS = -DDEBUG -g -Wall -std=c++23 -O0 -fstack-protector-all
 endif
 
 
@@ -28,17 +29,18 @@ CC = g++ $(FLAGS) -c -g
 # objects
 OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o $(DOBJ)/game.o $(DOBJ)/notation_interface.o $(DOBJ)/board_state.o $(DOBJ)/bitboard.o $(DOBJ)/movegen.o $(DOBJ)/movegen_benchmark.o $(DOBJ)/time_manager.o $(DOBJ)/eval.o
 MAIN_OBJ = $(DOBJ)/main.o
-BENCHMARK_OBJ = $(DOBJ)/bench.o
+MAGIC_OBJ = $(DOBJ)/gen_magic_nums.o
 TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o $(DOBJ)/movegen_test.o $(DOBJ)/time_manager_test.o# Add object files for your tests (adjust the name as needed)
 
 # Targets
 main: $(DEXE)/$(EXEN)
 
-$(DOBJ)/movegen.o: $(DINC)/movegen.h
 # Link the main executable
 $(DEXE)/$(EXEN): $(OBJECTS) $(MAIN_OBJ)
 	$(CCL) $@ $(MAIN_OBJ) $(OBJECTS) $(LIBS)
 
+$(DEXE)/$(MAGIC_EXE): $(OBJECTS) $(MAGIC_OBJ)
+	$(CCL) $@ $(MAGIC_OBJ) $(OBJECTS) $(LIBS)
 # Test executable target
 $(DEXE)/$(TEST_EXE): $(TEST_OBJECTS) $(OBJECTS)
 	$(CCL) $@ $(TEST_OBJECTS) $(OBJECTS) $(LIBS)
@@ -63,3 +65,6 @@ run:
 # Run all tests
 test: $(DEXE)/$(TEST_EXE)
 	./$(DEXE)/$(TEST_EXE)  # Run the test executable
+
+magic: $(DEXE)/$(MAGIC_EXE)
+	./$(DEXE)/$(MAGIC_EXE)

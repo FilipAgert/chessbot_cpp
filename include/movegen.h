@@ -143,7 +143,11 @@ constexpr std::array<uint64_t, 64> rook_occupancy_table =  // Will be used as a 
 
 constexpr uint64_t occupancy_bits_bishop(uint8_t sq) {
     uint64_t bb = BitBoard::one_high(sq);
-    return bishop_atk(bb, 0) & ~(masks::around | BitBoard::one_high(sq));
+    uint8_t row = NotationInterface::row(sq);
+    uint8_t col = NotationInterface::col(sq);
+    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
+                          masks::left * (col != 0) | masks::right * (col != 7);
+    return bishop_atk(bb, 0) & ~(aroundmask | BitBoard::one_high(sq));
 }
 constexpr std::array<uint64_t, 64>
     bishop_occupancy_table =  // Will be used as a key for magic bitboard.
