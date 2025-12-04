@@ -121,13 +121,11 @@ uint64_t get_next_magic() {
 uint64_t get_key(uint64_t occ, uint64_t magic, uint8_t bits) {
     return (occ * magic) >> (64 - bits);
 }
-std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool rook) {
-    uint64_t occ_mask =
-        rook ? movegen::rook_occupancy_table[sq] : movegen::bishop_occupancy_table[sq];
+std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool rook,
+                                         std::array<uint64_t, max_size> &occ_bbs,
+                                         std::array<uint64_t, max_size> &atk_bbs) {
     int m = rook ? RBits[sq] : BBits[sq];
     int arrsz = 1 << m;  // size of mask and atk arrays
-    std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
-    std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
     int hashsz = 1 << bits;
     std::vector<uint64_t> hash_table(hashsz);
     bool found = false;
@@ -178,12 +176,22 @@ int main() {
     BitBoard::print_full(movegen::occupancy_bits_rook(0));
     BitBoard::print_full(movegen::occupancy_bits_rook(1));
 
-    bool rook = true;
+    bool rook = false;
     std::array<std::pair<uint64_t, uint8_t>, 64> magics;
+    std::array<std::array<uint64_t, max_size>, 64> occs_bbs_sq;
+    std::array<std::array<uint64_t, max_size>, 64> atk_bbs_sq;
+
     for (int sq = 0; sq < 64; sq++) {
         int target_bits = rook ? RBits[sq] : BBits[sq];
         std::pair<uint64_t, uint8_t> init = {0, target_bits};
         magics[sq] = init;
+        uint64_t occ_mask =
+            rook ? movegen::rook_occupancy_table[sq] : movegen::bishop_occupancy_table[sq];
+        int m = rook ? RBits[sq] : BBits[sq];
+        std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
+        std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
+        occs_bbs_sq[sq] = occ_bbs;
+        atk_bbs_sq[sq] = atk_bbs;
     }
     int maxiter = 10000;
     int numouter = 50;
@@ -196,7 +204,7 @@ int main() {
             if (nfound != 64 && target_bits != least)
                 continue;  // only improve if we found all.
             std::pair<uint64_t, bool> magic_candidate =
-                find_magic_nbr(maxiter, sq, target_bits, rook);
+                find_magic_nbr(maxiter, sq, target_bits, rook, occs_bbs_sq[sq], atk_bbs_sq[sq]);
             if (magic_candidate.second) {
                 if (target_bits == least) {
                     nfound++;
