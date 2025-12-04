@@ -105,9 +105,8 @@ uint64_t rand_uint64_t() {
 uint64_t get_next_magic() {
     uint64_t r1 = rand_uint64_t();
     uint64_t r2 = rand_uint64_t();
-    // uint64_t r3 = rand_uint64_t();
-    //  uint64_t r4 = rand_uint64_t();
-    return r1 & r2;
+    uint64_t r4 = rand_uint64_t();
+    return r1 & r2 & r4;
     //      r4;  // Generate a random number with 1/16th of the bits set high on average.
 }
 /**
@@ -121,6 +120,20 @@ uint64_t get_next_magic() {
 uint64_t get_key(uint64_t occ, uint64_t magic, uint8_t bits) {
     return (occ * magic) >> (64 - bits);
 }
+
+/**
+ * @brief Gets the minimal value the magic number must be.
+ *
+ * @param[[TODO:direction]] occ [TODO:description]
+ * @param[[TODO:direction]] shift [TODO:description]
+ * @return exponent of minval >= 2**exp
+ */
+int get_magic_minval(uint64_t occmask, int shift) {
+    int lsb = BitBoard::lsb(occmask);
+    int exp = 64 - shift - lsb;
+    return exp;
+}
+
 std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool rook,
                                          std::array<uint64_t, max_size> &occ_bbs,
                                          std::array<uint64_t, max_size> &atk_bbs) {
@@ -131,14 +144,19 @@ std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool roo
     bool found = false;
     uint64_t magic = 0;
     int niter = 0;
+    uint64_t occmask = rook ? movegen::occupancy_bits_rook(sq) : movegen::occupancy_bits_bishop(sq);
+    int magic_minval = get_magic_minval(occmask, bits);
+
     while (!found && niter < maxiter) {
         magic = 0;
         niter++;
         std::fill(hash_table.begin(), hash_table.end(),
                   0xFFFFFFFFFFFFFFFF);  // The atk tables can never be zero and thus this is fine to
                                         // initialize.
-        while (magic == 0)
-            magic = get_next_magic();
+
+        while ((magic >> magic_minval) ==
+               0ULL)  // assert that the magic number must be greater than the minimum value.
+            magic = (get_next_magic());
 
         bool is_magic = true;
         for (int n = 0; n < arrsz; n++) {
@@ -172,17 +190,12 @@ std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool roo
     return out;
 }
 
-int main() {
-    BitBoard::print_full(movegen::occupancy_bits_rook(0));
-    BitBoard::print_full(movegen::occupancy_bits_rook(1));
-
-    bool rook = false;
+void find_dense(bool rook) {
     std::array<std::pair<uint64_t, uint8_t>, 64> magics;
-    std::array<std::array<uint64_t, max_size>, 64> occs_bbs_sq;
-    std::array<std::array<uint64_t, max_size>, 64> atk_bbs_sq;
 
-    for (int sq = 0; sq < 64; sq++) {
+    for (int sq = 63; sq < 64; sq++) {
         int target_bits = rook ? RBits[sq] : BBits[sq];
+        target_bits -= 1;
         std::pair<uint64_t, uint8_t> init = {0, target_bits};
         magics[sq] = init;
         uint64_t occ_mask =
@@ -190,49 +203,61 @@ int main() {
         int m = rook ? RBits[sq] : BBits[sq];
         std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
         std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
-        occs_bbs_sq[sq] = occ_bbs;
-        atk_bbs_sq[sq] = atk_bbs;
-    }
-    int maxiter = 10000;
-    int numouter = 50;
-    int nfound = 0;
-    for (int i = 0; i < numouter; i++) {
-        for (int sq = 0; sq < 64; sq++) {  // iterate over all magics. try to find a good one.
-            int least = rook ? RBits[sq] : BBits[sq];
-            int best_curr = magics[sq].second;
-            int target_bits = magics[sq].first != 0ULL ? best_curr - 1 : best_curr;
-            if (nfound != 64 && target_bits != least)
-                continue;  // only improve if we found all.
-            std::pair<uint64_t, bool> magic_candidate =
-                find_magic_nbr(maxiter, sq, target_bits, rook, occs_bbs_sq[sq], atk_bbs_sq[sq]);
-            if (magic_candidate.second) {
-                if (target_bits == least) {
-                    nfound++;
-                    std::cout << "(" << nfound << "/64) found so far \r";
-                }
-                std::pair<uint64_t, uint8_t> magic = {magic_candidate.first, target_bits};
-                magics[sq] = magic;
-            }
-        }
-        int nbytes = 0;
-        for (int sq = 0; sq < 64; sq++) {  // iterate over all magics. try to find a good one.
-            int bits = magics[sq].second;
-            int sz = (1 << bits) * 8;  // uint64 is a byte.
-            nbytes += sz;
-        }
-        if (nfound == 64)
-            std::cout << "(" << i << "/" << numouter << ") Size of table (bytes): " << nbytes
-                      << "\r";
-        else {
-            i--;
+        int maxiter = 1000000000;
+        bool found = false;
+        int outeriter = 50;
+        std::pair<uint64_t, bool> magic_candidate;
+        magic_candidate = find_magic_nbr(maxiter, sq, target_bits, rook, occ_bbs, atk_bbs);
+        found = magic_candidate.second;
+        if (found) {
+            magics[sq] = {magic_candidate.first, target_bits};
+            std::cout << "found magic\n " << sq << " " << target_bits << " "
+                      << magic_candidate.first << "\n";
+        } else {
+            std::cout << "did not find magic: " << sq << "\r";
         }
         fflush(stdout);
     }
-    std::cout << "Square   occbits    foundbits     magic\n";
+    std::cout << "Square   foundbits     magic\n";
     for (int sq = 0; sq < 64; sq++) {
         int target_bits = rook ? RBits[sq] : BBits[sq];
-        std::cout << sq << " " << target_bits << " " << (int)magics[sq].second << " "
-                  << magics[sq].first << "\n";
+        std::cout << sq << " " << target_bits << " " << magics[sq].first << "\n";
     }
+}
+
+void find_sparse(bool rook) {
+    std::array<std::pair<uint64_t, uint8_t>, 64> magics;
+    std::array<std::array<uint64_t, max_size>, 64> occs_bbs_sq;
+    std::array<std::array<uint64_t, max_size>, 64> atk_bbs_sq;
+    for (int sq = 0; sq < 64; sq++) {
+        int target_bits = rook ? RBits[sq] : BBits[sq];
+        uint64_t occ_mask =
+            rook ? movegen::rook_occupancy_table[sq] : movegen::bishop_occupancy_table[sq];
+        int m = rook ? RBits[sq] : BBits[sq];
+        std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
+        std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
+        occs_bbs_sq[sq] = occ_bbs;
+        atk_bbs_sq[sq] = atk_bbs;
+        int maxiter = 10000;
+        bool found = false;
+
+        std::pair<uint64_t, bool> magic_candidate;
+        while (!found) {
+            magic_candidate = find_magic_nbr(maxiter, sq, target_bits, rook, occ_bbs, atk_bbs);
+            found = magic_candidate.second;
+        }
+        magics[sq] = {magic_candidate.first, target_bits};
+        std::cout << "found magic: " << sq << "\r";
+        fflush(stdout);
+    }
+    std::cout << "Square   foundbits     magic\n";
+    for (int sq = 0; sq < 64; sq++) {
+        int target_bits = rook ? RBits[sq] : BBits[sq];
+        std::cout << sq << " " << target_bits << " " << magics[sq].first << "\n";
+    }
+}
+int main() {
+
+    find_sparse(true);
     return 0;
 }
