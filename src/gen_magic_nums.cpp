@@ -105,10 +105,10 @@ uint64_t rand_uint64_t() {
 uint64_t get_next_magic() {
     uint64_t r1 = rand_uint64_t();
     uint64_t r2 = rand_uint64_t();
-    uint64_t r3 = rand_uint64_t();
-    uint64_t r4 = rand_uint64_t();
-    return r1 & r2 & r3 &
-           r4;  // Generate a random number with 1/16th of the bits set high on average.
+    // uint64_t r3 = rand_uint64_t();
+    //  uint64_t r4 = rand_uint64_t();
+    return r1 & r2;
+    //      r4;  // Generate a random number with 1/16th of the bits set high on average.
 }
 /**
  * @brief Gets magic bitboard key
@@ -137,7 +137,8 @@ std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool roo
         magic = 0;
         niter++;
         std::fill(hash_table.begin(), hash_table.end(),
-                  0);  // The atk tables can never be zero and thus this is fine to initialize.
+                  0xFFFFFFFFFFFFFFFF);  // The atk tables can never be zero and thus this is fine to
+                                        // initialize.
         while (magic == 0)
             magic = get_next_magic();
 
@@ -145,7 +146,7 @@ std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool roo
         for (int n = 0; n < arrsz; n++) {
             uint64_t key = get_key(occ_bbs[n], magic, bits);
             uint64_t atk_bb = atk_bbs[n];
-            if (hash_table[key] == 0) {
+            if (hash_table[key] == 0xFFFFFFFFFFFFFFFF) {
                 hash_table[key] = atk_bb;
             } else if (hash_table[key] != atk_bb) {  // Collision. Need to restart.
                 is_magic = false;
@@ -170,22 +171,12 @@ std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool roo
     // mean that if masks n collide, they must also generate the same rook move table. We want
     // collisions if they generate the same table.
     std::pair<uint64_t, bool> out = {magic, found};
-    return {magic, found};
+    return out;
 }
 
 int main() {
-    // int sq = 3;
-    // uint64_t occ_mask = movegen::bishop_occupancy_table[sq];
-    // int m = BBits[sq];
-    // int arrsz = 1 << m;  // size of mask and atk arrays
-    // std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
-    // std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, false);
-    // for (int i = 0; i < arrsz; i++) {
-    //     uint64_t sqbb = BitBoard::one_high(sq);
-    //     BitBoard::print_full(sqbb | occ_bbs[i]);
-    //     BitBoard::print_full(atk_bbs[i]);
-    //     std::cout << "\n\n\n\n";
-    // }
+    BitBoard::print_full(movegen::occupancy_bits_rook(0));
+    BitBoard::print_full(movegen::occupancy_bits_rook(1));
 
     bool rook = true;
     std::array<std::pair<uint64_t, uint8_t>, 64> magics;
@@ -201,7 +192,7 @@ int main() {
         for (int sq = 0; sq < 64; sq++) {  // iterate over all magics. try to find a good one.
             int least = rook ? RBits[sq] : BBits[sq];
             int best_curr = magics[sq].second;
-            int target_bits = magics[sq].first != 0 ? best_curr - 1 : best_curr;
+            int target_bits = magics[sq].first != 0ULL ? best_curr - 1 : best_curr;
             if (nfound != 64 && target_bits != least)
                 continue;  // only improve if we found all.
             std::pair<uint64_t, bool> magic_candidate =

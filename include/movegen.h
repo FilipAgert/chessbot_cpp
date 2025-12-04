@@ -133,8 +133,10 @@ constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
 constexpr uint64_t occupancy_bits_rook(uint8_t sq) {
     uint8_t row = NotationInterface::row(sq);
     uint8_t col = NotationInterface::col(sq);
+    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
+                          masks::left * (col != 0) | masks::right * (col != 7);
     uint64_t occbits =
-        (masks::col(col) | masks::row(row)) & (~(masks::around | BitBoard::one_high(sq)));
+        (masks::col(col) | masks::row(row)) & (~(aroundmask | BitBoard::one_high(sq)));
     return occbits;
 }
 
