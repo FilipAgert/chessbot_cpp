@@ -6,8 +6,8 @@
 #include <notation_interface.h>
 using namespace dirs;
 using namespace masks;
-namespace movegen {
-/**
+namespace magic {
+/*
  * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.
  *
  * @param origin
@@ -35,6 +35,243 @@ constexpr uint64_t ray(const uint64_t origin, const int dir, const uint64_t bloc
     return ray(origin, dir, blocker_bb, 7);
 }
 constexpr uint64_t ray(const uint64_t origin, const int dir) { return ray(origin, dir, 0, 7); }
+
+constexpr int RBits[64] = {12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11,
+                           10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10,
+                           10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10,
+                           10, 10, 10, 10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // Target number of
+                                                                                 // bits to generate
+
+constexpr int BBits[64] = {
+    6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7,
+    5, 5, 5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7,
+    7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};  // target number of
+constexpr std::array<uint8_t, 64> rook_magic_sizes_bits = {
+    12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
+    10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
+    10, 10, 10, 11, 10, 9,  9,  9,  9,  9,  10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // in # bits
+constexpr size_t max_bits = 12;
+constexpr size_t max_size = 1 << (max_bits);  // 2^12
+constexpr std::array<size_t, 64> rook_magic_sizes = [] {
+    std::array<size_t, 64> rook_magic_sizes_temp;
+    for (int i = 0; i < 64; i++) {
+        rook_magic_sizes_temp[i] = (1ULL << rook_magic_sizes_bits[i]);
+    }
+    return rook_magic_sizes_temp;
+}();
+
+constexpr std::array<uint8_t, 64> rook_magic_shifts = [] {  // the shift value. saves a subtraction.
+    std::array<uint8_t, 64> rook_magic_shifts;
+    for (int i = 0; i < 64; i++) {
+        rook_magic_shifts[i] = 64 - rook_magic_sizes_bits[i];
+    }
+    return rook_magic_shifts;
+}();
+constexpr std::array<size_t, 64> rook_magic_offsets = [] {
+    std::array<size_t, 64> offsets;
+    offsets[0] = 0;
+    for (int i = 1; i < 64; i++) {
+        offsets[i] = offsets[i - 1] + rook_magic_sizes[i - 1];
+    }
+    return offsets;
+}();  // ofset for 1d flattened array
+constexpr size_t rook_magic_table_sz = rook_magic_offsets[63] + rook_magic_sizes[63];
+constexpr std::array<uint64_t, 64> rook_magics = {
+    36029072008052753,   2540030258560638976, 36037730559463424,   4935967732257525760,
+    36033195099553920,   72066398737662976,   144119758021722753,  972780268429517568,
+    4611826757832540298, 1730578526099210434, 36310409438826760,   2308235752674689408,
+    2306124505668388864, 288793403415594248,  441634255655690752,  140738721480960,
+    306247523444499840,  4503874511569104,    704237734760448,     216314070029176832,
+    2305984297598715904, 72198881349206529,   3179554531207876610, 2314861203595219973,
+    180144295406215168,  72234069953347848,   4692751087674853376, 1801527816175550472,
+    162701336927039744,  3387832828312948744, 144117404279083048,  144116571055358985,
+    144258399473762592,  18049618352803840,   4616331661221568512, 126383432790974506,
+    9151252466239488,    2305983763890315776, 2266128965435920,    577305728096666372,
+    36028934604734464,   22518135580016656,   40567585314504768,   589971585546354816,
+    290271136874624,     3941749252751496,    72357236743340040,   4645437843832836,
+    4035224604685392384, 5440347568166424064, 3728980139268581888, 351280590542771712,
+    7755197639194824192, 155374144193791488,  360429197304463488,  35463555711488,
+    10698321205149826,   81346406815903874,   4683770138187567365, 1153203598060947461,
+    9288683101620225,    5066601137704962,    11259592043071492,   694842971333599362};
+
+/**
+ * @brief For a given mask, gets an array with the location of the ones in the mask.
+ *
+ * @param[[TODO:direction]] mask [TODO:description]
+ * @return array containing ones in the mask.
+ */
+constexpr std::array<uint8_t, max_bits> mask_one_locs(uint64_t mask) {
+    std::array<uint8_t, max_bits> one_locs;  // Initialize to disallowed value.
+    uint64_t mask_reduced = mask;
+    uint8_t idx = 0;
+    uint8_t i = 0;
+    while (mask_reduced > 0) {
+        uint8_t lsb = BitBoard::lsb(mask_reduced);
+        mask_reduced = (mask_reduced >> lsb) & ~1;
+        idx += lsb;
+        one_locs[i] = idx;
+        i++;
+    }
+    return one_locs;
+}
+/**
+ * @brief generates a binary number projected onto the mask. I.e. if the mask is
+ * 1010
+ * The number "0" corresponds to 0000
+ * The number "1" corresponds to 0010
+ * And the number 2 is instead   1010.
+ *
+ * @param[in] occ_mask mask of interest
+ * @param[in] m number of bits hi in occ mask
+ * @return array of possible occupancy variations to consider.
+ */
+constexpr std::array<uint64_t, max_size> gen_occ_variation(uint64_t occ_mask, int m) {
+    // 1: Find binary rep of n
+    // 2: For each 1 in n, starting from the right:
+    //    Put it on each 1 in occ_mask, in the correct order.
+    int num = 1 << m;  // number of occ boards to generate
+    std::array<uint8_t, max_bits> mask_one_locations = mask_one_locs(occ_mask);
+    std::array<uint64_t, max_size> occ_vars;
+
+    for (int n = 0; n < num; n++) {
+        int nreduced = n;
+        int hi_bit = 0;
+        uint64_t out_nbr = 0;
+        while (nreduced > 0) {
+            uint8_t hibit_temp = BitBoard::lsb(nreduced);  // Extract LSB loc.
+            hi_bit += hibit_temp;
+            nreduced = (nreduced >> hibit_temp) & ~1;  // Clear LSB
+            // hi_bit, m, is then the location of the current high bit m in the number n. This
+            // should be put on the mth 1 in occ_mask. How to find the location of the mth one in
+            // occ_mask? Do the same.
+            uint8_t mask_one_loc = mask_one_locations[hi_bit];
+            out_nbr |= BitBoard::one_high(mask_one_loc);
+        }
+        occ_vars[n] = out_nbr;
+    }
+    return occ_vars;
+}
+constexpr uint64_t rook_atk_bb_helper(int sq, const uint64_t occ) {
+    uint64_t rook_bb = BitBoard::one_high(sq);
+    uint64_t hit = ray(rook_bb, N, occ);
+    hit |= ray(rook_bb, S, occ);
+    hit |= ray(rook_bb, E, occ);
+    hit |= ray(rook_bb, W, occ);
+    return hit;
+}
+constexpr uint64_t bishop_atk_bb_helper(int sq, const uint64_t occ) {
+    uint64_t bishop_bb = BitBoard::one_high(sq);
+    uint64_t hit = ray(bishop_bb, NE, occ);
+    hit |= ray(bishop_bb, SE, occ);
+    hit |= ray(bishop_bb, SW, occ);
+    hit |= ray(bishop_bb, NW, occ);
+    return hit;
+}
+/**
+ * @brief Generate all possible attack bitboards for all possible occupancy tables
+ *
+ * @param[in] occ_vars occupancy bb for relevant mask
+ * @param[in] sq square of rook/bishop
+ * @param[in] rook is rook or bishop?
+ */
+constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, max_size> occ_vars,
+                                                         int sq, bool rook) {
+    int m = rook ? RBits[sq] : BBits[sq];
+    int num = 1 << m;  // number of occ boards to generate.
+    std::array<uint64_t, max_size> atk_bbs;
+    uint64_t sq_bb = BitBoard::one_high(sq);
+    for (int n = 0; n < num; n++) {
+        atk_bbs[n] =
+            rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq_bb, occ_vars[n]);
+    }
+    return atk_bbs;
+}
+// MAGIC BITBOARDFUCKERY
+/**
+ * @brief Gets the relevant occupancy when constructing a magic bitboard.
+ *
+ * @param[in] sq square of rook
+ * @return relevant occupancy bits are set to high.
+ */
+constexpr uint64_t occupancy_bits_rook(uint8_t sq) {
+    uint8_t row = NotationInterface::row(sq);
+    uint8_t col = NotationInterface::col(sq);
+    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
+                          masks::left * (col != 0) | masks::right * (col != 7);
+    uint64_t occbits =
+        (masks::col(col) | masks::row(row)) & (~(aroundmask | BitBoard::one_high(sq)));
+    return occbits;
+}
+
+constexpr std::array<uint64_t, 64> rook_occupancy_table = [] {
+    std::array<uint64_t, 64> arr;
+    for (int sq = 0; sq < 64; sq++) {
+        arr[sq] = occupancy_bits_rook(sq);
+    }
+    return arr;
+}();  // Will be used as a key.
+
+constexpr uint64_t occupancy_bits_bishop(uint8_t sq) {
+    uint8_t row = NotationInterface::row(sq);
+    uint8_t col = NotationInterface::col(sq);
+    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
+                          masks::left * (col != 0) | masks::right * (col != 7);
+    return bishop_atk_bb_helper(sq, 0) & ~(aroundmask | BitBoard::one_high(sq));
+}
+constexpr std::array<uint64_t, 64> bishop_occupancy_table = [] {
+    std::array<uint64_t, 64> arr;
+    for (int sq = 0; sq < 64; sq++) {
+        arr[sq] = occupancy_bits_bishop(sq);
+    }
+    return arr;
+}();  // Will be used as a key for magic bitboard.
+/**
+ * @brief Gets the key for the rook magic bitboard table.
+ *
+ * @param[in] sq Square of rook
+ * @param[in] occ occupancy bitboard (all pieces)
+ * @return the key to lookup the magic bitboard with.
+ */
+constexpr int get_rook_key(size_t sq, uint64_t occ) {
+    uint8_t shift = rook_magic_shifts[sq];
+    uint64_t magic = rook_magics[sq];
+    uint64_t occmask = rook_occupancy_table[sq];
+    return ((occmask & occ) * magic) >> shift;
+}
+/**
+ * @brief Gets the index to access the flattened rook bitboard array with.
+ *
+ * @param[[TODO:direction]] sq square of rook
+ * @param[[TODO:direction]] occ occupancy bitboard (can be unmasked.)
+ * @return [TODO:description]
+ */
+constexpr int get_rook_magic_idx(uint8_t sq, uint64_t occ) {
+    return get_rook_key(sq, occ) + rook_magic_offsets[sq];
+}
+constexpr std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards =
+    [] {  // precompute the magic bitboards;
+        std::array<uint64_t, rook_magic_table_sz> rook_magic_bbs;
+
+        for (int sq = 0; sq < 64; sq++) {
+            std::array<uint64_t, max_size> occ, atk;
+            uint64_t occmask = occupancy_bits_rook(sq);
+            occ = gen_occ_variation(occmask, RBits[sq]);
+            atk = compute_atk_bbs(occ, sq, true);
+            int nvars = 1ULL << RBits[sq];
+
+            for (int i = 0; i < nvars; i++) {
+                int idx = get_rook_magic_idx(sq, occ[i]);
+                rook_magic_bbs[idx] = atk[i];
+            }
+        }
+        return rook_magic_bbs;
+    }();
+constexpr uint64_t get_rook_atk_bb(uint8_t sq, uint64_t occ) {
+    return rook_magic_bitboards[get_rook_magic_idx(sq, occ)];
+}
+}  // namespace magic
+
+namespace movegen {
 /**
  * @brief Lambda to help generate attack tables in compile time.
  *
@@ -84,14 +321,14 @@ constexpr uint64_t knight_atk_bb(const uint64_t knight_bb) {
  * @return BB with bits high if king threatens this square.
  */
 constexpr uint64_t king_atk_bb(const uint64_t king_bb) {
-    uint64_t hit = ray(king_bb, N, 0, 1);
-    hit |= ray(king_bb, NE, 0, 1);
-    hit |= ray(king_bb, E, 0, 1);
-    hit |= ray(king_bb, SE, 0, 1);
-    hit |= ray(king_bb, S, 0, 1);
-    hit |= ray(king_bb, SW, 0, 1);
-    hit |= ray(king_bb, W, 0, 1);
-    hit |= ray(king_bb, NW, 0, 1);
+    uint64_t hit = magic::ray(king_bb, N, 0, 1);
+    hit |= magic::ray(king_bb, NE, 0, 1);
+    hit |= magic::ray(king_bb, E, 0, 1);
+    hit |= magic::ray(king_bb, SE, 0, 1);
+    hit |= magic::ray(king_bb, S, 0, 1);
+    hit |= magic::ray(king_bb, SW, 0, 1);
+    hit |= magic::ray(king_bb, W, 0, 1);
+    hit |= magic::ray(king_bb, NW, 0, 1);
     return hit;
 }
 constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb, const uint8_t pawn_col) {
@@ -111,10 +348,10 @@ constexpr uint64_t knight_atk_sq(const uint8_t sq) {
 }
 
 constexpr uint64_t bishop_atk(const uint64_t bishop_bb, const uint64_t occ) {
-    uint64_t hit = ray(bishop_bb, NE, occ);
-    hit |= ray(bishop_bb, SE, occ);
-    hit |= ray(bishop_bb, SW, occ);
-    hit |= ray(bishop_bb, NW, occ);
+    uint64_t hit = magic::ray(bishop_bb, NE, occ);
+    hit |= magic::ray(bishop_bb, SE, occ);
+    hit |= magic::ray(bishop_bb, SW, occ);
+    hit |= magic::ray(bishop_bb, NW, occ);
     return hit;
 }
 
@@ -123,81 +360,6 @@ constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
 constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, knight_atk_sq>();
 
-// MAGIC BITBOARDFUCKERY
-/**
- * @brief Gets the relevant occupancy when constructing a magic bitboard.
- *
- * @param[in] sq square of rook
- * @return relevant occupancy bits are set to high.
- */
-constexpr uint64_t occupancy_bits_rook(uint8_t sq) {
-    uint8_t row = NotationInterface::row(sq);
-    uint8_t col = NotationInterface::col(sq);
-    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
-                          masks::left * (col != 0) | masks::right * (col != 7);
-    uint64_t occbits =
-        (masks::col(col) | masks::row(row)) & (~(aroundmask | BitBoard::one_high(sq)));
-    return occbits;
-}
-
-constexpr std::array<uint64_t, 64> rook_occupancy_table =  // Will be used as a key.
-    generate_simple_move_table_uint8_t<uint64_t, 64, occupancy_bits_rook>();
-
-constexpr uint64_t occupancy_bits_bishop(uint8_t sq) {
-    uint64_t bb = BitBoard::one_high(sq);
-    uint8_t row = NotationInterface::row(sq);
-    uint8_t col = NotationInterface::col(sq);
-    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
-                          masks::left * (col != 0) | masks::right * (col != 7);
-    return bishop_atk(bb, 0) & ~(aroundmask | BitBoard::one_high(sq));
-}
-constexpr std::array<uint64_t, 64>
-    bishop_occupancy_table =  // Will be used as a key for magic bitboard.
-    generate_simple_move_table_uint8_t<uint64_t, 64, occupancy_bits_bishop>();
-
-/**
- * @brief Generates bitboard of possible moves for a rook on the first rank (1).
- *
- * @param[in] bb Bitboard representing occupancy in the 6 middle columns.
- * @param[in] col Column of rook.
- * @return Bitboard representing the attacking moves for the rook.
- */
-constexpr uint8_t first_rank_atk_bb(const int idx) {
-    // int idx = 8 * occ + col;
-    uint64_t col = idx % 8;
-    uint64_t occ = (idx - col) / 8;
-
-    uint64_t origin = BitBoard::one_high(col);
-    uint64_t blockers = occ << 1;  // rightshift by one.
-
-    uint8_t res = ray(origin, dirs::E, blockers) | ray(origin, dirs::W, blockers);
-    return res;
-}
-
-// Array storing the attacks of the first rank for rooks. Indexed by a*b where b is the rook
-// position (column) and [a] is the 6 bit bitboard for occupancy in the middle 6 columns. In
-// practice, take the 64 bit piece bitboard, shift 1 bit to the right and take first 6 bits as
-// index a.
-constexpr std::array<uint8_t, 512> first_rank_attack_table =  // 512 bytes
-    generate_simple_move_table<uint8_t, 512, first_rank_atk_bb>();
-
-/**
- * @brief Gets the attack bitboard for the current rank (row) given an occupancy bitboard
- *
- * @param[in] occ bitboard of occupancy of all pieces
- * @param[in] sq square of rook
- * @return attack bitboard
- */
-constexpr uint64_t rank_atk_bb(uint8_t sq, uint64_t occ) {
-    int rowx8 = NotationInterface::row(sq) * 8;
-    int col = NotationInterface::col(sq);
-    uint64_t occrank = ((occ >> rowx8) & 0b01111110) >> 1;
-    // The mask 0b1111110 masks out middle 6 columns
-    // Shifts the occupancy bitboard down to the first rank. Mask out the middle 6 bits from this to
-    // obtain index. Finally bitshift by one to the right a mask for the middle six squares in the
-    // first rank. Then bitshift it by one to the right.
-    return (uint64_t)first_rank_attack_table[occrank * 8 + col] << rowx8;
-}
 /**
  * @brief Gets the bitboard for the available knight moves.
  *
@@ -234,10 +396,12 @@ uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const ui
  * block further progress
  * @return Bitboard with all available move squares set to 1.
  */
-uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly_bb, const uint64_t enemy_bb);
-uint64_t rook_moves_bb(const uint64_t rook_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
+constexpr uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly_bb,
+                                 const uint64_t enemy_bb) {
+    return magic::get_rook_atk_bb(rook_loc, friendly_bb | enemy_bb) & ~(friendly_bb);
+}
 /**
- * @brief Generate all squares that all rooks atk
+ * @brief Generate all squares that all rooks atk FIX: implement this.
  *
  * @param[in] rook_bb bitboard of rooks
  * @param[in] occ occupancy bitboard
@@ -251,7 +415,9 @@ uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ);
  * @param[in] occ Occupancy bb
  * @return [TODO:description]
  */
-uint64_t rook_atk(const uint8_t sq, const uint64_t occ);
+constexpr uint64_t rook_atk(const uint8_t sq, const uint64_t occ) {
+    return magic::get_rook_atk_bb(sq, occ);
+}
 uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
                       const uint64_t enemy_bb);
 uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);

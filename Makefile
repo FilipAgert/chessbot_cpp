@@ -12,9 +12,9 @@ MAGIC_EXE = gen_magics
 
 type?=dev
 ifeq ($(type), release)
-	FLAGS = -Wall -std=c++23 -O3
+	FLAGS = -Wall -std=c++23 -O3 -fconstexpr-ops-limit=1000000000
 else
-	FLAGS = -DDEBUG -g -Wall -std=c++23 -O0 -fstack-protector-all
+	FLAGS = -DDEBUG -g -Wall -std=c++23 -O0  -fconstexpr-ops-limit=1000000000
 endif
 
 

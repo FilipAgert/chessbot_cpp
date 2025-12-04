@@ -11,6 +11,7 @@ using namespace BitBoard;
 using namespace movegen;
 using namespace dirs;
 using namespace masks;
+using namespace magic;
 using namespace pieces;
 TEST(BitBoardTest, onehigh) {
     uint8_t sq = 4;
@@ -53,7 +54,7 @@ TEST(BitBoardTest, test_knight_moves) {
     attack[NotationInterface::idx_from_string("c2")] = 1;
     uint64_t expected = BitBoard::bb_from_array(attack);
 
-    uint64_t actual = movegen::knight_moves(knight, f_bb);
+    uint64_t actual = knight_moves(knight, f_bb);
     ASSERT_EQ(actual, expected);
 
     knight = 62;
@@ -62,46 +63,46 @@ TEST(BitBoardTest, test_knight_moves) {
     attack[NotationInterface::idx_from_string("f6")] = 1;
     attack[NotationInterface::idx_from_string("h6")] = 1;
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::knight_moves(knight, f_bb);
+    actual = knight_moves(knight, f_bb);
     ASSERT_EQ(actual, expected);
 
     attack[NotationInterface::idx_from_string("h6")] = 0;
     f_bb = BitBoard::one_high(NotationInterface::idx_from_string("h6"));
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::knight_moves(knight, f_bb);
+    actual = knight_moves(knight, f_bb);
     ASSERT_EQ(actual, expected);
 
     knight = (NotationInterface::idx_from_string("e4"));
-    expected = BitBoard::bitcount(movegen::knight_moves(knight, f_bb));
+    expected = BitBoard::bitcount(knight_moves(knight, f_bb));
     actual = 8;
     ASSERT_EQ(expected, actual);
 
     knight = (NotationInterface::idx_from_string("e4"));
-    expected = BitBoard::bitcount(movegen::knight_moves(knight, f_bb));
+    expected = BitBoard::bitcount(knight_moves(knight, f_bb));
     actual = 8;
     ASSERT_EQ(expected, actual);
 }
 TEST(BitBoardTest, test_ray) {
     uint64_t origin = 0b1;  // A1.
     int dir = W;
-    uint64_t attacked = movegen::ray(origin, dir);
+    uint64_t attacked = ray(origin, dir);
     ASSERT_EQ(attacked, 0);
     origin = 0b10;  // A1.
     dir = W;
-    attacked = movegen::ray(origin, dir);
+    attacked = ray(origin, dir);
     ASSERT_EQ(attacked, 0b1);
 
     dir = N;
-    attacked = movegen::ray(origin, dir);
+    attacked = ray(origin, dir);
     ASSERT_EQ(attacked,
               masks::col(1) & ~BitBoard::one_high(NotationInterface::idx_from_string("b1")));
 
     dir = NW;
-    attacked = movegen::ray(origin, dir);
+    attacked = ray(origin, dir);
     ASSERT_EQ(attacked, BitBoard::one_high(NotationInterface::idx_from_string("a2")));
 
     dir = NE;
-    attacked = movegen::ray(origin, dir);
+    attacked = ray(origin, dir);
     std::array<uint8_t, 64> attack;
     attack.fill(0);
     attack[NotationInterface::idx_from_string("c2")] = 1;
@@ -117,13 +118,13 @@ TEST(BitBoardTest, test_ray) {
     attack[NotationInterface::idx_from_string("g6")] = 0;
     attack[NotationInterface::idx_from_string("h7")] = 0;
     expected = BitBoard::bb_from_array(attack);
-    attacked = movegen::ray(origin, dir, blockers);
+    attacked = ray(origin, dir, blockers);
     ASSERT_EQ(attacked, expected);
 }
 
 TEST(BitBoardTest, test_rook_moves) {
     // Rook on A1
-    uint64_t rook = BitBoard::one_high(NotationInterface::idx_from_string("a1"));
+    int rook = (NotationInterface::idx_from_string("a1"));
     uint64_t f_bb = rook;
     uint64_t e_bb = 0;
 
@@ -150,7 +151,7 @@ TEST(BitBoardTest, test_rook_moves) {
     attack[NotationInterface::idx_from_string("h1")] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = movegen::rook_moves_bb(rook, f_bb, e_bb);
+    uint64_t actual = rook_moves_sq(rook, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 
     // Blockers: friendly piece on a4, enemy piece on d1
@@ -169,7 +170,7 @@ TEST(BitBoardTest, test_rook_moves) {
     attack[NotationInterface::idx_from_string("d1")] = 1;
 
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::rook_moves_bb(rook, f_bb, e_bb);
+    actual = rook_moves_sq(rook, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 }
 
@@ -194,7 +195,7 @@ TEST(BitBoardTest, test_bishop_moves) {
     attack[NotationInterface::idx_from_string("a3")] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = movegen::bishop_moves(bishop, f_bb, e_bb);
+    uint64_t actual = bishop_moves(bishop, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 
     // Add enemy at f4, friendly at b2
@@ -210,7 +211,7 @@ TEST(BitBoardTest, test_bishop_moves) {
     attack[NotationInterface::idx_from_string("f4")] = 1;
 
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::bishop_moves(bishop, f_bb, e_bb);
+    actual = bishop_moves(bishop, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 }
 
@@ -234,7 +235,7 @@ TEST(BitBoardTest, test_queen_moves) {
         attack[NotationInterface::idx_from_string(sq)] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = movegen::queen_moves(queen, f_bb, e_bb);
+    uint64_t actual = queen_moves(queen, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 
     // Friendly at e4, enemy at f6
@@ -264,7 +265,7 @@ TEST(BitBoardTest, test_queen_moves) {
         attack[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::queen_moves(queen, f_bb, e_bb);
+    actual = queen_moves(queen, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 }
 
@@ -280,7 +281,7 @@ TEST(BitBoardTest, test_king_moves) {
         attack[NotationInterface::idx_from_string(sq)] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = movegen::king_moves(king, f_bb, f_bb, 0, 0, 0);
+    uint64_t actual = king_moves(king, f_bb, f_bb, 0, 0, 0);
     ASSERT_EQ(actual, expected);
 
     // Friendly on f4 blocks that move
@@ -288,7 +289,7 @@ TEST(BitBoardTest, test_king_moves) {
 
     attack[NotationInterface::idx_from_string("f4")] = 0;
     expected = BitBoard::bb_from_array(attack);
-    actual = movegen::king_moves(king, f_bb, f_bb, 0, 0, 0);
+    actual = king_moves(king, f_bb, f_bb, 0, 0, 0);
     ASSERT_EQ(actual, expected);
 }
 

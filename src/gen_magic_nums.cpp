@@ -5,96 +5,10 @@
 #include <movegen.h>
 #include <utility>
 #include <vector>
-constexpr int RBits[64] = {12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11,
-                           10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10,
-                           10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10,
-                           10, 10, 10, 10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // Target number of
-                                                                                 // bits to generate
-
-int BBits[64] = {6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7,
-                 5, 5, 5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7,
-                 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};  // target number of
-                                                                               // bits to generate.
+using namespace movegen;
+using namespace magic;
+// bits to generate.
 //
-constexpr size_t max_bits = 12;
-constexpr size_t max_size = 1 << (max_bits);  // 2^12
-/**
- * @brief For a given mask, gets an array with the location of the ones in the mask.
- *
- * @param[[TODO:direction]] mask [TODO:description]
- * @return array containing ones in the mask.
- */
-std::array<uint8_t, max_bits> mask_one_locs(uint64_t mask) {
-    std::array<uint8_t, max_bits> one_locs;  // Initialize to disallowed value.
-    uint64_t mask_reduced = mask;
-    uint8_t idx = 0;
-    uint8_t i = 0;
-    while (mask_reduced > 0) {
-        uint8_t lsb = BitBoard::lsb(mask_reduced);
-        mask_reduced = (mask_reduced >> lsb) & ~1;
-        idx += lsb;
-        one_locs[i] = idx;
-        i++;
-    }
-    return one_locs;
-}
-/**
- * @brief generates a binary number projected onto the mask. I.e. if the mask is
- * 1010
- * The number "0" corresponds to 0000
- * The number "1" corresponds to 0010
- * And the number 2 is instead   1010.
- *
- * @param[in] occ_mask mask of interest
- * @param[in] m number of bits hi in occ mask
- * @return array of possible occupancy variations to consider.
- */
-std::array<uint64_t, max_size> gen_occ_variation(uint64_t occ_mask, int m) {
-    // 1: Find binary rep of n
-    // 2: For each 1 in n, starting from the right:
-    //    Put it on each 1 in occ_mask, in the correct order.
-    int num = 1 << m;  // number of occ boards to generate
-    std::array<uint8_t, max_bits> mask_one_locations = mask_one_locs(occ_mask);
-    std::array<uint64_t, max_size> occ_vars;
-
-    for (int n = 0; n < num; n++) {
-        int nreduced = n;
-        int hi_bit = 0;
-        uint64_t out_nbr = 0;
-        while (nreduced > 0) {
-            uint8_t hibit_temp = BitBoard::lsb(nreduced);  // Extract LSB loc.
-            hi_bit += hibit_temp;
-            nreduced = (nreduced >> hibit_temp) & ~1;  // Clear LSB
-            // hi_bit, m, is then the location of the current high bit m in the number n. This
-            // should be put on the mth 1 in occ_mask. How to find the location of the mth one in
-            // occ_mask? Do the same.
-            uint8_t mask_one_loc = mask_one_locations[hi_bit];
-            out_nbr |= BitBoard::one_high(mask_one_loc);
-        }
-        occ_vars[n] = out_nbr;
-    }
-    return occ_vars;
-}
-
-/**
- * @brief Generate all possible attack bitboards for all possible occupancy tables
- *
- * @param[in] occ_vars occupancy bb for relevant mask
- * @param[in] sq square of rook/bishop
- * @param[in] rook is rook or bishop?
- */
-std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, max_size> occ_vars, int sq,
-                                               bool rook) {
-    int m = rook ? RBits[sq] : BBits[sq];
-    int num = 1 << m;  // number of occ boards to generate.
-    std::array<uint64_t, max_size> atk_bbs;
-    uint64_t sq_bb = BitBoard::one_high(sq);
-    for (int n = 0; n < num; n++) {
-        atk_bbs[n] =
-            rook ? movegen::rook_atk(sq, occ_vars[n]) : movegen::bishop_atk(sq_bb, occ_vars[n]);
-    }
-    return atk_bbs;
-}
 
 uint64_t rand_uint64_t() {
     int r1 = rand();
@@ -144,7 +58,7 @@ std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool roo
     bool found = false;
     uint64_t magic = 0;
     int niter = 0;
-    uint64_t occmask = rook ? movegen::occupancy_bits_rook(sq) : movegen::occupancy_bits_bishop(sq);
+    uint64_t occmask = rook ? occupancy_bits_rook(sq) : occupancy_bits_bishop(sq);
     int magic_minval = get_magic_minval(occmask, bits);
 
     while (!found && niter < maxiter) {
@@ -193,17 +107,16 @@ std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool roo
 void find_dense(bool rook) {
     std::array<std::pair<uint64_t, uint8_t>, 64> magics;
 
-    for (int sq = 63; sq < 64; sq++) {
+    for (int sq = 48; sq < 53; sq++) {
         int target_bits = rook ? RBits[sq] : BBits[sq];
         target_bits -= 1;
         std::pair<uint64_t, uint8_t> init = {0, target_bits};
         magics[sq] = init;
-        uint64_t occ_mask =
-            rook ? movegen::rook_occupancy_table[sq] : movegen::bishop_occupancy_table[sq];
+        uint64_t occ_mask = rook ? rook_occupancy_table[sq] : bishop_occupancy_table[sq];
         int m = rook ? RBits[sq] : BBits[sq];
         std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
         std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
-        int maxiter = 1000000000;
+        int maxiter = 10000000;
         bool found = false;
         int outeriter = 50;
         std::pair<uint64_t, bool> magic_candidate;
@@ -220,8 +133,7 @@ void find_dense(bool rook) {
     }
     std::cout << "Square   foundbits     magic\n";
     for (int sq = 0; sq < 64; sq++) {
-        int target_bits = rook ? RBits[sq] : BBits[sq];
-        std::cout << sq << " " << target_bits << " " << magics[sq].first << "\n";
+        std::cout << sq << " " << magics[sq].second << " " << magics[sq].first << "\n";
     }
 }
 
@@ -231,8 +143,7 @@ void find_sparse(bool rook) {
     std::array<std::array<uint64_t, max_size>, 64> atk_bbs_sq;
     for (int sq = 0; sq < 64; sq++) {
         int target_bits = rook ? RBits[sq] : BBits[sq];
-        uint64_t occ_mask =
-            rook ? movegen::rook_occupancy_table[sq] : movegen::bishop_occupancy_table[sq];
+        uint64_t occ_mask = rook ? rook_occupancy_table[sq] : bishop_occupancy_table[sq];
         int m = rook ? RBits[sq] : BBits[sq];
         std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
         std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
@@ -258,6 +169,6 @@ void find_sparse(bool rook) {
 }
 int main() {
 
-    find_sparse(true);
+    find_dense(true);
     return 0;
 }

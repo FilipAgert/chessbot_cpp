@@ -29,38 +29,6 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
            pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
 }
 
-uint64_t rook_atk(const uint8_t sq, const uint64_t occ) {
-    uint64_t rook_bb = BitBoard::one_high(sq);
-    uint64_t hit = ray(rook_bb, N, occ);
-    hit |= ray(rook_bb, S, occ);
-    hit |= rank_atk_bb(sq, occ);
-    return hit;
-}
-
-uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly_bb,
-                       const uint64_t enemy_bb) {
-    uint64_t occ = friendly_bb | enemy_bb;
-    uint64_t hit = rook_atk(rook_loc, occ);
-    return hit & ~friendly_bb;
-}
-uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
-    uint64_t hit = ray(rook_bb, N, occ);
-    hit |= ray(rook_bb, S, occ);
-    uint8_t rook_sq = 0;
-    uint64_t rook_bb_cp = rook_bb;
-    while (rook_bb_cp > 0) {
-        uint8_t temp = BitBoard::lsb(rook_bb_cp);  // Extract LSB loc.
-        rook_sq += temp;
-        rook_bb_cp = (rook_bb_cp >> temp) & ~1;  // Clear LSB
-        hit |= rank_atk_bb(rook_sq, occ);
-    }
-    return hit;
-}
-
-uint64_t rook_moves_bb(const uint64_t rook_bb, const uint64_t friendly_bb,
-                       const uint64_t enemy_bb) {
-    return ~friendly_bb & rook_atk_bb(rook_bb, friendly_bb | enemy_bb);
-}
 uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
                       const uint64_t enemy_bb) {
     uint64_t occ = friendly_bb | enemy_bb;
@@ -69,6 +37,25 @@ uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
 uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb) {
     return (~friendly_bb & rook_atk_bb(queen_bb, friendly_bb | enemy_bb)) |
            bishop_moves(queen_bb, friendly_bb, enemy_bb);
+}
+/**
+ * @brief Generate all squares that all rooks atk FIX: implement this.
+ *
+ * @param[in] rook_bb bitboard of rooks
+ * @param[in] occ occupancy bitboard
+ * @return bitboard of all attacked squares by rooks
+ */
+uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
+    uint64_t temp = rook_bb;
+    uint8_t sq = 0;
+    uint64_t allatk = 0;
+    while (temp > 0) {
+        uint8_t lsb = BitBoard::lsb(temp);  // Extract LSB loc.
+        sq += lsb;
+        temp = (temp >> lsb) & ~1;  // Clear LSB
+        allatk |= rook_atk(lsb, occ);
+    }
+    return allatk;
 }
 uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb,
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color) {
