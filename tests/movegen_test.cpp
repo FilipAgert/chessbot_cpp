@@ -18,8 +18,25 @@ using namespace movegen;
 using namespace dirs;
 using namespace masks;
 using namespace pieces;
+using namespace magic;
 #define idx_from_string NotationInterface::idx_from_string
+TEST(Movegentest, rookmagic) {
 
+    for (int i = 0; i < 64; i++) {
+        uint64_t occmask = rook_occupancy_table[i];
+        int m = BitBoard::bitcount(occmask);
+        std::array<uint64_t, max_size> occvar = gen_occ_variation(occmask, m);
+        std::array<uint64_t, max_size> atk = compute_atk_bbs(occvar, m, true);
+        int nelems = 1ULL << m;
+        for (int j = 0; j < nelems; j++) {
+            if (atk[j] != get_rook_atk_bb(i, occvar[i])) {
+                BitBoard::print_full(atk[j]);
+                BitBoard::print_full(get_rook_atk_bb(i, occvar[i]));
+                ASSERT_FALSE(true);
+            }
+        }
+    }
+}
 TEST(Movegentest, kiwipete) {
     std::vector<int> moves = {48, 2039, 97862, 4085603, 193690690};
     std::string starting_fen =
