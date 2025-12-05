@@ -212,11 +212,9 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
             continue;
         uint64_t to_squares_bb = to_squares(p.get_type(), square, friendly_bb, enemy_bb,
                                             en_passant_bb, castleinfo, turn_color);
-        uint8_t to_sq = 0;
         while (to_squares_bb > 0) {
-            uint8_t to = BitBoard::lsb(to_squares_bb);  // Extract LSB loc.
-            to_sq += to;
-            to_squares_bb = (to_squares_bb >> to) & ~1;  // Clear LSB
+            uint8_t to_sq = BitBoard::lsb(to_squares_bb);  // Extract LSB loc.
+            to_squares_bb = BitBoard::clear_lsb(to_squares_bb);
             // Handle promotion
             if (p.get_type() == pieces::pawn &&
                 (masks::row(promorow) & BitBoard::one_high(to_sq)) > 0) {
