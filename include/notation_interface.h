@@ -12,7 +12,34 @@ class NotationInterface {
     /**
      * @brief Gets index from square string e.g. "A5"
      */
-    static uint8_t idx_from_string(std::string square);
+    inline constexpr static uint8_t idx_from_string(const std::string square) {
+        if (square.length() != 2) {  // Needs exactly two characters
+            return err_val8;
+        }
+        char colchar = square[0];
+        char rowchar = square[1];
+        uint8_t basecol;
+        uint8_t baserow;
+        uint8_t colval;
+        uint8_t rowval;
+
+        if (colchar >= 'A' && colchar <= 'H') {
+            basecol = 'A';
+        } else if (colchar >= 'a' && colchar <= 'h') {
+            basecol = 'a';
+        } else {
+            return err_val8;
+        }
+        colval = colchar - basecol;
+        if (rowchar >= '1' && rowchar <= '8') {
+            baserow = '1';
+            rowval = rowchar - baserow;
+        } else {
+            return err_val8;
+        }
+
+        return idx(rowval, colval);
+    }
 
     /**
      * @brief Gets algebraic notation from square.

@@ -17,34 +17,6 @@ std::string NotationInterface::castling_rights(const uint8_t castle) {
         builder = "-";
     return builder;
 }
-uint8_t NotationInterface::idx_from_string(std::string square) {
-    if (square.length() != 2) {  // Needs exactly two characters
-        return err_val8;
-    }
-    char colchar = square[0];
-    char rowchar = square[1];
-    uint8_t basecol;
-    uint8_t baserow;
-    uint8_t colval;
-    uint8_t rowval;
-
-    if (colchar >= 'A' && colchar <= 'H') {
-        basecol = 'A';
-    } else if (colchar >= 'a' && colchar <= 'h') {
-        basecol = 'a';
-    } else {
-        return err_val8;
-    }
-    colval = colchar - basecol;
-    if (rowchar >= '1' && rowchar <= '8') {
-        baserow = '1';
-        rowval = rowchar - baserow;
-    } else {
-        return err_val8;
-    }
-
-    return idx(rowval, colval);
-}
 
 std::string NotationInterface::string_from_idx(const uint8_t idx) {
     uint8_t row, col;
