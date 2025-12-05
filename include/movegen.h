@@ -66,6 +66,9 @@ constexpr std::array<uint8_t, 64> rook_magic_sizes_bits = {
     10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
     10, 10, 10, 11, 10, 9,  9,  9,  9,  9,  10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // in # bits
 //                   48 49                          56
+constexpr std::array<uint8_t, 64> bishop_magic_sizes_bits = {
+    6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5,
+    5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};
 /**
  * @brief Max bits in any magic table for any square rook or bishop.
  *
@@ -90,6 +93,13 @@ constexpr std::array<size_t, 64> rook_magic_sizes = [] {
     return rook_magic_sizes_temp;
 }();
 
+constexpr std::array<size_t, 64> bishop_magic_sizes = [] {
+    std::array<size_t, 64> bishop_magic_sizes_temp;
+    for (int i = 0; i < 64; i++) {
+        bishop_magic_sizes_temp[i] = (1 << bishop_magic_sizes_bits[i]);
+    }
+    return bishop_magic_sizes_temp;
+}();
 /**
  * @brief the shift values used for each rook square. 64-#bits
  *
@@ -101,6 +111,14 @@ constexpr std::array<uint8_t, 64> rook_magic_shifts = [] {  // the shift value. 
     }
     return rook_magic_shifts;
 }();
+constexpr std::array<uint8_t, 64> bishop_magic_shifts =
+    [] {  // the shift value. saves a subtraction.
+        std::array<uint8_t, 64> bishop_magic_shifts;
+        for (int i = 0; i < 64; i++) {
+            bishop_magic_shifts[i] = 64 - bishop_magic_sizes_bits[i];
+        }
+        return bishop_magic_shifts;
+    }();
 /**
  * @brief Offset caused by flattening 2D array [64][nbits] into 1D. Each square has its own offset
  * to start its indexing from.
@@ -114,12 +132,21 @@ constexpr std::array<size_t, 64> rook_magic_offsets = [] {
     }
     return offsets;
 }();  // ofset for 1d flattened array
+constexpr std::array<size_t, 64> bishop_magic_offsets = [] {
+    std::array<size_t, 64> offsets;
+    offsets[0] = 0;
+    for (int i = 1; i < 64; i++) {
+        offsets[i] = offsets[i - 1] + bishop_magic_sizes[i - 1];
+    }
+    return offsets;
+}();  // ofset for 1d flattened array
 /**
  * @brief Size of rook table.
  *
  * @return [TODO:description]
  */
 constexpr size_t rook_magic_table_sz = rook_magic_offsets[63] + rook_magic_sizes[63];
+constexpr size_t bishop_magic_table_sz = bishop_magic_offsets[63] + bishop_magic_sizes[63];
 /**
  * @brief All rook magic numbers.
  *
@@ -141,7 +168,24 @@ constexpr std::array<uint64_t, 64> rook_magics = {
     7755197639194824192, 155374144193791488,  360429197304463488,  35463555711488,       // 56
     10698321205149826,   81346406815903874,   4683770138187567365, 1153203598060947461,  // 60
     9288683101620225,    5066601137704962,    11259592043071492,   694842971333599362};  // 64
-
+                                                                                         //
+constexpr std::array<uint64_t, 64> bishop_magics = {
+    1234162236956690960, 613633058599437316,  2310418085823643872, 4614045708893316130,
+    299342076575745,     11303015101244544,   360572812689408000,  4821362919080576,
+    36204757568758784,   576619640334320002,  576478357412315272,  4415234768897,
+    2207881987072,       3661382950094464,    1152995253510226208, 4720494041334039041,
+    3606267434728686123, 1748522692899864874, 563018681831680,     2286988547915808,
+    2450244173929384064, 144396671664063488,  4612251171716858368, 4614606335336646656,
+    4522017546306321,    290554762531963648,  721280835829778,     1170940318883840032,
+    13652086932135936,   1153142506478633473, 4611971891723634706, 4756084881125687554,
+    4521758753822724,    10150725774606848,   581052896986006088,  585538354796331520,
+    2252084357628160,    9011597839499440,    186899951507276544,  86836135329923592,
+    6759866349751296,    4611976312314135616, 152069073462104064,  283476232192,
+    1152930304999031808, 299071491473728,     2396115043369985,    1299856167056443496,
+    2306408226944061440, 565715984846848,     572029649833984,     1107427584,
+    36046441017516032,   1154619219548082560, 1173190108984574016, 5774944475553794,
+    288793953304707584,  1152923712232883200, 144678417219455232,  5767445654611952648,
+    2595480902252495360, 432355477566013696,  10309038269187072,   18163966669767312};
 /**
  * @brief For a given mask, gets an array with the location of the ones in the mask.
  *
@@ -303,10 +347,23 @@ constexpr std::array<uint64_t, 64> bishop_occupancy_table = [] {
  * @param[in] occ occupancy bitboard (all pieces)
  * @return the key to lookup the magic bitboard with.
  */
-constexpr uint64_t get_rook_key(uint8_t sq, uint64_t occ) {
+constexpr uint64_t get_rook_key(const uint8_t sq, const uint64_t occ) {
     uint8_t shift = rook_magic_shifts[sq];
     uint64_t magic = rook_magics[sq];
     uint64_t occmask = rook_occupancy_table[sq];
+    return (((occmask & occ) * magic) >> shift);
+}
+/**
+ * @brief Gets the key for the bishop magic bitboard table.
+ *
+ * @param[in] sq Square of bishop
+ * @param[in] occ occupancy bitboard (all pieces)
+ * @return the key to lookup the magic bitboard with.
+ */
+constexpr uint64_t get_bishop_key(const uint8_t sq, const uint64_t occ) {
+    uint8_t shift = bishop_magic_shifts[sq];
+    uint64_t magic = bishop_magics[sq];
+    uint64_t occmask = bishop_occupancy_table[sq];
     return (((occmask & occ) * magic) >> shift);
 }
 /**
@@ -316,8 +373,11 @@ constexpr uint64_t get_rook_key(uint8_t sq, uint64_t occ) {
  * @param[in] occ occupancy bitboard (can be unmasked.)
  * @return index to access array rook_magic_bitboards with.
  */
-constexpr int get_rook_magic_idx(uint8_t sq, uint64_t occ) {
+constexpr int get_rook_magic_idx(const uint8_t sq, const uint64_t occ) {
     return get_rook_key(sq, occ) + rook_magic_offsets[sq];
+}
+constexpr int get_bishop_magic_idx(const uint8_t sq, const uint64_t occ) {
+    return get_bishop_key(sq, occ) + bishop_magic_offsets[sq];
 }
 /**
  * @brief Table of rook magic bitboards. Indexed by the function get_rook_magic_idx
@@ -340,6 +400,23 @@ constexpr std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards =
         }
         return rook_magic_bbs;
     }();
+constexpr std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards =
+    [] {  // precompute the magic bitboards;
+        std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bbs;
+        for (int sq = 0; sq < 64; sq++) {
+            std::array<uint64_t, max_size> occ, atk;
+            uint64_t occmask = occupancy_bits_bishop(sq);
+            occ = gen_occ_variation(occmask, bishop_num_occ_bits[sq]);
+            atk = compute_atk_bbs(occ, sq, false);
+            int nvars = 1 << bishop_num_occ_bits[sq];
+
+            for (int i = 0; i < nvars; i++) {
+                int idx = get_bishop_magic_idx(sq, occ[i]);
+                bishop_magic_bbs[idx] = atk[i];
+            }
+        }
+        return bishop_magic_bbs;
+    }();
 /**
  * @brief Gets all the squares the rook can reach from the given position given an occupancy of the
  * board stored in the occ bitboard. Needs to be masked with friendly pieces to not capture them.
@@ -348,8 +425,11 @@ constexpr std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards =
  * @param[in] occ Occupancy bitboard for hess board
  * @return All attackable squares for the rook at sq.
  */
-constexpr uint64_t get_rook_atk_bb(uint8_t sq, uint64_t occ) {
+constexpr uint64_t get_rook_atk_bb(const uint8_t sq, const uint64_t occ) {
     return rook_magic_bitboards[get_rook_magic_idx(sq, occ)];
+}
+constexpr uint64_t get_bishop_atk_bb(const uint8_t sq, const uint64_t occ) {
+    return bishop_magic_bitboards[get_bishop_magic_idx(sq, occ)];
 }
 }  // namespace magic
 
@@ -491,6 +571,14 @@ constexpr uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly
  */
 uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ);
 /**
+ * @brief Generate all squares that all rooks atk FIX: implement this.
+ *
+ * @param[in] rook_bb bitboard of rooks
+ * @param[in] occ occupancy bitboard
+ * @return bitboard of all attacked squares by rooks
+ */
+uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ);
+/**
  * @brief Gets squares threatened by a rook at a square
  *
  * @param[in] sq Square of rook
@@ -500,9 +588,18 @@ uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ);
 constexpr uint64_t rook_atk(const uint8_t sq, const uint64_t occ) {
     return magic::get_rook_atk_bb(sq, occ);
 }
-uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
-                      const uint64_t enemy_bb);
-uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb);
+constexpr uint64_t bishop_atk(const uint8_t sq, const uint64_t occ) {
+    return magic::get_bishop_atk_bb(sq, occ);
+}
+constexpr uint64_t bishop_moves_sq(const uint8_t sq, const uint64_t friendly_bb,
+                                   const uint64_t enemy_bb) {
+    return magic::get_bishop_atk_bb(sq, friendly_bb | enemy_bb) & ~(friendly_bb);
+}
+constexpr uint64_t queen_moves_sq(const uint8_t sq, const uint64_t friendly_bb,
+                                  const uint64_t enemy_bb) {
+    uint64_t occ = friendly_bb | enemy_bb;
+    return (rook_atk(sq, occ) | bishop_atk(sq, occ)) & ~friendly_bb;
+}
 uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
                     const uint64_t ep_bb, const uint8_t pawn_color);
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,

@@ -51,7 +51,7 @@ int get_magic_minval(uint64_t occmask, int shift) {
 std::pair<uint64_t, bool> find_magic_nbr(int maxiter, int sq, int bits, bool rook,
                                          std::array<uint64_t, max_size> &occ_bbs,
                                          std::array<uint64_t, max_size> &atk_bbs) {
-    int m = rook ? RBits[sq] : BBits[sq];
+    int m = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
     int arrsz = 1 << m;  // size of mask and atk arrays
     int hashsz = 1 << bits;
     std::vector<uint64_t> hash_table(hashsz);
@@ -108,12 +108,12 @@ void find_dense(bool rook) {
     std::array<std::pair<uint64_t, uint8_t>, 64> magics;
 
     for (int sq = 48; sq < 53; sq++) {
-        int target_bits = rook ? RBits[sq] : BBits[sq];
+        int target_bits = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
         target_bits -= 1;
         std::pair<uint64_t, uint8_t> init = {0, target_bits};
         magics[sq] = init;
         uint64_t occ_mask = rook ? rook_occupancy_table[sq] : bishop_occupancy_table[sq];
-        int m = rook ? RBits[sq] : BBits[sq];
+        int m = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
         std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
         std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
         int maxiter = 10000000;
@@ -142,9 +142,9 @@ void find_sparse(bool rook) {
     std::array<std::array<uint64_t, max_size>, 64> occs_bbs_sq;
     std::array<std::array<uint64_t, max_size>, 64> atk_bbs_sq;
     for (int sq = 0; sq < 64; sq++) {
-        int target_bits = rook ? RBits[sq] : BBits[sq];
+        int target_bits = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
         uint64_t occ_mask = rook ? rook_occupancy_table[sq] : bishop_occupancy_table[sq];
-        int m = rook ? RBits[sq] : BBits[sq];
+        int m = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
         std::array<uint64_t, max_size> occ_bbs = gen_occ_variation(occ_mask, m);  // will be size
         std::array<uint64_t, max_size> atk_bbs = compute_atk_bbs(occ_bbs, sq, rook);
         occs_bbs_sq[sq] = occ_bbs;
@@ -163,12 +163,12 @@ void find_sparse(bool rook) {
     }
     std::cout << "Square   foundbits     magic\n";
     for (int sq = 0; sq < 64; sq++) {
-        int target_bits = rook ? RBits[sq] : BBits[sq];
+        int target_bits = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
         std::cout << sq << " " << target_bits << " " << magics[sq].first << "\n";
     }
 }
 int main() {
 
-    find_sparse(true);
+    find_sparse(false);
     return 0;
 }

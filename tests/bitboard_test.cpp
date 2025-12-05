@@ -176,8 +176,8 @@ TEST(BitBoardTest, test_rook_moves) {
 
 TEST(BitBoardTest, test_bishop_moves) {
     // Bishop on c1
-    uint64_t bishop = BitBoard::one_high(NotationInterface::idx_from_string("c1"));
-    uint64_t f_bb = bishop;
+    uint8_t bishop = NotationInterface::idx_from_string("c1");
+    uint64_t f_bb = BitBoard::one_high(bishop);
     uint64_t e_bb = 0;
 
     std::array<uint8_t, 64> attack{};
@@ -195,7 +195,7 @@ TEST(BitBoardTest, test_bishop_moves) {
     attack[NotationInterface::idx_from_string("a3")] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = bishop_moves(bishop, f_bb, e_bb);
+    uint64_t actual = bishop_moves_sq(bishop, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 
     // Add enemy at f4, friendly at b2
@@ -211,14 +211,14 @@ TEST(BitBoardTest, test_bishop_moves) {
     attack[NotationInterface::idx_from_string("f4")] = 1;
 
     expected = BitBoard::bb_from_array(attack);
-    actual = bishop_moves(bishop, f_bb, e_bb);
+    actual = bishop_moves_sq(bishop, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 }
 
 TEST(BitBoardTest, test_queen_moves) {
     // Queen on d4
-    uint64_t queen = BitBoard::one_high(NotationInterface::idx_from_string("d4"));
-    uint64_t f_bb = queen;
+    uint64_t queen = NotationInterface::idx_from_string("d4");
+    uint64_t f_bb = BitBoard::one_high(queen);
     uint64_t e_bb = 0;
 
     // Expected = rook + bishop moves from d4
@@ -235,7 +235,7 @@ TEST(BitBoardTest, test_queen_moves) {
         attack[NotationInterface::idx_from_string(sq)] = 1;
 
     uint64_t expected = BitBoard::bb_from_array(attack);
-    uint64_t actual = queen_moves(queen, f_bb, e_bb);
+    uint64_t actual = queen_moves_sq(queen, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 
     // Friendly at e4, enemy at f6
@@ -265,7 +265,7 @@ TEST(BitBoardTest, test_queen_moves) {
         attack[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack);
-    actual = queen_moves(queen, f_bb, e_bb);
+    actual = queen_moves_sq(queen, f_bb, e_bb);
     ASSERT_EQ(actual, expected);
 }
 

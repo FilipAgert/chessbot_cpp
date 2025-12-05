@@ -29,17 +29,8 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
            pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
 }
 
-uint64_t bishop_moves(const uint64_t bishop_bb, const uint64_t friendly_bb,
-                      const uint64_t enemy_bb) {
-    uint64_t occ = friendly_bb | enemy_bb;
-    return bishop_atk(bishop_bb, occ) & ~friendly_bb;
-}
-uint64_t queen_moves(const uint64_t queen_bb, const uint64_t friendly_bb, const uint64_t enemy_bb) {
-    return (~friendly_bb & rook_atk_bb(queen_bb, friendly_bb | enemy_bb)) |
-           bishop_moves(queen_bb, friendly_bb, enemy_bb);
-}
 /**
- * @brief Generate all squares that all rooks atk FIX: implement this.
+ * @brief Generate all squares that all rooks atk
  *
  * @param[in] rook_bb bitboard of rooks
  * @param[in] occ occupancy bitboard
@@ -54,6 +45,25 @@ uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
         sq += lsb;
         temp = (temp >> lsb) & ~1;  // Clear LSB
         allatk |= rook_atk(sq, occ);
+    }
+    return allatk;
+}
+/**
+ * @brief Generate all squares that all bishop atk
+ *
+ * @param[in] bishop_bb bitboard of bishops
+ * @param[in] occ occupancy bitboard
+ * @return bitboard of all attacked squares by bishops
+ */
+uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
+    uint64_t temp = bishop_bb;
+    uint8_t sq = 0;
+    uint64_t allatk = 0;
+    while (temp > 0) {
+        uint8_t lsb = BitBoard::lsb(temp);  // Extract LSB loc.
+        sq += lsb;
+        temp = (temp >> lsb) & ~1;  // Clear LSB
+        allatk |= bishop_atk(sq, occ);
     }
     return allatk;
 }
