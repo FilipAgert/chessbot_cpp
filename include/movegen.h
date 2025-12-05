@@ -232,11 +232,11 @@ constexpr std::array<uint64_t, 64> bishop_occupancy_table = [] {
  * @param[in] occ occupancy bitboard (all pieces)
  * @return the key to lookup the magic bitboard with.
  */
-constexpr int get_rook_key(size_t sq, uint64_t occ) {
+constexpr uint64_t get_rook_key(uint8_t sq, uint64_t occ) {
     uint8_t shift = rook_magic_shifts[sq];
     uint64_t magic = rook_magics[sq];
     uint64_t occmask = rook_occupancy_table[sq];
-    return ((occmask & occ) * magic) >> shift;
+    return (((occmask & occ) * magic) >> shift);
 }
 /**
  * @brief Gets the index to access the flattened rook bitboard array with.

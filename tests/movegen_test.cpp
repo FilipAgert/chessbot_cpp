@@ -37,6 +37,25 @@ TEST(Movegentest, rookmagic) {
         }
     }
 }
+
+TEST(magic_test, get_rook_magic_idx) {  // test that the array indices work correctly.
+
+    for (int i = 0; i < 64; i++) {
+        uint64_t occmask = rook_occupancy_table[i];
+        int m = BitBoard::bitcount(occmask);
+        std::array<uint64_t, max_size> occvar = gen_occ_variation(occmask, m);
+        int nelems = 1ULL << m;
+        int offset = rook_magic_offsets[i];
+        int sz = rook_magic_sizes[i];
+        for (int j = 0; j < nelems; j++) {
+            int key = get_rook_magic_idx(i, occvar[j]);
+
+            ASSERT_GE(key, offset) << "sq:" << i << "\n";       // Assert key grt or equal offset
+            ASSERT_LT(key, offset + sz) << "sq:" << i << "\n";  // Assert key LT offset
+        }
+    }
+}
+// Tests the keys to make sure they stay within their domain (offset - offset+size)
 TEST(Movegentest, kiwipete) {
     std::vector<int> moves = {48, 2039, 97862, 4085603, 193690690};
     std::string starting_fen =
