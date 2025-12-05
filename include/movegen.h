@@ -195,13 +195,11 @@ constexpr std::array<uint64_t, 64> bishop_magics = {
 constexpr std::array<uint8_t, max_bits> mask_one_locs(uint64_t mask) {
     std::array<uint8_t, max_bits> one_locs;  // Initialize to disallowed value.
     uint64_t mask_reduced = mask;
-    uint8_t idx = 0;
     uint8_t i = 0;
     while (mask_reduced > 0) {
         uint8_t lsb = BitBoard::lsb(mask_reduced);
-        mask_reduced = (mask_reduced >> lsb) & ~1;
-        idx += lsb;
-        one_locs[i] = idx;
+        mask_reduced = BitBoard::clear_lsb(mask_reduced);
+        one_locs[i] = lsb;
         i++;
     }
     return one_locs;
@@ -227,16 +225,14 @@ constexpr std::array<uint64_t, max_size> gen_occ_variation(uint64_t occ_mask, in
 
     for (int n = 0; n < num; n++) {
         int nreduced = n;
-        int hi_bit = 0;
         uint64_t out_nbr = 0;
         while (nreduced > 0) {
-            uint8_t hibit_temp = BitBoard::lsb(nreduced);  // Extract LSB loc.
-            hi_bit += hibit_temp;
-            nreduced = (nreduced >> hibit_temp) & ~1;  // Clear LSB
+            uint8_t hibit = BitBoard::lsb(nreduced);  // Extract LSB loc.
+            nreduced = BitBoard::clear_lsb(nreduced);
             // hi_bit, m, is then the location of the current high bit m in the number n. This
             // should be put on the mth 1 in occ_mask. How to find the location of the mth one in
             // occ_mask? Do the same.
-            uint8_t mask_one_loc = mask_one_locations[hi_bit];
+            uint8_t mask_one_loc = mask_one_locations[hibit];
             out_nbr |= BitBoard::one_high(mask_one_loc);
         }
         occ_vars[n] = out_nbr;
