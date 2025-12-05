@@ -29,27 +29,6 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
            pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
 }
 
-/**
- * @brief Generate all squares that all rooks atk
- *
- * @param[in] rook_bb bitboard of rooks
- * @param[in] occ occupancy bitboard
- * @return bitboard of all attacked squares by rooks
- */
-uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
-    return BitBoard::bitboard_operate_or<uint64_t, decltype(&rook_atk)>(rook_bb, occ, &rook_atk);
-}
-/**
- * @brief Generate all squares that all bishop atk
- *
- * @param[in] bishop_bb bitboard of bishops
- * @param[in] occ occupancy bitboard
- * @return bitboard of all attacked squares by bishops
- */
-uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
-    return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ,
-                                                                          &bishop_atk);
-}
 uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb,
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color) {
     uint64_t king_bb = BitBoard::one_high(king_loc);

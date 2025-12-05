@@ -551,22 +551,6 @@ constexpr uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly
     return magic::get_rook_atk_bb(rook_loc, friendly_bb | enemy_bb) & ~(friendly_bb);
 }
 /**
- * @brief Generate all squares that all rooks atk FIX: implement this.
- *
- * @param[in] rook_bb bitboard of rooks
- * @param[in] occ occupancy bitboard
- * @return bitboard of all attacked squares by rooks
- */
-uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ);
-/**
- * @brief Generate all squares that all rooks atk FIX: implement this.
- *
- * @param[in] rook_bb bitboard of rooks
- * @param[in] occ occupancy bitboard
- * @return bitboard of all attacked squares by rooks
- */
-uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ);
-/**
  * @brief Gets squares threatened by a rook at a square
  *
  * @param[in] sq Square of rook
@@ -593,6 +577,27 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
                            const uint8_t pawn_col);
 
+/**
+ * @brief Generate all squares that all rooks atk
+ *
+ * @param[in] rook_bb bitboard of rooks
+ * @param[in] occ occupancy bitboard
+ * @return bitboard of all attacked squares by rooks
+ */
+inline uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
+    return BitBoard::bitboard_operate_or<uint64_t, decltype(&rook_atk)>(rook_bb, occ, &rook_atk);
+}
+/**
+ * @brief Generate all squares that all bishop atk
+ *
+ * @param[in] bishop_bb bitboard of bishops
+ * @param[in] occ occupancy bitboard
+ * @return bitboard of all attacked squares by bishops
+ */
+inline uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
+    return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ,
+                                                                          &bishop_atk);
+}
 }  // namespace movegen
 
 #endif  // MOVEGEN_H
