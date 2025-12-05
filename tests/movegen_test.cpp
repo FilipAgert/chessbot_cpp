@@ -20,7 +20,7 @@ using namespace masks;
 using namespace pieces;
 using namespace magic;
 #define idx_from_string NotationInterface::idx_from_string
-TEST(Movegentest, rookmagic) {
+TEST(magic_test, rookmagic) {
 
     for (int i = 0; i < 64; i++) {
         uint64_t occmask = rook_occupancy_table[i];

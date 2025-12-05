@@ -169,6 +169,6 @@ void find_sparse(bool rook) {
 }
 int main() {
 
-    find_dense(true);
+    find_sparse(true);
     return 0;
 }

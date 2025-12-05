@@ -40,7 +40,7 @@ constexpr int RBits[64] = {12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 1
                            10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10,
                            10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10,
                            10, 10, 10, 10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // Target number of
-                                                                                 // bits to generate
+//                  55  56                                      // bits to generate
 
 constexpr int BBits[64] = {
     6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7,
@@ -50,12 +50,13 @@ constexpr std::array<uint8_t, 64> rook_magic_sizes_bits = {
     12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
     10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
     10, 10, 10, 11, 10, 9,  9,  9,  9,  9,  10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // in # bits
+//                   48 49                          56
 constexpr size_t max_bits = 12;
 constexpr size_t max_size = 1 << (max_bits);  // 2^12
 constexpr std::array<size_t, 64> rook_magic_sizes = [] {
     std::array<size_t, 64> rook_magic_sizes_temp;
     for (int i = 0; i < 64; i++) {
-        rook_magic_sizes_temp[i] = (1ULL << rook_magic_sizes_bits[i]);
+        rook_magic_sizes_temp[i] = (1 << rook_magic_sizes_bits[i]);
     }
     return rook_magic_sizes_temp;
 }();
@@ -179,7 +180,6 @@ constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, ma
     int m = rook ? RBits[sq] : BBits[sq];
     int num = 1 << m;  // number of occ boards to generate.
     std::array<uint64_t, max_size> atk_bbs;
-    uint64_t sq_bb = BitBoard::one_high(sq);
     for (int n = 0; n < num; n++) {
         atk_bbs[n] =
             rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq, occ_vars[n]);
@@ -203,6 +203,10 @@ constexpr uint64_t occupancy_bits_rook(uint8_t sq) {
     return occbits;
 }
 
+/**
+ * @brief Mask of the relevant bits in a rook magic bitboard calculation.
+ *
+ */
 constexpr std::array<uint64_t, 64> rook_occupancy_table = [] {
     std::array<uint64_t, 64> arr;
     for (int sq = 0; sq < 64; sq++) {
@@ -251,13 +255,12 @@ constexpr int get_rook_magic_idx(uint8_t sq, uint64_t occ) {
 constexpr std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards =
     [] {  // precompute the magic bitboards;
         std::array<uint64_t, rook_magic_table_sz> rook_magic_bbs;
-
         for (int sq = 0; sq < 64; sq++) {
             std::array<uint64_t, max_size> occ, atk;
             uint64_t occmask = occupancy_bits_rook(sq);
             occ = gen_occ_variation(occmask, RBits[sq]);
             atk = compute_atk_bbs(occ, sq, true);
-            int nvars = 1ULL << RBits[sq];
+            int nvars = 1 << RBits[sq];
 
             for (int i = 0; i < nvars; i++) {
                 int idx = get_rook_magic_idx(sq, occ[i]);
