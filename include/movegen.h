@@ -182,7 +182,7 @@ constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, ma
     uint64_t sq_bb = BitBoard::one_high(sq);
     for (int n = 0; n < num; n++) {
         atk_bbs[n] =
-            rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq_bb, occ_vars[n]);
+            rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq, occ_vars[n]);
     }
     return atk_bbs;
 }
