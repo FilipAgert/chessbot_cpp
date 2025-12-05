@@ -37,16 +37,7 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
  * @return bitboard of all attacked squares by rooks
  */
 uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
-    uint64_t temp = rook_bb;
-    uint8_t sq = 0;
-    uint64_t allatk = 0;
-    while (temp > 0) {
-        uint8_t lsb = BitBoard::lsb(temp);  // Extract LSB loc.
-        sq += lsb;
-        temp = (temp >> lsb) & ~1;  // Clear LSB
-        allatk |= rook_atk(sq, occ);
-    }
-    return allatk;
+    return BitBoard::bitboard_operate_or<uint64_t, decltype(&rook_atk)>(rook_bb, occ, &rook_atk);
 }
 /**
  * @brief Generate all squares that all bishop atk
@@ -56,16 +47,8 @@ uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
  * @return bitboard of all attacked squares by bishops
  */
 uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
-    uint64_t temp = bishop_bb;
-    uint8_t sq = 0;
-    uint64_t allatk = 0;
-    while (temp > 0) {
-        uint8_t lsb = BitBoard::lsb(temp);  // Extract LSB loc.
-        sq += lsb;
-        temp = (temp >> lsb) & ~1;  // Clear LSB
-        allatk |= bishop_atk(sq, occ);
-    }
-    return allatk;
+    return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ,
+                                                                          &bishop_atk);
 }
 uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb,
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color) {

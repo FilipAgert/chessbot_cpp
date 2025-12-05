@@ -58,6 +58,25 @@ inline constexpr int bitcount(uint64_t bb) { return __builtin_popcountll(bb); }
  */
 inline constexpr int lsb(uint64_t bb) { return __builtin_ctzll(bb); }
 
+inline constexpr uint64_t clear_lsb(uint64_t bb) { return bb & (bb - 1); }
+/**
+ * @brief For each high bit in the input bitboard, clear it and repeatedly OR the outputs of an
+ * input function. return result
+ *
+ * @param[inout] bb input bb to call function with idx of high bits
+ * @param[in] occ occupation bitboard
+ * @return orsum_i  f_i(idx_i, occ)
+ */
+template <class T, class Func> uint64_t bitboard_operate_or(uint64_t &bb, T arg, Func func) {
+    uint64_t out = 0;
+    while (bb > 0ULL) {
+        uint8_t LSB = lsb(bb);
+        bb = clear_lsb(bb);
+        out |= func(LSB, arg);
+    }
+    return out;
+}
+
 /**
  * @brief Gets bitboard as a string of 0 and 1.
  */

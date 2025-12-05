@@ -509,14 +509,6 @@ constexpr uint64_t knight_atk_sq(const uint8_t sq) {
     return knight_atk_bb(knight_bb);
 }
 
-constexpr uint64_t bishop_atk(const uint64_t bishop_bb, const uint64_t occ) {
-    uint64_t hit = magic::ray(bishop_bb, NE, occ);
-    hit |= magic::ray(bishop_bb, SE, occ);
-    hit |= magic::ray(bishop_bb, SW, occ);
-    hit |= magic::ray(bishop_bb, NW, occ);
-    return hit;
-}
-
 constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, king_atk_sq>();
 constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
