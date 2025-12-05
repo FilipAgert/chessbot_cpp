@@ -9,13 +9,17 @@
 #include <iostream>
 #include <string>
 namespace BitBoard {
-/**
- * @brief Shifts the bitboard in a certain direction n # of steps. Branchless execution
- *
- * @param board board to shift
- * @param dir direction to move in (N,E,S,W etc)
- * @param steps How many steps to move in this direction
- * @return shifted bitboard
+#define BitLoop(X)                                                                                 \
+    for (; X;                                                                                      \
+         X = X & (X - 1))  // The bitloop iterates over a bitboard, repeatedly clearing the LSB.
+
+/** \
+ * @brief Shifts the bitboard in a certain direction n # of steps. Branchless execution \
+ *                                                                                                 \
+ * @param board board to shift \
+ * @param dir direction to move in (N,E,S,W etc) \
+ * @param steps How many steps to move in this direction \
+ * @return shifted bitboard \
  */
 [[nodiscard("The return value should be handled as a uint64_t.")]]
 static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir,
@@ -69,11 +73,19 @@ inline constexpr uint64_t clear_lsb(uint64_t bb) { return bb & (bb - 1); }
  */
 template <class T, class Func> uint64_t bitboard_operate_or(uint64_t &bb, T arg, Func func) {
     uint64_t out = 0;
-    while (bb > 0ULL) {
-        uint8_t LSB = lsb(bb);
-        bb = clear_lsb(bb);
-        out |= func(LSB, arg);
-    }
+    BitLoop(bb) { out |= func(lsb(bb), arg); }
+    return out;
+}
+/**
+ * @brief For each high bit in the input bitboard, clear it and repeatedly OR the outputs of an
+ * input function. return result
+ *
+ * @param[inout] bb input bb to call function with idx of high bits. Destroys it.
+ * @return orsum_i  f_i(idx_i, occ)
+ */
+template <class Func> uint64_t bitboard_operate_or(uint64_t &bb, Func func) {
+    uint64_t out = 0;
+    BitLoop(bb) { out |= func(lsb(bb)); }
     return out;
 }
 

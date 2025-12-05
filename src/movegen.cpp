@@ -33,7 +33,7 @@ uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const ui
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color) {
     uint64_t king_bb = BitBoard::one_high(king_loc);
     return king_castle_moves(king_bb, all_bb, enemy_atk_bb, castle, turn_color) |
-           (king_attack_table[king_loc] & ~(friendly_bb | enemy_atk_bb));
+           (king_atk(king_loc) & ~(friendly_bb | enemy_atk_bb));
 }
 
 uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,

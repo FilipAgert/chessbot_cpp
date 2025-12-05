@@ -430,6 +430,8 @@ constexpr uint64_t get_bishop_atk_bb(const uint8_t sq, const uint64_t occ) {
 }  // namespace magic
 
 namespace movegen {
+namespace internal {
+
 /**
  * @brief Lambda to help generate attack tables in compile time.
  *
@@ -489,13 +491,6 @@ constexpr uint64_t king_atk_bb(const uint64_t king_bb) {
     hit |= magic::ray(king_bb, NW, 0, 1);
     return hit;
 }
-constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb, const uint8_t pawn_col) {
-    int dir =
-        (pawn_col == pieces::white) * N + (pawn_col == pieces::black) * S;  // branchless assignment
-    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
-                     BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
-    return moves;
-}
 constexpr uint64_t king_atk_sq(const uint8_t sq) {
     uint64_t king_bb = BitBoard::one_high(sq);
     return king_atk_bb(king_bb);
@@ -504,11 +499,12 @@ constexpr uint64_t knight_atk_sq(const uint8_t sq) {
     uint64_t knight_bb = BitBoard::one_high(sq);
     return knight_atk_bb(knight_bb);
 }
-
 constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, king_atk_sq>();
 constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, knight_atk_sq>();
+
+}  // namespace internal
 
 /**
  * @brief Gets the bitboard for the available knight moves.
@@ -518,12 +514,20 @@ constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
  * @return uint64_t Bitboard of all the knight moves.
  */
 constexpr uint64_t knight_moves(const uint8_t knight_loc, const uint64_t friendly_bb) {
-    return knight_attack_table[knight_loc] & ~friendly_bb;
+    return internal::knight_attack_table[knight_loc] & ~friendly_bb;
 }
-uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
-                           const uint64_t enemy_atk_bb, const uint8_t castle,
-                           const uint8_t turn_color);
-
+constexpr uint64_t knight_atk(const uint8_t knight_loc) {
+    return internal::knight_attack_table[knight_loc];
+}
+constexpr uint64_t knight_atk_bb(uint64_t knight_bb) {
+    return BitBoard::bitboard_operate_or<decltype(&knight_atk)>(knight_bb, &knight_atk);
+}
+constexpr uint64_t king_atk(const uint8_t king_loc) {
+    return internal::king_attack_table[king_loc];
+}
+constexpr uint64_t king_atk_bb(uint64_t king_bb) {
+    return BitBoard::bitboard_operate_or<decltype(&king_atk)>(king_bb, &king_atk);
+}
 /**
  * @brief Generates bitboard for all possible king moves. The 1s in output integer represents the
  * possible to squares the king can move to.
@@ -538,6 +542,10 @@ uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
  */
 uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb,
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color);
+uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
+                           const uint64_t enemy_atk_bb, const uint8_t castle,
+                           const uint8_t turn_color);
+
 /**
  * @brief Generates all moves for rooks given a bitboard of its location
  * @param[in] rook_loc Location of rook.
@@ -577,6 +585,13 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
                            const uint8_t pawn_col);
 
+constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb, const uint8_t pawn_col) {
+    int dir =
+        (pawn_col == pieces::white) * N + (pawn_col == pieces::black) * S;  // branchless assignment
+    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
+                     BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
+    return moves;
+}
 /**
  * @brief Generate all squares that all rooks atk
  *
