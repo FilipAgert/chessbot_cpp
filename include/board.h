@@ -66,6 +66,15 @@ struct Board {
      */
     bool king_checked(const uint8_t turn_color) const;
 
+    /**
+     * @brief Computes if a move acting on this board state would leave the king of a certain color
+     * in check.
+     *
+     * @param[in] candidate candidate move to check if it leaves the king in check
+     * @param[in] king_color color of king to check if is in check
+     * @return boolean if king is in check or not
+     */
+    bool does_move_check(const Move candidate, const uint8_t king_color);
     inline uint8_t get_num_pieces() { return num_pieces; }
     void print_piece_loc() const;
     inline const uint64_t get_bb(const uint8_t bb_idx) { return bit_boards[bb_idx]; }

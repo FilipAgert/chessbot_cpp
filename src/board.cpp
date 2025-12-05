@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include <board.h>
 #include <cassert>
+#include <exceptions.h>
 #include <iostream>
 #include <movegen.h>
 #include <vector>
@@ -251,6 +252,11 @@ uint64_t Board::get_atk_bb(const uint8_t color) const {
     pawn_bb = movegen::pawn_atk_bb(pawn_bb, color);
     king_bb = movegen::king_atk_bb(king_bb);
     return bishop_bb | rook_bb | knight_bb | pawn_bb | king_bb;
+}
+
+bool does_move_check(const Move candidate, const uint8_t king_color) {
+    NotImplemented();
+    // Can do a bitboard only implementation. Need to: Remove captured piece. Handle en passant.
 }
 bool Board::king_checked(const uint8_t turn_color) const {
     uint64_t king_bb = bit_boards[turn_color | pieces::king];
