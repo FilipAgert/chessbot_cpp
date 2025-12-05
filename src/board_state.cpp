@@ -7,7 +7,7 @@
 using namespace pieces;
 size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) {
     std::array<Move, max_legal_moves> pseudolegal_moves;
-    size_t num_pseudolegal_moves = board.get_pseudolegal_moves_bb(
+    size_t num_pseudolegal_moves = board.get_pseudolegal_moves(
         pseudolegal_moves, turn_color, en_passant, en_passant_square, castling);
     uint8_t king_color = turn_color;
     //  uint8_t opposite_color = turn_color ^ color_mask;
@@ -407,4 +407,3 @@ std::string BoardState::fen_from_state() const {
 
     return FEN;
 }
-void BoardState::print_piece_loc() const { board.print_piece_loc(); }
