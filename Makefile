@@ -9,15 +9,19 @@ EXEN = filipbot
 TEST_EXE = testsuite
 MAGIC_EXE = gen_magics
 
+#compile in parallel
+NPROCS:= $(SHELL grep -c 'processor' /proc/cpuinfo)
+MAKEFLAGS+= -j$(NPROCS)
 
 type?=dev
 ifeq ($(type), release)
-	FLAGS = -Wall -std=c++23 -O3 -fconstexpr-ops-limit=1000000000
+	FLAGS = -Wall -std=c++23 -O3 -fconstexpr-ops-limit=1000000000 -MMD -MP
 else
-	FLAGS = -DDEBUG -g -Wall -std=c++23 -O0  -fconstexpr-ops-limit=1000000000
+	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast  -fconstexpr-ops-limit=1000000000 -MMD -MP
 endif
 
-
+DEPS := $(OBJS:.o=.d)
+-include $(DEPS)
 
 LIBS = -lgtest -lgtest_main -pthread  # Google Test and pthread libs
 
