@@ -35,13 +35,13 @@ struct Piece {
      *
      * @return uint8_t value corresponding to type
      */
-    uint8_t get_type() const;
+    inline constexpr uint8_t get_type() const { return value & pieces::piece_mask; }
     /**
      * @brief Get the color of the piece
      *
      * @return uint8_t
      */
-    uint8_t get_color() const;
+    inline constexpr uint8_t get_color() const { return value & pieces::color_mask; }
     /**
      * @brief Get the value of the piece. I.e. the uint8_t containing the type and color information
      *
