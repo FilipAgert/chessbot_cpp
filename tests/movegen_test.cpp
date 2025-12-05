@@ -26,12 +26,13 @@ TEST(magic_test, rookmagic) {
         uint64_t occmask = rook_occupancy_table[i];
         int m = BitBoard::bitcount(occmask);
         std::array<uint64_t, max_size> occvar = gen_occ_variation(occmask, m);
-        std::array<uint64_t, max_size> atk = compute_atk_bbs(occvar, m, true);
-        int nelems = 1ULL << m;
+        std::array<uint64_t, max_size> atk = compute_atk_bbs(occvar, i, true);
+        int nelems = 1 << m;
         for (int j = 0; j < nelems; j++) {
-            if (atk[j] != get_rook_atk_bb(i, occvar[i])) {
+            if (atk[j] != get_rook_atk_bb(i, occvar[j])) {
                 BitBoard::print_full(atk[j]);
-                BitBoard::print_full(get_rook_atk_bb(i, occvar[i]));
+                BitBoard::print_full(get_rook_atk_bb(i, occvar[j]));
+                std::cout << "i: " << i << "\n";
                 ASSERT_FALSE(true);
             }
         }
