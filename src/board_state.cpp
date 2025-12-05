@@ -10,7 +10,7 @@ size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) {
     size_t num_pseudolegal_moves = board.get_pseudolegal_moves(
         pseudolegal_moves, turn_color, en_passant, en_passant_square, castling);
     uint8_t king_color = turn_color;
-    uint8_t opposite_color = turn_color ^ color_mask;
+    //  uint8_t opposite_color = turn_color ^ color_mask;
 
     size_t num_moves = 0;
     for (size_t m = 0; m < num_pseudolegal_moves;
@@ -24,8 +24,8 @@ size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) {
         if (!checked) {
             // PERF: Check how expensive this king_checked thing is. Is it worth the move ordering
             // benefit?
-            bool opponent_checked = board.king_checked(opposite_color);
-            pseudolegal_moves[m].check = opponent_checked;
+            //            bool opponent_checked = board.king_checked(opposite_color);
+            //           pseudolegal_moves[m].check = opponent_checked;
             moves[num_moves++] = pseudolegal_moves[m];
         }
         undo_move(pseudolegal_moves[m]);
