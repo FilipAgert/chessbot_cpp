@@ -53,7 +53,7 @@ uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
         uint8_t lsb = BitBoard::lsb(temp);  // Extract LSB loc.
         sq += lsb;
         temp = (temp >> lsb) & ~1;  // Clear LSB
-        allatk |= rook_atk(lsb, occ);
+        allatk |= rook_atk(sq, occ);
     }
     return allatk;
 }
