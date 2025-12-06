@@ -2,18 +2,33 @@
 #include <algorithm>
 #include <eval.h>
 #include <vector>
-int EvalState::eval(BoardState state) {
+int EvalState::eval(BoardState &state) {
     int score = 0;
 
     // Eval by piece scoring.
-    // std::vector<std::pair<Piece, uint8_t>> piece_move_cnt =
-    //    state.board.get_piece_num_moves(state.castling, 0);  // TODO: Handle en passant
-    //  PERFT: eval performance of get_piece_num_moves. expensive calculation.
     std::vector<Piece> pieces = state.board.get_pieces();
     score += eval_material(pieces);
+    score += eval_mobility(state);
 
     int color_fac = 1 - 2 * (state.turn_color == pieces::black);
     return score * color_fac;
+}
+
+int EvalState::eval_mobility(BoardState &state) {
+    constexpr bool omit_pawn = true;
+    int king_mobility = state.board.get_piece_mobility<pieces::king, omit_pawn, true>() -
+                        state.board.get_piece_mobility<pieces::king, omit_pawn, false>();
+    int bishop_mobility = state.board.get_piece_mobility<pieces::bishop, omit_pawn, true>() -
+                          state.board.get_piece_mobility<pieces::bishop, omit_pawn, false>();
+    // int queen_mobility = state.board.get_piece_mobility<pieces::queen, omit_pawn, true>() -
+    //                      state.board.get_piece_mobility<pieces::queen, omit_pawn, false>();
+    int knight_mobility = state.board.get_piece_mobility<pieces::knight, omit_pawn, true>() -
+                          state.board.get_piece_mobility<pieces::knight, omit_pawn, false>();
+    int mobility_eval = king_mobility * PieceValue::movevals[pieces::king] +
+                        bishop_mobility * PieceValue::movevals[pieces::bishop] +
+                        knight_mobility * PieceValue::movevals[pieces::knight];
+    // queen_mobility * PieceValue::movevals[pieces::queen];
+    return mobility_eval;
 }
 int EvalState::eval_material(std::vector<Piece> pieces) {
     int score = 0;

@@ -2,6 +2,7 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "movegen.h"
 #include <bitboard.h>
 #include <constants.h>
 #include <move.h>
@@ -105,6 +106,47 @@ struct Board {
                                  const bool en_passant, const uint8_t en_passant_sq,
                                  const uint8_t castleinfo) const;
 
+    /**
+     * @brief Gets piece bitboard compile time.
+     *
+     * @tparam pval [Value of piece]
+     * @tparam is_white get white or black piece
+     * @return Bitboard of piece
+     */
+    template <Piece_t pval, bool is_white> BB get_piece_bb() {
+        constexpr uint8_t col = is_white ? pieces::white : pieces::black;
+        constexpr uint8_t type = pval | pieces::piece_mask;
+        return bit_boards[col | type];
+    }
+    BB occupancy() { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
+    /**
+     * @brief Gets piece mobility for a given piece type
+     *
+     * @tparam Piece_t piece type
+     * @tparam omit_pawn_controlled flag if we should omit squares controlled by enemy pawns from
+     * the mobility count
+     * @tparam is_white flag if piece to check is white or not
+     * @return number of squares piece of this type and color can move to.
+     */
+    template <Piece_t pval, bool omit_pawn_controlled, bool is_white>
+    constexpr int get_piece_mobility() {  // TODO: Add EP squares, add castling.
+        BB piece_bb = get_piece_bb<pval, is_white>();
+
+        int mobility = 0;
+        BB occ = occupancy();
+        BitLoop(piece_bb) {
+            uint8_t sq = BitBoard::lsb(piece_bb);
+            BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ);
+            mobility += BitBoard::bitcount(piece_atk_bb);
+        }
+        if constexpr (omit_pawn_controlled) {
+            BB enemy_pawn_bb = get_piece_bb<pieces::pawn, !is_white>();
+            BB enemy_pawn_atk = movegen::pawn_atk_bb(enemy_pawn_bb, !is_white);
+            mobility &= ~enemy_pawn_atk;
+        }
+        return mobility;
+    }
+
  protected:
     /**
      * @brief From a bitboard of attacked squares, generate all moves and add to array
@@ -154,6 +196,8 @@ struct Board {
                            const uint8_t turn_color) const;
 
     std::array<Piece, 64> game_board;
+    std::array<uint8_t, 32>
+        piece_locations{};  // Array containing the indices for pieces in the board array.
     // Color                 W          B
     // Bitboards: Pieces: [9-14]   [17-22].
     //            Attack: 15         23

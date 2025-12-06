@@ -218,7 +218,8 @@ void UCIInterface::send_bestmove() {
 void UCIInterface::process_d_command() {
     Game::instance().display_board();
     UCIInterface::uci_response(Game::instance().get_fen());
-    int eval = EvalState::eval(Game::instance().get_state());
+    BoardState state = Game::instance().get_state();
+    int eval = EvalState::eval(state);
     UCIInterface::uci_response("Board evaluation (0 depth): " + std::to_string(eval));
 }
 void UCIInterface::process_bench_command(std::string command) {

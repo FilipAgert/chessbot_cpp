@@ -114,7 +114,7 @@ int Game::alpha_beta(size_t depth, int alpha, int beta) {
 Move Game::get_bestmove() const { return bestmove; }
 
 void Game::reset_game() { bool success = state.read_fen(NotationInterface::starting_FEN()); }
-std::string Game::get_fen() const { return ""; }
+std::string Game::get_fen() const { return state.fen_from_state(); }
 
 void Game::make_move(Move move) {
     state.do_move(move);

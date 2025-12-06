@@ -102,6 +102,7 @@ std::vector<Piece> Board::get_pieces() {
 }
 std::vector<std::pair<Piece, uint8_t>> Board::get_piece_num_moves(uint8_t castleinfo,
                                                                   uint64_t ep_bb) {
+
     std::vector<std::pair<Piece, uint8_t>> piece_moves;
     NotImplemented();
 }

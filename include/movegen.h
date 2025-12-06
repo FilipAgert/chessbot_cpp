@@ -584,9 +584,9 @@ inline uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
     return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ,
                                                                           &bishop_atk);
 }
-template <Piece_t pval> BB get_atk_bb(uint8_t sq, uint64_t occ) {
+template <Piece_t pval, bool is_white> BB get_atk_bb(uint8_t sq, uint64_t occ) {
     constexpr Piece_t ptype = pval & pieces::piece_mask;
-    constexpr Piece_t pcol = pval & pieces::color_mask;
+    constexpr Piece_t pcol = is_white ? pieces::white : pieces::black;
     if constexpr (ptype == pieces::pawn) {
         BB pawn_bb = BitBoard::one_high(sq);
         return movegen::pawn_atk_bb(pawn_bb, pcol);
