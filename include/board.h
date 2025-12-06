@@ -15,7 +15,7 @@
 #include <string>
 struct Board {
  private:
-    uint8_t castling = err_val8;
+    uint8_t castleinfo = err_val8;
     uint8_t turn_color = err_val8;  // 0b01000 for white 0b10000 for black
     bool en_passant = false;
     uint8_t en_passant_square = err_val8;
@@ -31,7 +31,7 @@ struct Board {
     int get_ply_moves() { return ply_moves; }
     bool get_en_passant() { return en_passant; }
     uint8_t get_en_passant_square() { return en_passant_square; }
-    uint8_t get_castling() { return castling; }
+    uint8_t get_castling() { return castleinfo; }
     int get_full_moves() { return full_moves; }
     uint8_t get_check() { return check; }
     /**
@@ -44,6 +44,77 @@ struct Board {
     void do_move(Move &move);
     void undo_move(const Move move);
     /**
+     * @brief Get the all the possible legal moves and sets into provided array
+     *
+     * @tparam type of move to generate.
+     * @param moves array containing moves
+     * @return * size_t: number of legal moves in array.
+     */
+    template <search_type type> size_t get_moves(std::array<Move, max_legal_moves> &moves) {
+        std::array<Move, max_legal_moves> pseudolegal_moves;
+        size_t num_pseudolegal_moves = get_pseudolegal_moves<type>(pseudolegal_moves, turn_color);
+        uint8_t king_color = turn_color;
+        //  uint8_t opposite_color = turn_color ^ color_mask;
+
+        size_t num_moves = 0;
+        for (size_t m = 0; m < num_pseudolegal_moves;
+             m++) {  // For movechecker, we can have cheaper do_move
+                     // undo_move. Dont need to handle everything.
+                     // E.g. board could have a bitboard version only.
+                     // PERF: Implement method in Board that only does/undoes moves in the bitboards
+                     // for performance.
+            do_move(pseudolegal_moves[m]);
+            if (!king_checked(king_color)) {
+                // PERF: Check how expensive this king_checked thing is. Is it worth the move
+                // ordering benefit?
+                //            bool opponent_checked = board.king_checked(opposite_color);
+                //           pseudolegal_moves[m].check = opponent_checked;
+                moves[num_moves++] = pseudolegal_moves[m];
+            }
+            undo_move(pseudolegal_moves[m]);
+        }
+        return num_moves;
+    }
+    /**
+     * @brief Get the all possible moves for specified player.
+     *
+     * @tparam type of moves to generate
+     * @param[out] Array containing the moves
+     * @param[in] Color of player to find moves for.
+     * @param[in] en_passant bool flag for en passant
+     * @param[in] en_passant_sq square index containing en_passant square
+     * @param[in] castle_info integer containing information for castling.
+     * @return size_t Number of legal moves found.
+     */
+    template <search_type type>
+    size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
+                                 const uint8_t color) const {
+        size_t num_moves = 0;
+        uint8_t enemy_color = color ^ pieces::color_mask;
+        uint64_t friendly_bb = bit_boards[color];
+        uint64_t enemy_bb = bit_boards[enemy_color];
+        uint64_t queen_bb = bit_boards[color | pieces::queen];
+        uint64_t bishop_bb = bit_boards[color | pieces::bishop];
+        uint64_t rook_bb = bit_boards[color | pieces::rook];
+        uint64_t pawn_bb = bit_boards[color | pieces::pawn];
+        uint64_t knight_bb = bit_boards[color | pieces::knight];
+        uint64_t king_bb = bit_boards[color | pieces::king];
+        uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_square) : 0;
+        gen_add_all_moves(moves, num_moves, queen_bb, pieces::queen, friendly_bb, enemy_bb, ep_bb,
+                          castleinfo, color);
+        gen_add_all_moves(moves, num_moves, bishop_bb, pieces::bishop, friendly_bb, enemy_bb, ep_bb,
+                          castleinfo, color);
+        gen_add_all_moves(moves, num_moves, rook_bb, pieces::rook, friendly_bb, enemy_bb, ep_bb,
+                          castleinfo, color);
+        gen_add_all_moves(moves, num_moves, king_bb, pieces::king, friendly_bb, enemy_bb, ep_bb,
+                          castleinfo, color);
+        gen_add_all_moves(moves, num_moves, knight_bb, pieces::knight, friendly_bb, enemy_bb, ep_bb,
+                          castleinfo, color);
+        gen_add_all_moves(moves, num_moves, pawn_bb, pieces::pawn, friendly_bb, enemy_bb, ep_bb,
+                          castleinfo, color);
+        return num_moves;
+    }
+    /**
      * @brief Changes whose turn it is: white <-> black. Only the turn_color parameter is changed.
      *
      */
@@ -52,15 +123,8 @@ struct Board {
     }  // Xor with color mask to change
        // color.
 
-    /**
-     * @brief Get the all the possible legal moves and sets into provided array
-     *
-     * @param moves array containing moves
-     * @return * size_t: number of legal moves in array.
-     */
-    size_t get_moves(std::array<Move, max_legal_moves> &moves);
     void reset() {
-        castling = err_val8;
+        castleinfo = err_val8;
         turn_color = err_val8;
         en_passant = false;
         en_passant_square = err_val8;
@@ -174,23 +238,6 @@ struct Board {
     std::vector<Piece> get_pieces();
 
     std::vector<std::pair<Piece, uint8_t>> get_piece_num_moves(uint8_t castleinfo, uint64_t ep_bb);
-
-    size_t get_moves(std::array<Move, max_legal_moves> &moves, uint8_t turn_color, bool en_passant,
-                     uint8_t en_passant_square, uint8_t castling);
-    // Piece loc independent way
-    /**
-     * @brief Get the all possible moves for specified player.
-     *
-     * @param[out] Array containing the moves
-     * @param[in] Color of player to find moves for.
-     * @param[in] en_passant bool flag for en passant
-     * @param[in] en_passant_sq square index containing en_passant square
-     * @param[in] castle_info integer containing information for castling.
-     * @return size_t Number of legal moves found.
-     */
-    size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves, const uint8_t color,
-                                 const bool en_passant, const uint8_t en_passant_sq,
-                                 const uint8_t castleinfo) const;
 
     BB occupancy() { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
     /**

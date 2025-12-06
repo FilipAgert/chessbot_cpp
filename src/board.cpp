@@ -183,61 +183,6 @@ void Board::gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &
         }
     }
 }
-// Piece loc independent way
-size_t Board::get_moves(std::array<Move, max_legal_moves> &moves) {
-    std::array<Move, max_legal_moves> pseudolegal_moves;
-    size_t num_pseudolegal_moves = get_pseudolegal_moves(pseudolegal_moves, turn_color, en_passant,
-                                                         en_passant_square, castling);
-    uint8_t king_color = turn_color;
-    //  uint8_t opposite_color = turn_color ^ color_mask;
-
-    size_t num_moves = 0;
-    for (size_t m = 0; m < num_pseudolegal_moves;
-         m++) {  // For movechecker, we can have cheaper do_move
-                 // undo_move. Dont need to handle everything.
-                 // E.g. board could have a bitboard version only.
-                 // PERF: Implement method in Board that only does/undoes moves in the bitboards for
-                 // performance.
-        do_move(pseudolegal_moves[m]);
-        if (!king_checked(king_color)) {
-            // PERF: Check how expensive this king_checked thing is. Is it worth the move ordering
-            // benefit?
-            //            bool opponent_checked = board.king_checked(opposite_color);
-            //           pseudolegal_moves[m].check = opponent_checked;
-            moves[num_moves++] = pseudolegal_moves[m];
-        }
-        undo_move(pseudolegal_moves[m]);
-    }
-    return num_moves;
-}
-size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves, const uint8_t color,
-                                    const bool en_passant, const uint8_t en_passant_sq,
-                                    const uint8_t castleinfo) const {
-    size_t num_moves = 0;
-    uint8_t enemy_color = color ^ pieces::color_mask;
-    uint64_t friendly_bb = bit_boards[color];
-    uint64_t enemy_bb = bit_boards[enemy_color];
-    uint64_t queen_bb = bit_boards[color | pieces::queen];
-    uint64_t bishop_bb = bit_boards[color | pieces::bishop];
-    uint64_t rook_bb = bit_boards[color | pieces::rook];
-    uint64_t pawn_bb = bit_boards[color | pieces::pawn];
-    uint64_t knight_bb = bit_boards[color | pieces::knight];
-    uint64_t king_bb = bit_boards[color | pieces::king];
-    uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_sq) : 0;
-    gen_add_all_moves(moves, num_moves, queen_bb, pieces::queen, friendly_bb, enemy_bb, ep_bb,
-                      castleinfo, color);
-    gen_add_all_moves(moves, num_moves, bishop_bb, pieces::bishop, friendly_bb, enemy_bb, ep_bb,
-                      castleinfo, color);
-    gen_add_all_moves(moves, num_moves, rook_bb, pieces::rook, friendly_bb, enemy_bb, ep_bb,
-                      castleinfo, color);
-    gen_add_all_moves(moves, num_moves, king_bb, pieces::king, friendly_bb, enemy_bb, ep_bb,
-                      castleinfo, color);
-    gen_add_all_moves(moves, num_moves, knight_bb, pieces::knight, friendly_bb, enemy_bb, ep_bb,
-                      castleinfo, color);
-    gen_add_all_moves(moves, num_moves, pawn_bb, pieces::pawn, friendly_bb, enemy_bb, ep_bb,
-                      castleinfo, color);
-    return num_moves;
-}
 uint64_t Board::get_atk_bb(const uint8_t color) const {
     uint8_t enemy_color = color ^ pieces::color_mask;
 
@@ -276,7 +221,7 @@ bool Board::operator==(const Board &other) const {
             return false;
     if (num_pieces != other.num_pieces)
         return false;
-    if (castling != other.castling)
+    if (castleinfo != other.castleinfo)
         return false;
     if (turn_color != other.turn_color)
         return false;
@@ -302,7 +247,7 @@ Board::Board() {
 Board::~Board() {}
 using namespace pieces;
 void Board::do_move(Move &move) {
-    move.castling_rights = this->castling;
+    move.castling_rights = this->castleinfo;
     move.en_passant_square = this->en_passant ? this->en_passant_square : err_val8;
     move.ply = ply_moves;
     ply_moves += 1;
@@ -351,7 +296,7 @@ void Board::do_move(Move &move) {
             0b1000 |  // queenside b
         ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("h8"))) != 0) *
             0b0100;  // kingside b
-    this->castling &= ~castlemask;
+    this->castleinfo &= ~castlemask;
 
     if (move.captured.get_value() || moved.get_type() == pawn)
         ply_moves = 0;  // reset ply on move pawn or capture piece.
@@ -387,7 +332,7 @@ void Board::do_move(Move &move) {
 }
 
 void Board::undo_move(const Move move) {
-    castling = move.castling_rights;
+    castleinfo = move.castling_rights;
     en_passant_square = move.en_passant_square;
     en_passant = en_passant_square < 64;
     ply_moves = move.ply;
@@ -547,21 +492,21 @@ bool Board::read_fen(const std::string FEN) {
         success = false;
 
     // Castling rights
-    castling = 0;
+    castleinfo = 0;
     if (castlePart != "-") {
         for (char c : castlePart) {
             switch (c) {
             case 'K':
-                castling |= castling::cast_white_kingside;
+                castleinfo |= castling::cast_white_kingside;
                 break;
             case 'Q':
-                castling |= castling::cast_white_queenside;
+                castleinfo |= castling::cast_white_queenside;
                 break;
             case 'k':
-                castling |= castling::cast_black_kingside;
+                castleinfo |= castling::cast_black_kingside;
                 break;
             case 'q':
-                castling |= castling::cast_black_queenside;
+                castleinfo |= castling::cast_black_queenside;
                 break;
             default:
                 success = false;
@@ -631,7 +576,7 @@ std::string Board::fen_from_state() const {
     // --------------------------------------------------------
     // 3. Castling rights
     // --------------------------------------------------------
-    FEN += NotationInterface::castling_rights(castling);
+    FEN += NotationInterface::castling_rights(castleinfo);
     FEN += " ";
 
     // --------------------------------------------------------

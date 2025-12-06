@@ -23,7 +23,7 @@ int movegen_benchmark::recurse_moves(Board state, int print_depth, int curr_dept
         return 1;
 
     std::array<Move, max_legal_moves> moves;
-    int num_moves = state.get_moves(moves);
+    int num_moves = state.get_moves<normal_search>(moves);
     int total_moves = 0;
     for (int i = 0; i < num_moves; i++) {
         state.do_move(moves[i]);
