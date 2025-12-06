@@ -103,7 +103,6 @@ If stockfish is not installed, you can modify ```bisect.py``` to replace stockfi
 The bisect.py and most of the unit tests were generated mainly with clankers. The src code is not.
 
 ## TODO List
-- Pregenerate move bitboards for each piece and lookup.
 - Implement more move scoring.
     - Position of pieces scoring
     - num_moves scoring (maybe something like up to 20% more value (prob also capped) when increasing number of available moves)
@@ -118,4 +117,7 @@ The bisect.py and most of the unit tests were generated mainly with clankers. Th
 - Time management on another thread.
 - Can generate all legal moves.
 - Alpha beta pruning
+- Bitboard for position representation
+- Magic bitboards (hash tables) for rook and bishop move lookup.
+- 10 M legal moves/s generated.
 
