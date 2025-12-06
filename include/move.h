@@ -20,7 +20,11 @@ struct Move {
             throw new std::invalid_argument("Move string invalid: " + move_str);
         this->start_square = NotationInterface::idx_from_string(move_str.substr(0, 2));
         this->end_square = NotationInterface::idx_from_string(move_str.substr(2, 2));
-        this->promotion = (move_str.length() == 5) ? Piece(move_str[4]) : Piece();
+        if (move_str.length() == 5) {
+            uint8_t color = NotationInterface::row(end_square) == 0 ? pieces::black : pieces::white;
+            Piece p = Piece(Piece::piece_type_from_char(move_str[4]) | color);
+            this->promotion = p;
+        }
     }
     constexpr Move(uint8_t from, uint8_t to) {
         start_square = from;
