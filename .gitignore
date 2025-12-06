@@ -1,5 +1,10 @@
 engine-interface.txt
 __pycache__
+#fastchess folder
+fastchess/
+opening_books/
+
+*.json
 
 # Build folders
 bin/

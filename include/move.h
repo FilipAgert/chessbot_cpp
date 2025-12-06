@@ -10,7 +10,7 @@
 struct Move {
     Piece captured_piece = none_piece;  // captured.
     Piece promotion = none_piece;       // Piece to be promoted into
-    uint8_t start_square, end_square;
+    uint8_t start_square = err_val8, end_square = err_val8;
     uint8_t en_passant_square = err_val8;
     uint8_t castling_rights;
     bool check = false;  // Flag if move leads to check or not. For use in move order selection.
@@ -32,6 +32,9 @@ struct Move {
         promotion = promo;
     }
     std::string toString() const {
+        if (start_square == err_val8)
+            return "0000";
+
         std::string out = NotationInterface::string_from_idx(start_square) +
                           NotationInterface::string_from_idx(end_square);
         if (!(promotion == none_piece))

@@ -21,6 +21,7 @@ void Game::start_thinking(const time_control rem_time) {
 void Game::reset_infos() {
     moves_generated = 0;
     nodes_evaluated = 0;
+    bestmove = Move();
 }
 
 void Game::think_loop(const time_control rem_time) {
@@ -149,7 +150,7 @@ int Game::alpha_beta(size_t depth, int alpha, int beta, bool is_maximiser) {
     }
 }
 
-std::string Game::get_bestmove() const { return bestmove.toString(); }
+Move Game::get_bestmove() const { return bestmove; }
 
 void Game::reset_game() { bool success = state.read_fen(NotationInterface::starting_FEN()); }
 std::string Game::get_fen() const { return ""; }

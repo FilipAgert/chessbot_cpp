@@ -59,7 +59,7 @@ class Game {
      * @brief Gets the current best known move to send to GUI.
      *
      */
-    std::string get_bestmove() const;
+    Move get_bestmove() const;
     /**
      * @brief Set game to start position.
      *
