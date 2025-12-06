@@ -543,6 +543,9 @@ constexpr uint64_t bishop_moves_sq(const uint8_t sq, const uint64_t friendly_bb,
                                    const uint64_t enemy_bb) {
     return magic::get_bishop_atk_bb(sq, friendly_bb | enemy_bb) & ~(friendly_bb);
 }
+constexpr BB queen_atk(const uint8_t sq, const uint64_t occ) {
+    return bishop_atk(sq, occ) | rook_atk(sq, occ);
+}
 constexpr uint64_t queen_moves_sq(const uint8_t sq, const uint64_t friendly_bb,
                                   const uint64_t enemy_bb) {
     uint64_t occ = friendly_bb | enemy_bb;
@@ -580,6 +583,27 @@ inline uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
 inline uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
     return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ,
                                                                           &bishop_atk);
+}
+template <Piece_t pval> BB get_atk_bb(uint8_t sq, uint64_t occ) {
+    constexpr Piece_t ptype = pval & pieces::piece_mask;
+    constexpr Piece_t pcol = pval & pieces::color_mask;
+    if constexpr (ptype == pieces::pawn) {
+        BB pawn_bb = BitBoard::one_high(sq);
+        return movegen::pawn_atk_bb(pawn_bb, pcol);
+    } else if constexpr (ptype == pieces::bishop) {
+        return movegen::bishop_atk(sq, occ);
+    } else if constexpr (ptype == pieces::knight) {
+        return movegen::knight_atk(sq);
+    } else if constexpr (ptype == pieces::rook) {
+        return movegen::rook_atk(sq, occ);
+    } else if constexpr (ptype == pieces::queen) {
+        return movegen::queen_atk(sq, occ);
+    } else if constexpr (ptype == pieces::king) {
+        return movegen::king_atk(sq);
+    } else {
+        return 0;
+    }
+    return 0;
 }
 }  // namespace movegen
 
