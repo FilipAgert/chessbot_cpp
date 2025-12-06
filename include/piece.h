@@ -55,6 +55,12 @@ struct Piece {
      * @return char
      */
     char get_char() const;
+    /**
+     * @brief Gets the character representing this piece type in lowercase
+     *
+     * @return [TODO:description]
+     */
+    char get_char_lc() const;
     void print_val() const {
         std::cout << "Piece value: " << (static_cast<int>(value)) << std::endl;
     }

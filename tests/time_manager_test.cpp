@@ -9,7 +9,8 @@ TEST(TimeManagerTest, ontime) {
     int remtime = 1000;
     int timeinc = 50;
     int remtime_frac = 20;
-    TimeManager manager = TimeManager(remtime, timeinc, remtime, timeinc, buffer, remtime_frac);
+    time_control rem_time = time_control(remtime, remtime, timeinc, timeinc);
+    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true);
     auto start = std::chrono::high_resolution_clock::now();
     int target = remtime / remtime_frac + timeinc - buffer;  // Here is where we want to go.
 
@@ -31,7 +32,7 @@ TEST(TimeManagerTest, ontime) {
     }
     // 2ms margin.
     std::this_thread::sleep_for(sleeptime * 2);
-    ASSERT_TRUE(manager.get_should_stop());
+    ASSERT_TRUE(manager.get_should_stop()) << "by now time manager should have stopped";
     manager.stop_and_join();
 }
 TEST(TimeManagerTest, thread_stop_test) {
@@ -39,7 +40,8 @@ TEST(TimeManagerTest, thread_stop_test) {
     int remtime = 1000;
     int timeinc = 50;
     int remtime_frac = 20;
-    TimeManager manager = TimeManager(remtime, timeinc, remtime, timeinc, buffer, remtime_frac);
+    time_control rem_time = time_control(remtime, timeinc, remtime, timeinc);
+    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true);
     int target = remtime / remtime_frac + timeinc - buffer;  // Here is where we want to go.
 
     auto start = std::chrono::high_resolution_clock::now();

@@ -38,7 +38,7 @@ struct Move {
         std::string out = NotationInterface::string_from_idx(start_square) +
                           NotationInterface::string_from_idx(end_square);
         if (!(promotion == none_piece))
-            out += promotion.get_char();
+            out += promotion.get_char_lc();
         return out;
     }
     Move() {}

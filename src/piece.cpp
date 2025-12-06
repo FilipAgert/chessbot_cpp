@@ -5,8 +5,9 @@
 using namespace pieces;
 const std::string Piece::white_pieces = "KQRNBP";
 const std::string Piece::black_pieces = "kqrnbp";
-const std::string Piece::all_piece_symbols = "        wKQRNBP bkqrnbp";
+const std::string Piece::all_piece_symbols = " kqrnbp wKQRNBP bkqrnbp";
 char Piece::get_char() const { return all_piece_symbols[value]; }
+char Piece::get_char_lc() const { return all_piece_symbols[this->get_type()]; }
 
 Piece::Piece(char c) {
     uint8_t color = piece_col_from_char(c);
