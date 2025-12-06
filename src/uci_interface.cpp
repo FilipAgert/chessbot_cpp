@@ -40,7 +40,7 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
         str_pv.append(m.toString() + " ");
 
     std::string str_currmove = "currmove " + msg.currmove.toString();
-    std::string str_score = "score " + std::to_string(msg.score);
+    std::string str_score = "score cp " + std::to_string(msg.score);
     std::string str_d0score = "d0 " + std::to_string(msg.d0score);
     std::string str_mate = "mate " + std::to_string(msg.mate);
 
