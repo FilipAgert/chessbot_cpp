@@ -17,15 +17,19 @@ class EvalState {
     static void partial_move_sort(std::array<Move, max_legal_moves> &moves,
                                   std::array<int, max_legal_moves> &scores, size_t num_moves,
                                   bool ascending);
+
+ private:
+    static int eval_material(std::vector<Piece> pieces);
 };
 
 struct PieceValue {
+    static constexpr int king = 200000;
     static constexpr int pawn = 100;
     static constexpr int knight = 290;
     static constexpr int bishop = 300;
     static constexpr int rook = 500;
-    static constexpr int queen = 800;
-    static constexpr std::array<int, 7> piecevals = {0, 0, queen, rook, knight, bishop, pawn};
+    static constexpr int queen = 900;
+    static constexpr std::array<int, 7> piecevals = {0, king, queen, rook, knight, bishop, pawn};
 
     static constexpr int inv_frac =
         5;  // Fraction of extra value piece is worth extra from having more spaces to move to.
