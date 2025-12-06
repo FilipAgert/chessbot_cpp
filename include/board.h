@@ -76,12 +76,28 @@ struct Board {
     uint64_t get_atk_bb(const uint8_t color) const;
 
     /**
-     * @brief Gets the number of pieces on the board of a certain type (type + color)
+     * @brief Gets piece bitboard compile time.
      *
-     * @param[[TODO:direction]] p [TODO:description]
-     * @return [TODO:description]
+     * @tparam pval [Value of piece]
+     * @tparam is_white get white or black piece
+     * @return Bitboard of piece
      */
-    size_t get_piece_cnt(Piece p);
+    template <Piece_t pval, bool is_white> BB get_piece_bb() {
+        constexpr uint8_t col = is_white ? pieces::white : pieces::black;
+        constexpr uint8_t type = pval & pieces::piece_mask;
+
+        return bit_boards[col | type];
+    }
+    /**
+     * @brief Gets number of pieces of a type and color on the board.
+     *
+     * @tparam Piece_t piece type
+     * @tparam is_white flag if white or not
+     * @return Number of pieces
+     */
+    template <Piece_t piece, bool is_white> uint8_t get_piece_cnt() {
+        return BitBoard::bitcount(get_piece_bb<piece, is_white>());
+    }
 
     /**
      * @brief Gets a vector of the pieces on the board.
@@ -106,19 +122,6 @@ struct Board {
                                  const bool en_passant, const uint8_t en_passant_sq,
                                  const uint8_t castleinfo) const;
 
-    /**
-     * @brief Gets piece bitboard compile time.
-     *
-     * @tparam pval [Value of piece]
-     * @tparam is_white get white or black piece
-     * @return Bitboard of piece
-     */
-    template <Piece_t pval, bool is_white> BB get_piece_bb() {
-        constexpr uint8_t col = is_white ? pieces::white : pieces::black;
-        constexpr uint8_t type = pval & pieces::piece_mask;
-
-        return bit_boards[col | type];
-    }
     BB occupancy() { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
     /**
      * @brief Gets piece mobility for a given piece type

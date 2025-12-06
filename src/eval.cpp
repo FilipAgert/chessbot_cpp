@@ -1,14 +1,14 @@
 // Copyright Filip Agert
 #include <algorithm>
 #include <eval.h>
+#include <piece.h>
 #include <vector>
 int EvalState::eval(BoardState &state) {
     int score = 0;
     if (forced_draw_ply(state))
         return 0;
     // Eval by piece scoring.
-    std::vector<Piece> pieces = state.board.get_pieces();
-    score += eval_material(pieces);
+    score += eval_material(state);
     score += eval_mobility(state);
     score += eval_king_dist2centre(state);
 
@@ -38,17 +38,19 @@ bool EvalState::forced_draw_ply(BoardState &state) {
     else
         return false;
 }
-int EvalState::eval_material(std::vector<Piece> pieces) {
+int EvalState::eval_material(BoardState &state) {
     int score = 0;
-    for (Piece p : pieces) {
-        int sign =
-            2 * (p.get_color() == pieces::white) - 1;  // Evaluates to -1 if black or 1 if white.
-        int val = PieceValue::piecevals[p.get_type()];
-        // val += PieceValue::movevals[p.get_type()] *
-        //        mvcnt;  // Evaluation from having a large amount of moves possible.
-        score += sign * val;
-    }
+    score += eval_single_piece<pieces::king>(state);
+    score += eval_single_piece<pieces::queen>(state);
+    score += eval_single_piece<pieces::rook>(state);
+    score += eval_single_piece<pieces::bishop>(state);
+    score += eval_single_piece<pieces::knight>(state);
+    score += eval_single_piece<pieces::pawn>(state);
     return score;
+}
+template <Piece_t p> int EvalState::eval_single_piece(BoardState &state) {
+    int pvalue = PieceValue::piecevals[p];
+    return (state.board.get_piece_cnt<p, true>() - state.board.get_piece_cnt<p, false>()) * pvalue;
 }
 void EvalState::partial_move_sort(std::array<Move, max_legal_moves> &moves,
                                   std::array<int, max_legal_moves> &scores, size_t num_moves,

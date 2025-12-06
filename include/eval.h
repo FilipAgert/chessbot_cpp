@@ -62,7 +62,9 @@ class EvalState {
     static bool forced_draw_ply(BoardState &state);
 
  private:
-    static int eval_material(std::vector<Piece> pieces);
+    static int eval_material(BoardState &state);
+    template <Piece_t p> static int eval_single_piece(BoardState &state);
+
     static int eval_mobility(BoardState &state);
     /**
      * @brief Evaluates king distance to centre score. At early game its negative, encouraging

@@ -12,9 +12,8 @@
 
 struct Piece {
  protected:
-    Piece_t value;
-
  public:
+    Piece_t value;
     // Numeric constructor: 0–63 piece code, etc.
     template <typename T,
               typename = std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, char>>>
