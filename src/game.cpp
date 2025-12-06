@@ -39,7 +39,6 @@ void Game::think_loop(const time_control rem_time) {
     time_manager->start_time_management();
 
     std::array<int, max_legal_moves> evaluations;
-    bool is_maximiser = state.turn_color == pieces::white;
 
     int depth = 1;
     bool ponder = true;
