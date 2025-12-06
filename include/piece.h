@@ -8,9 +8,11 @@
 #include <iostream>
 #include <string>
 
+#define Piece_t uint8_t
+
 struct Piece {
  protected:
-    uint8_t value;
+    Piece_t value;
 
  public:
     // Numeric constructor: 0–63 piece code, etc.
