@@ -35,7 +35,7 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     } else {
         str_nps.append("NaN");
     }
-    std::string str_pv = "pv";
+    std::string str_pv = "pv ";
     for (Move m : msg.pv)
         str_pv.append(m.toString() + " ");
 

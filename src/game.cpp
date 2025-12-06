@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <climits>  // For infinity
+#include <config.h>
 #include <eval.h>
 #include <game.h>
 #include <memory>
@@ -25,8 +26,8 @@ void Game::reset_infos() {
 }
 
 void Game::think_loop(const time_control rem_time) {
-    int buffer = 50;    // ms
-    int fraction = 20;  // spend 1/20th of remaining time.
+    int buffer = STANDARD_TIME_BUFFER;  // ms
+    int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
 
     std::array<Move, max_legal_moves> moves;
     int num_moves = state.get_moves(moves);
