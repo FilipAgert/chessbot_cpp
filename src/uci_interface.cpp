@@ -29,7 +29,7 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     parts.push_back("depth " + std::to_string(msg.depth));
     std::optional<int> moves_to_mate = EvalState::moves_to_mate(msg.score);
     if (moves_to_mate) {
-        parts.push_back("mate " + std::to_string(moves_to_mate.value()));
+        parts.push_back("score mate " + std::to_string(moves_to_mate.value()));
     } else {
         parts.push_back("score cp " + std::to_string(msg.score));
     }
