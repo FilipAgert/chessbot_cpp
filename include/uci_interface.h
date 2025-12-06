@@ -70,5 +70,6 @@ class UCIInterface {
      * @param[[TODO:direction]] del [TODO:description]
      */
     static std::string join(std::vector<std::string> strings, char del);
+    static std::optional<int> try_process_int(std::string intstring);
 };
 #endif

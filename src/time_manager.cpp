@@ -73,18 +73,13 @@ int TimeManager::calculate_time_elapsed_ms() const {
     return duration.count();
 }
 
-TimeManager::TimeManager(int remtime, int inc, int enemy_remtime, int enemy_inc, int buffer,
-                         int remtime_frac) {
-    this->remtime = remtime;
-    this->inc = inc;
-    this->enemy_remtime = enemy_remtime;
-    this->enemy_inc = enemy_inc;
+TimeManager::TimeManager(time_control rem_time, int buffer, int remtime_frac, bool is_white) {
+    this->remtime = is_white ? rem_time.wtime : rem_time.btime;
+    this->enemy_remtime = is_white ? rem_time.btime : rem_time.wtime;
+    this->inc = is_white ? rem_time.winc : rem_time.binc;
+    this->enemy_inc = is_white ? rem_time.binc : rem_time.winc;
     this->infinite = false;
     this->buffer = buffer;
     this->remtime_frac = remtime_frac;
-    this->set_should_stop(false);
-}
-TimeManager::TimeManager(bool infinite) {
-    this->infinite = infinite;
     this->set_should_stop(false);
 }

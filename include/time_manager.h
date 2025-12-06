@@ -5,6 +5,9 @@
 #include <chrono>
 #include <thread>
 using namespace std::chrono;
+struct time_control {
+    int wtime, btime, winc, binc;
+};
 class TimeManager {
  private:
     std::atomic<bool> should_stop;  // Shared variable between threads.
@@ -47,9 +50,7 @@ class TimeManager {
      */
     void stop_and_join();
 
-    TimeManager(int remtime, int inc, int enemy_remtime, int enemy_inc, int buffer,
-                int remtime_frac);
-    explicit TimeManager(bool infinite);
+    TimeManager(time_control rem_time, int buffer, int remtime_frac, bool is_white);
 
     ~TimeManager();
 };

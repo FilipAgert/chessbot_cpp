@@ -15,7 +15,7 @@ struct InfoMsg {
     int depth;             // half-ply
     int seldepth;          // Depth reached in quiesence
     int time;              // Time elapsed since start of search
-    int nodes;             // Number of positions evaluated.
+    uint64_t nodes;        // Number of positions evaluated.
     int moves_generated;   // Number of total moves generated.
     std::vector<Move> pv;  // Principal line
     Move currmove;         // Current move (root) being evaluated.
@@ -34,9 +34,10 @@ class Game {
 
     /**
      * @brief Enter the game loop logic. This should be called when UCI command GO is received.
+     * @param rem_time: Time control structure from input.
      *
      */
-    void start_thinking();
+    void start_thinking(const time_control rem_time);
 
     /**
      * @brief Alpha beta pruning. This is quite complicated. alpha is the maximal guaranteed score
@@ -102,5 +103,5 @@ class Game {
      * @brief Main game logic loop for thinking about a position.
      *
      */
-    void think_loop();
+    void think_loop(const time_control rem_time);
 };

@@ -1,17 +1,18 @@
 import datetime
-import math
 import json
+import math
 import os
 import re
 import statistics
 import subprocess
 import time
-import numpy as np
 from math import nan
+
+import numpy as np
 
 # --- Configuration ---
 SCOREBOARD_FILE = "bench/performance_scoreboard.json"
-NUM_RUNS = 10  # Number of times to run the test PER FEN
+NUM_RUNS = 30  # Number of times to run the test PER FEN
 BENCHMARK_DEPTHS = [4]  # Search depth for the benchmark
 NUM_THREADS = 1  # Number of threads to use (pass to the executable)
 AI_EXECUTABLE_PATH = "./bin/filipbot"

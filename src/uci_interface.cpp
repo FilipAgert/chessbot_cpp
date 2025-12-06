@@ -1,11 +1,14 @@
 #include "uci_interface.h"
 #include <chrono>
+#include <config.h>
 #include <cstdlib>
 #include <eval.h>
+#include <exceptions.h>
 #include <iostream>
 #include <movegen_benchmark.h>
 #include <sstream>
 #include <string>
+#include <time_manager.h>
 
 void UCIInterface::process_uci_command() {
     UCIInterface::uci_response("id name " + ID_name);
@@ -26,9 +29,9 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     std::string str_time = "time: " + std::to_string(msg.time);
     std::string str_nodes = "nodes: " + std::to_string(msg.nodes);
     std::string str_nmoves = "nmoves: " + std::to_string(msg.moves_generated);
-    std::string str_nps = "nps: ";
+    std::string str_nps = "knps: ";
     if (msg.time > 0) {
-        str_nps.append(std::to_string((1000 * msg.nodes) / msg.time));
+        str_nps.append(std::to_string((msg.nodes) / msg.time));
     } else {
         str_nps.append("NaN");
     }
@@ -56,30 +59,18 @@ void UCIInterface::process_go_command(std::string command) {
     // Initialize board:
     if (debug_mode)
         UCIInterface::uci_response("Processing go command: " + command);
-    size_t pos = 0;
-    while (pos < command.size()) {
-        while (pos < command.size() && command[pos] == ' ')
-            pos++;
-
-        if (pos >= command.size())
-            break;
-
-        size_t start = pos;
-        while (pos < command.size() && command[pos] != ' ')
-            pos++;
-
-        std::string token = command.substr(start, pos - start);
-
-        if (token == "perft") {
-            // Assume is followed by one integer after.
-            while (pos < command.size() && command[pos] == ' ')
-                pos++;  // Find next int.
-            //
-            start = pos;
-            while (pos < command.size() && command[pos] != ' ')  // Find ending of next int.
-                pos++;
-
-            std::string int_token = command.substr(start, pos - start);
+    int wtime, btime, winc, binc;
+    wtime = btime = STANDARD_TIME;
+    winc = binc = STANDARD_TINC;
+    auto parts = split(command, ' ');
+    if (parts.size() > 0) {
+        if (parts[0] == "perft") {
+            if (parts.size() < 2) {
+                UCIInterface::uci_response(
+                    "A perft command must have the structure go perft <depth>");
+                return;
+            }
+            std::string int_token = parts[1];
             try {
                 int depth = std::stoi(int_token);
                 int nodes =
@@ -92,16 +83,63 @@ void UCIInterface::process_go_command(std::string command) {
                     int_token);
             }
             return;
-        } else if (token == "eval") {
-            int evaluation = EvalState::eval(Game::instance().get_state());
-            UCIInterface::uci_response("State evaluation is: " + std::to_string(evaluation));
-            return;
+        } else {
+
+            // Process wtime <> btime <> winc <> binc<>
+            // Alterantively infinite
+            size_t idx = 0;
+            while (idx < parts.size()) {
+                std::string token = parts[idx];
+                std::optional<int> oint;
+                if (token == "wtime") {
+                    oint = try_process_int(parts[idx + 1]);
+                    if (oint) {
+                        wtime = oint.value();
+                        idx++;
+                    }
+                } else if (token == "btime") {
+                    oint = try_process_int(parts[idx + 1]);
+                    if (oint) {
+                        btime = oint.value();
+                        idx++;
+                    }
+
+                } else if (token == "binc") {
+                    oint = try_process_int(parts[idx + 1]);
+                    if (oint) {
+                        binc = oint.value();
+                        idx++;
+                    }
+                } else if (token == "winc") {
+                    oint = try_process_int(parts[idx + 1]);
+                    if (oint) {
+                        winc = oint.value();
+                        idx++;
+                    }
+                } else if (token == "infinite") {
+                    NotImplemented(
+                        "Infinite time control is not implemented yet");  // TODO: Implement.
+                }
+                idx++;
+            }
         }
     }
-    Game::instance().start_thinking();  // Enter ponder loop
+    time_control rem_time =
+        time_control({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc});
+    Game::instance().start_thinking(rem_time);  // Enter ponder loop
     UCIInterface::send_bestmove();
 }
 
+std::optional<int> UCIInterface::try_process_int(std::string intstring) {
+    int depth;
+    try {
+        depth = std::stoi(intstring);
+    } catch (const std::exception &e) {
+        UCIInterface::uci_response("Error processing string to int: " + intstring);
+        return {};
+    }
+    return std::make_optional(depth);
+}
 void UCIInterface::process_position_command(std::string command) {
     // Example: "position startpos moves e2e4 e7e5"
     // Initialize board:
@@ -219,8 +257,8 @@ void UCIInterface::process_bench_command(std::string command) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     UCIInterface::uci_response(std::to_string(nummoves) + " nodes found at this depth.");
     UCIInterface::uci_response("Time taken: " + std::to_string(duration.count()) + " ms.");
-    int64_t mps = (1000 * nummoves / duration.count());
-    UCIInterface::uci_response("Nodes per second: " + std::to_string(mps));
+    int64_t mps = (nummoves / duration.count());
+    UCIInterface::uci_response("1000 Nodes per second: " + std::to_string(mps));
 }
 
 void UCIInterface::process_fen_command(std::string command) {

@@ -13,9 +13,9 @@ bool Game::set_fen(std::string FEN) {
     bool success = state.read_fen(FEN);
     return success;
 }
-void Game::start_thinking() {
+void Game::start_thinking(const time_control rem_time) {
     reset_infos();
-    think_loop();
+    think_loop(rem_time);
 }
 
 void Game::reset_infos() {
@@ -23,7 +23,7 @@ void Game::reset_infos() {
     nodes_evaluated = 0;
 }
 
-void Game::think_loop() {
+void Game::think_loop(const time_control rem_time) {
     int buffer = 50;    // ms
     int fraction = 20;  // spend 1/20th of remaining time.
 
@@ -33,7 +33,7 @@ void Game::think_loop() {
         return;
 
     std::shared_ptr<TimeManager> time_manager(
-        new TimeManager(3000, 500, 10000, 50, buffer, fraction));
+        new TimeManager(rem_time, buffer, fraction, this->state.turn_color == pieces::white));
     time_manager->start_time_management();
 
     std::array<int, max_legal_moves> evaluations;
