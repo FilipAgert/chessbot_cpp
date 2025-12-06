@@ -91,11 +91,13 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
         return EvalState::eval(this->state);
     }
 
+    if (EvalState::forced_draw_ply(this->state))
+        return 0;
+
+    // Handle if king is checked or no moves can be made.
     std::array<Move, max_legal_moves> moves;
     int num_moves = state.get_moves(moves);
     moves_generated += num_moves;
-    // Handle if king is checked or no moves can be made.
-
     if (num_moves == 0) {
         const int MATE_SCORE = 30000;
         if (this->state.board.king_checked(state.turn_color)) {
@@ -104,6 +106,8 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
             return 0;
         }
     }
+    // End mate and draws.
+
     int eval = -INF;
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {

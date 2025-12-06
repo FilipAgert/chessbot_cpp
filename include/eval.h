@@ -51,6 +51,13 @@ class EvalState {
                                   bool ascending);
 
     static constexpr int MATE_SCORE = 30000;
+    /**
+     * @brief Evaluates true if state has forced draw from ply moves (gte 100 ply)
+     *
+     * @param[in] state staet
+     * @return true if ply is grt or equal 100.
+     */
+    static bool forced_draw_ply(BoardState &state);
 
  private:
     static int eval_material(std::vector<Piece> pieces);

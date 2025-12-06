@@ -4,7 +4,8 @@
 #include <vector>
 int EvalState::eval(BoardState &state) {
     int score = 0;
-
+    if (forced_draw_ply(state))
+        return 0;
     // Eval by piece scoring.
     std::vector<Piece> pieces = state.board.get_pieces();
     score += eval_material(pieces);
@@ -30,6 +31,12 @@ int EvalState::eval_mobility(BoardState &state) {
                         knight_mobility * PieceValue::movevals[pieces::knight];
     // queen_mobility * PieceValue::movevals[pieces::queen];
     return mobility_eval;
+}
+bool EvalState::forced_draw_ply(BoardState &state) {
+    if (state.ply_moves >= 100)
+        return true;
+    else
+        return false;
 }
 int EvalState::eval_material(std::vector<Piece> pieces) {
     int score = 0;
