@@ -15,18 +15,18 @@ struct Move {
     uint8_t castling_rights;
     bool check = false;  // Flag if move leads to check or not. For use in move order selection.
 
-    explicit Move(std::string move_str) {
+    constexpr explicit Move(std::string move_str) {
         if (move_str.length() < 4 || move_str.length() > 5)
             throw new std::invalid_argument("Move string invalid: " + move_str);
         this->start_square = NotationInterface::idx_from_string(move_str.substr(0, 2));
         this->end_square = NotationInterface::idx_from_string(move_str.substr(2, 2));
         this->promotion = (move_str.length() == 5) ? Piece(move_str[4]) : Piece();
     }
-    Move(uint8_t from, uint8_t to) {
+    constexpr Move(uint8_t from, uint8_t to) {
         start_square = from;
         end_square = to;
     }
-    Move(uint8_t from, uint8_t to, Piece promo) {
+    constexpr Move(uint8_t from, uint8_t to, Piece promo) {
         start_square = from;
         end_square = to;
         promotion = promo;

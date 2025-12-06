@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #ifndef INTEGER_REP_H
 #define INTEGER_REP_H
+#include <array>
 #include <cstdint>
 
 namespace castling {
@@ -24,5 +25,8 @@ static constexpr uint8_t black = 0b10000;  // 16
 
 static constexpr uint8_t piece_mask = 0b00111;
 static constexpr uint8_t color_mask = 0b11000;
+static constexpr std::array<uint8_t, 2> colors = {white, black};
+static constexpr std::array<uint8_t, 6> piece_types = {king, queen, rook, knight, bishop, pawn};
+static constexpr std::array<uint8_t, 4> promote_types = {queen, rook, knight, bishop};
 }  // namespace pieces
 #endif

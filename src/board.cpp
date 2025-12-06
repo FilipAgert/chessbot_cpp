@@ -89,8 +89,8 @@ void Board::clear_board() {
 }
 std::vector<Piece> Board::get_pieces() {
     std::vector<Piece> pieces;
-    for (uint8_t color : {pieces::white, pieces::black}) {
-        for (uint8_t ptype = pieces::king; ptype <= pieces::pawn; ptype++) {
+    for (uint8_t color : pieces::colors) {
+        for (uint8_t ptype : pieces::piece_types) {
             uint8_t pval = ptype | color;
             size_t count = BitBoard::bitcount(bit_boards[pval]);
             for (uint8_t i = 0; i < count; i++) {
@@ -144,21 +144,19 @@ uint64_t Board::to_squares(uint8_t ptype, uint8_t sq, uint64_t friendly_bb, uint
  */
 void Board::add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb,
                       const uint8_t from) const {
-    while (to_bb > 0) {
+    BitLoop(to_bb) {
         uint8_t lsb = BitBoard::lsb(to_bb);
-        to_bb = BitBoard::clear_lsb(to_bb);
         moves[num_moves++] = Move(from, lsb);
     }
 }
 void Board::add_moves_pawn(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
                            uint64_t &to_bb, const uint8_t from, const uint8_t color) const {
     int promorow = (color == pieces::white) * 7;  // Row for pawn promotions.
-    while (to_bb > 0) {
-        uint8_t lsb = BitBoard::lsb(to_bb);
-        to_bb = BitBoard::clear_lsb(to_bb);
 
+    BitLoop(to_bb) {
+        uint8_t lsb = BitBoard::lsb(to_bb);
         if (NotationInterface::row(lsb) == promorow) {
-            for (uint8_t ptype = pieces::queen; ptype < pieces::pawn; ptype++) {
+            for (uint8_t ptype : pieces::promote_types) {
                 moves[num_moves++] = Move(from, lsb, Piece(ptype | color));
             }
         } else {
@@ -172,9 +170,8 @@ void Board::gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &
                               const uint64_t friendly_bb, const uint64_t enemy_bb,
                               const uint64_t ep_bb, const uint8_t castleinfo,
                               const uint8_t turn_color) const {
-    while (piece_bb > 0) {
+    BitLoop(piece_bb) {
         uint8_t sq = BitBoard::lsb(piece_bb);
-        piece_bb = BitBoard::clear_lsb(piece_bb);
         uint64_t to_sqs =
             to_squares(piecetype, sq, friendly_bb, enemy_bb, ep_bb, castleinfo, turn_color);
         if (piecetype == pieces::pawn) {
