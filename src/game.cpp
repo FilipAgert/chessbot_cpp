@@ -44,7 +44,6 @@ void Game::think_loop(const time_control rem_time) {
     bool ponder = true;
 
     while (ponder) {
-        Move best_current_move;
         int eval;
         int best_eval;
         size_t num_moves_evaluated = 0;
@@ -52,13 +51,10 @@ void Game::think_loop(const time_control rem_time) {
         best_eval = INT_MIN;
         for (int i = 0; i < num_moves; i++) {
             this->make_move(moves[i]);
-            eval = -alpha_beta(depth - 1, INT_MIN, INT_MAX);
+            eval = -alpha_beta(depth - 1, 1, -INF, INF);
             evaluations[i] = eval;
             this->undo_move();
-            if (eval > best_eval) {
-                best_eval = eval;
-                best_current_move = moves[i];
-            }
+            best_eval = std::max(eval, best_eval);
             num_moves_evaluated++;
             if (time_manager->get_should_stop()) {
                 // Even if we break early we get information from this evaluation.
@@ -89,26 +85,38 @@ void Game::think_loop(const time_control rem_time) {
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
-int Game::alpha_beta(size_t depth, int alpha, int beta) {
+int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
     if (depth == 0) {
         nodes_evaluated++;
         return EvalState::eval(this->state);
     }
 
-    int eval;
     std::array<Move, max_legal_moves> moves;
     int num_moves = state.get_moves(moves);
     moves_generated += num_moves;
-    for (int i = 0; i < num_moves; i++) {
-        this->make_move(moves[i]);
-        eval = -alpha_beta(depth - 1, -beta, -alpha);
-        this->undo_move();
-        alpha = std::max(alpha, eval);
-        if (alpha >= beta) {
-            break;  // beta cutoff.
+    // Handle if king is checked or no moves can be made.
+
+    if (num_moves == 0) {
+        const int MATE_SCORE = 30000;
+        if (this->state.board.king_checked(state.turn_color)) {
+            return (-MATE_SCORE + ply);
+        } else {
+            return 0;
         }
     }
-    return alpha;
+    int eval = -INF;
+    // Normal move generation.
+    for (int i = 0; i < num_moves; i++) {
+        this->make_move(moves[i]);
+        eval = std::max(eval, -alpha_beta(depth - 1, ply + 1, -beta, -alpha));
+        alpha = std::max(alpha, eval);
+        this->undo_move();
+        if (eval >= beta) {
+            break;  // fail soft.
+        }
+    }
+
+    return eval;
 }
 
 Move Game::get_bestmove() const { return bestmove; }

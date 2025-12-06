@@ -9,6 +9,7 @@ int EvalState::eval(BoardState &state) {
     std::vector<Piece> pieces = state.board.get_pieces();
     score += eval_material(pieces);
     score += eval_mobility(state);
+    score += eval_king_dist2centre(state);
 
     int color_fac = 1 - 2 * (state.turn_color == pieces::black);
     return score * color_fac;
@@ -66,4 +67,13 @@ void EvalState::partial_move_sort(std::array<Move, max_legal_moves> &moves,
 
         scores[i] = s;
     }
+}
+int EvalState::eval_king_dist2centre(BoardState &state) {
+    uint8_t white_king_sq = BitBoard::lsb(state.board.get_piece_bb<pieces::king, true>());
+    uint8_t black_king_sq = BitBoard::lsb(state.board.get_piece_bb<pieces::king, false>());
+    uint8_t white_dist = helpers::dist2centre[white_king_sq];
+    uint8_t black_dist = helpers::dist2centre[black_king_sq];
+    int value = white_dist * PieceValue::king_dist2centre_value -
+                black_dist * PieceValue::king_dist2centre_value;
+    return (1. * value * (2 * EvalState::eval_game_phase(state.get_num_pieces()) - 1.0));
 }

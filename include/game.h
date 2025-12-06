@@ -48,12 +48,13 @@ class Game {
      *
      *
      * @param[in] depth Depth to go to. Breaks when depth is 0.
+     * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
      * @param[[TODO:direction]] alpha Maximum guaranteed score of maximising player.
      * @param[[TODO:direction]] beta Minimum guaranteeds core of minimising player
      * @param[[TODO:direction]] is_maximiser If maximiser.
      * @return Score of current state.
      */
-    int alpha_beta(size_t depth, int alpha, int beta);
+    int alpha_beta(int depth, int ply, int alpha, int beta);
 
     /**
      * @brief Gets the current best known move to send to GUI.
@@ -99,6 +100,7 @@ class Game {
     uint64_t moves_generated;
     uint64_t nodes_evaluated;
     Game() = default;
+    static constexpr int INF = 10000000;
     /**
      * @brief Main game logic loop for thinking about a position.
      *

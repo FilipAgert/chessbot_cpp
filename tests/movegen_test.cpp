@@ -39,6 +39,29 @@ TEST(magic_test, rookmagic) {
     }
 }
 
+TEST(Movegentest, mated) {
+    BoardState state;
+    std::string fen = "8/7k/8/1P2Q1B1/8/P1K5/8/1B6 b - - 165 83";
+    state.read_fen(fen);
+    std::array<Move, max_legal_moves> moves;
+    size_t num_moves = state.get_moves(moves);
+
+    size_t expected = 1;  // First position offers 20 legal moves;
+    ASSERT_EQ(expected, num_moves)
+        << "Expected number of moves is 1. Actual found moves is" << num_moves;
+}
+
+TEST(Movegentest, promo_BUG) {
+    BoardState state;
+    std::string fen = "8/1R3QP1/8/8/8/6PP/8/k3K3 w - - 1 1";
+    state.read_fen(fen);
+    std::array<Move, max_legal_moves> moves;
+    size_t num_moves = state.get_moves(moves);
+
+    size_t expected = 41;  // First position offers 20 legal moves;
+    ASSERT_EQ(expected, num_moves)
+        << "Expected number of moves is 41. Actual found moves is" << num_moves;
+}
 TEST(magic_test, get_rook_magic_idx) {  // test that the array indices work correctly.
 
     for (int i = 0; i < 64; i++) {

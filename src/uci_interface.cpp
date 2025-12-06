@@ -65,16 +65,18 @@ void UCIInterface::process_go_command(std::string command) {
     auto parts = split(command, ' ');
     if (parts.size() > 0) {
         if (parts[0] == "perft") {
-            if (parts.size() < 2) {
+            if (parts.size() < 3) {
                 UCIInterface::uci_response(
-                    "A perft command must have the structure go perft <depth>");
+                    "A perft command must have the structure go perft <depth> <print_depth>");
                 return;
             }
+
             std::string int_token = parts[1];
             try {
                 int depth = std::stoi(int_token);
-                int nodes =
-                    movegen_benchmark::gen_num_moves(Game::instance().get_state(), depth, 0);
+                int print_depth = std::stoi(parts[2]);
+                int nodes = movegen_benchmark::gen_num_moves(Game::instance().get_state(), depth,
+                                                             print_depth);
                 std::string nodes_searched = std::to_string(nodes);
                 UCIInterface::uci_response("\nNodes searched: " + nodes_searched);
             } catch (const ::std::exception &e) {
