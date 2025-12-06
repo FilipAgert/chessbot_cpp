@@ -25,14 +25,14 @@ struct Board {
 
     inline Piece get_piece_at(uint8_t square) const { return game_board[square]; }
 
-    void move_piece(const uint8_t start_square, const uint8_t end_square);
+    void move_piece(const uint8_t source, const uint8_t target);
 
     void add_piece(const uint8_t square, const Piece Piece);
 
     void remove_piece(const uint8_t square);
 
-    void capture_piece(const uint8_t start_square, const uint8_t end_square);
-    void capture_piece_ep(const uint8_t start_square, const uint8_t end_square,
+    void capture_piece(const uint8_t source, const uint8_t target);
+    void capture_piece_ep(const uint8_t source, const uint8_t target,
                           const uint8_t captured_pawn_loc);
 
     void promote_piece(const uint8_t square, const Piece promotion);

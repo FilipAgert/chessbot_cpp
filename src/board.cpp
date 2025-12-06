@@ -38,27 +38,27 @@ uint8_t Board::get_square_color(uint8_t square) const {
     return this->get_piece_at(square).get_color();
 }
 
-void Board::capture_piece(const uint8_t start_square, const uint8_t end_square) {
-    bb_remove(end_square, game_board[end_square]);
-    bb_move(start_square, end_square, game_board[start_square]);
-    game_board[end_square] = game_board[start_square];
-    game_board[start_square] = none_piece;
+void Board::capture_piece(const uint8_t source, const uint8_t target) {
+    bb_remove(target, game_board[target]);
+    bb_move(source, target, game_board[source]);
+    game_board[target] = game_board[source];
+    game_board[source] = none_piece;
     num_pieces--;
 }
-void Board::capture_piece_ep(const uint8_t start_square, const uint8_t end_square,
+void Board::capture_piece_ep(const uint8_t source, const uint8_t target,
                              uint8_t captured_pawn_loc) {
-    bb_move(start_square, end_square, game_board[start_square]);  // Move pawn
+    bb_move(source, target, game_board[source]);  // Move pawn
     bb_remove(captured_pawn_loc, game_board[captured_pawn_loc]);  // Remove captured pawn
-    game_board[end_square] = game_board[start_square];
-    game_board[start_square] = none_piece;
+    game_board[target] = game_board[source];
+    game_board[source] = none_piece;
     game_board[captured_pawn_loc] = none_piece;
     num_pieces--;
 }
 
-void Board::move_piece(const uint8_t start_square, const uint8_t end_square) {
-    bb_move(start_square, end_square, game_board[start_square]);
-    game_board[end_square] = game_board[start_square];
-    game_board[start_square] = none_piece;
+void Board::move_piece(const uint8_t source, const uint8_t target) {
+    bb_move(source, target, game_board[source]);
+    game_board[target] = game_board[source];
+    game_board[source] = none_piece;
 }
 
 void Board::add_piece(const uint8_t square, const Piece piece) {

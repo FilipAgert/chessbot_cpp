@@ -40,36 +40,35 @@ void BoardState::do_move(Move &move) {
     if (this->turn_color == black)
         full_moves += 1;
     change_turn();  // Changes turn color from white <-> black.
-    Piece moved = board.get_piece_at(move.start_square);
+    Piece moved = board.get_piece_at(move.source);
 
     // Exception: en_passant.
-    if (en_passant && moved.get_type() == pawn && move.end_square == en_passant_square) {
-        move.captured_piece = Piece(pawn | turn_color);  // Can only capture pawns in en_passant.
+    if (en_passant && moved.get_type() == pawn && move.target == en_passant_square) {
+        move.captured = Piece(pawn | turn_color);  // Can only capture pawns in en_passant.
     } else {
-        move.captured_piece = this->board.get_piece_at(move.end_square);
+        move.captured = this->board.get_piece_at(move.target);
     }
 
     // Exception: castle
-    if (moved.get_type() == king && abs(NotationInterface::col(move.end_square) -
-                                        NotationInterface::col(move.start_square)) > 1) {
+    if (moved.get_type() == king &&
+        abs(NotationInterface::col(move.target) - NotationInterface::col(move.source)) > 1) {
         // If kingside: (diff is positive)
-        int diff =
-            NotationInterface::col(move.end_square) - NotationInterface::col(move.start_square);
+        int diff = NotationInterface::col(move.target) - NotationInterface::col(move.source);
 
         uint8_t rook_from;
         uint8_t rook_to;
         if (diff > 0) {  // kingside
-            rook_from = move.start_square + 3;
-            rook_to = move.start_square + 1;
+            rook_from = move.source + 3;
+            rook_to = move.source + 1;
         } else {
-            rook_from = move.start_square - 4;
-            rook_to = move.start_square - 1;
+            rook_from = move.source - 4;
+            rook_to = move.source - 1;
         }
         board.move_piece(rook_from, rook_to);
     }
     // Set castling rights. If one of king squares moved -> remove castling right for that color.
     // If one of rooks moved or captured -> remove that sides castling rights.
-    uint64_t from_to = BitBoard::one_high(move.start_square) | BitBoard::one_high(move.end_square);
+    uint64_t from_to = BitBoard::one_high(move.source) | BitBoard::one_high(move.target);
     uint8_t castlemask =
         ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e1"))) != 0) *
             0b0011 |  // king w
@@ -85,24 +84,24 @@ void BoardState::do_move(Move &move) {
             0b0100;  // kingside b
     this->castling &= ~castlemask;
 
-    if (move.captured_piece.get_value() || moved.get_type() == pawn)
+    if (move.captured.get_value() || moved.get_type() == pawn)
         ply_moves = 0;  // reset ply on move pawn or capture piece.
 
-    if (move.captured_piece.get_value()) {
-        if (en_passant && moved.get_type() == pawn && move.end_square == en_passant_square) {
+    if (move.captured.get_value()) {
+        if (en_passant && moved.get_type() == pawn && move.target == en_passant_square) {
             uint8_t captured_pawn_loc =
-                (turn_color == black) ? move.end_square - 8 : move.end_square + 8;
+                (turn_color == black) ? move.target - 8 : move.target + 8;
             // Depends on turn color. If black, we captured a black piece. This means that the
             // location of the pawn is target_square-8,else +8
-            board.capture_piece_ep(move.start_square, move.end_square, captured_pawn_loc);
+            board.capture_piece_ep(move.source, move.target, captured_pawn_loc);
         } else {
-            board.capture_piece(move.start_square, move.end_square);
+            board.capture_piece(move.source, move.target);
         }
     } else {
-        board.move_piece(move.start_square, move.end_square);
+        board.move_piece(move.source, move.target);
     }
     if (move.promotion.get_value()) {
-        board.promote_piece(move.end_square, move.promotion);
+        board.promote_piece(move.target, move.promotion);
         if (move.promotion.get_color() == none) {
             std::cerr << "Invalid argument: Promoted piece must have a color. Piece value: "
                       << move.promotion.get_value() << "\n";
@@ -110,9 +109,9 @@ void BoardState::do_move(Move &move) {
         }
     }
     // Set the en_passant flags
-    if (moved.get_type() == pawn && abs(move.end_square - move.start_square) == 16) {
+    if (moved.get_type() == pawn && abs(move.target - move.source) == 16) {
         en_passant = true;
-        en_passant_square = (move.start_square + move.end_square) / 2;
+        en_passant_square = (move.source + move.target) / 2;
     } else {
         en_passant = false;
         en_passant_square = err_val8;
@@ -124,40 +123,39 @@ void BoardState::undo_move(const Move move) {
     en_passant_square = move.en_passant_square;
     en_passant = en_passant_square < 64;
     ply_moves = move.ply;
-    board.move_piece(move.end_square, move.start_square);
+    board.move_piece(move.target, move.source);
     if (move.promotion.get_value()) {
-        board.promote_piece(move.start_square,
+        board.promote_piece(move.source,
                             Piece(move.promotion.get_color() | pawn));  // Replace with pawn.
     }
 
-    Piece moved = board.get_piece_at(move.start_square);
+    Piece moved = board.get_piece_at(move.source);
     // Exception2: Castle.
-    if (moved.get_type() == king && abs(NotationInterface::col(move.end_square) -
-                                        NotationInterface::col(move.start_square)) > 1) {
+    if (moved.get_type() == king &&
+        abs(NotationInterface::col(move.target) - NotationInterface::col(move.source)) > 1) {
         // If kingside: (diff is positive)
-        int diff =
-            NotationInterface::col(move.end_square) - NotationInterface::col(move.start_square);
+        int diff = NotationInterface::col(move.target) - NotationInterface::col(move.source);
 
         uint8_t rook_from;
         uint8_t rook_to;
         if (diff > 0) {  // kingside
-            rook_from = move.start_square + 3;
-            rook_to = move.start_square + 1;
+            rook_from = move.source + 3;
+            rook_to = move.source + 1;
         } else {
-            rook_from = move.start_square - 4;
-            rook_to = move.start_square - 1;
+            rook_from = move.source - 4;
+            rook_to = move.source - 1;
         }
         board.move_piece(rook_to, rook_from);
     }
 
-    if (move.captured_piece.get_value()) {
-        if (en_passant && board.get_piece_at(move.start_square).get_type() == pawn &&
-            move.end_square == en_passant_square) {
+    if (move.captured.get_value()) {
+        if (en_passant && board.get_piece_at(move.source).get_type() == pawn &&
+            move.target == en_passant_square) {
             uint8_t captured_pawn_loc =
-                (turn_color == black) ? move.end_square - 8 : move.end_square + 8;
-            board.add_piece(captured_pawn_loc, move.captured_piece);
+                (turn_color == black) ? move.target - 8 : move.target + 8;
+            board.add_piece(captured_pawn_loc, move.captured);
         } else {
-            board.add_piece(move.end_square, move.captured_piece);
+            board.add_piece(move.target, move.captured);
         }
     }
 

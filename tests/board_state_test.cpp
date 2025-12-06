@@ -14,18 +14,18 @@ TEST(BoardStateTest, doUndoMove){
     state.read_fen(starting_fen);
     
     Move move;
-    move.start_square = NotationInterface::idx_from_string("a2");
-    move.end_square = NotationInterface::idx_from_string("a4");
+    move.source = NotationInterface::idx_from_string("a2");
+    move.target = NotationInterface::idx_from_string("a4");
     state.do_move(move);
-    ASSERT_TRUE(state.board.is_square_empty(move.start_square));
-    ASSERT_FALSE(state.board.is_square_empty(move.end_square));
+    ASSERT_TRUE(state.board.is_square_empty(move.source));
+    ASSERT_FALSE(state.board.is_square_empty(move.target));
     Piece p = Piece('P');
-    ASSERT_EQ(state.board.get_piece_at(move.end_square), p);
+    ASSERT_EQ(state.board.get_piece_at(move.target), p);
     
     ASSERT_EQ(state.turn_color, black) ;
     state.undo_move(move);
-    ASSERT_FALSE(state.board.is_square_empty(move.start_square));
-    ASSERT_TRUE(state.board.is_square_empty(move.end_square));
+    ASSERT_FALSE(state.board.is_square_empty(move.source));
+    ASSERT_TRUE(state.board.is_square_empty(move.target));
     ASSERT_EQ(state.turn_color, white);
     
     state.do_move(move);
@@ -39,22 +39,22 @@ TEST(BoardStateTest, doUndoMovePromotion) {
     state.read_fen(fen);
 
     Move move;
-    move.start_square = NotationInterface::idx_from_string("a7");
-    move.end_square = NotationInterface::idx_from_string("a8");
+    move.source = NotationInterface::idx_from_string("a7");
+    move.target = NotationInterface::idx_from_string("a8");
     move.promotion = Piece('Q');
 
     state.do_move(move);
 
-    ASSERT_TRUE(state.board.is_square_empty(move.start_square));
-    ASSERT_EQ(state.board.get_piece_at(move.end_square),
+    ASSERT_TRUE(state.board.is_square_empty(move.source));
+    ASSERT_EQ(state.board.get_piece_at(move.target),
               Piece('Q'));
     ASSERT_EQ(state.turn_color, black);
 
     state.undo_move(move);
 
-    ASSERT_FALSE(state.board.is_square_empty(move.start_square));
-    ASSERT_TRUE(state.board.is_square_empty(move.end_square));
-    ASSERT_EQ(state.board.get_piece_at(move.start_square),
+    ASSERT_FALSE(state.board.is_square_empty(move.source));
+    ASSERT_TRUE(state.board.is_square_empty(move.target));
+    ASSERT_EQ(state.board.get_piece_at(move.source),
               Piece('P'));
     ASSERT_EQ(state.turn_color, white);
 }
@@ -67,22 +67,22 @@ TEST(BoardStateTest, doUndoMoveCapture) {
     original.read_fen(fen);
 
     Move move;
-    move.start_square = NotationInterface::idx_from_string("e4");
-    move.end_square = NotationInterface::idx_from_string("d5");
+    move.source = NotationInterface::idx_from_string("e4");
+    move.target = NotationInterface::idx_from_string("d5");
 
-    Piece captured = modified.board.get_piece_at(move.end_square);
+    Piece captured = modified.board.get_piece_at(move.target);
     modified.do_move(move);
 
-    ASSERT_EQ(modified.board.get_piece_at(move.end_square),
+    ASSERT_EQ(modified.board.get_piece_at(move.target),
               Piece('P'));
-    ASSERT_TRUE(modified.board.is_square_empty(move.start_square));
+    ASSERT_TRUE(modified.board.is_square_empty(move.source));
     ASSERT_EQ(modified.turn_color, black);
 
     modified.undo_move(move);
 
-    ASSERT_EQ(modified.board.get_piece_at(move.start_square),
+    ASSERT_EQ(modified.board.get_piece_at(move.source),
               Piece('P'));
-    ASSERT_EQ(modified.board.get_piece_at(move.end_square), captured);
+    ASSERT_EQ(modified.board.get_piece_at(move.target), captured);
     ASSERT_EQ(modified.turn_color, white);
     ASSERT_EQ((int)modified.get_num_pieces(), (int)original.get_num_pieces());
     ASSERT_EQ(modified, original);
@@ -116,8 +116,8 @@ TEST(BoardStateTest, doUndoMoveEnPassantFEN) {
     std::string fen = "8/8/8/3pP3/8/8/8/8 w - d6 0 1";
     state.read_fen(fen);
     Move ep_move;
-    ep_move.start_square = NotationInterface::idx_from_string("e5");
-    ep_move.end_square = NotationInterface::idx_from_string("d6");
+    ep_move.source = NotationInterface::idx_from_string("e5");
+    ep_move.target = NotationInterface::idx_from_string("d6");
 
     state.do_move(ep_move);
 
@@ -146,14 +146,14 @@ TEST(BoardStateTest, chainedMovesUndoEquality) {
     // Moves: 1. e2e4, 1... e7e5, 2. g1f3
     Move m1, m2, m3;
 
-    m1.start_square = NotationInterface::idx_from_string("e2");
-    m1.end_square = NotationInterface::idx_from_string("e4");
+    m1.source = NotationInterface::idx_from_string("e2");
+    m1.target = NotationInterface::idx_from_string("e4");
 
-    m2.start_square = NotationInterface::idx_from_string("e7");
-    m2.end_square = NotationInterface::idx_from_string("e5");
+    m2.source = NotationInterface::idx_from_string("e7");
+    m2.target = NotationInterface::idx_from_string("e5");
 
-    m3.start_square = NotationInterface::idx_from_string("g1");
-    m3.end_square = NotationInterface::idx_from_string("f3");
+    m3.source = NotationInterface::idx_from_string("g1");
+    m3.target = NotationInterface::idx_from_string("f3");
 
     modified.do_move(m1);
     modified.do_move(m2);
@@ -239,14 +239,14 @@ TEST(BoardStateTest, enPassantSquare){
     state.read_fen(starting_fen);
     
     Move move;
-    move.start_square = NotationInterface::idx_from_string("a2");
-    move.end_square = NotationInterface::idx_from_string("a4");
+    move.source = NotationInterface::idx_from_string("a2");
+    move.target = NotationInterface::idx_from_string("a4");
     state.do_move(move);
     ASSERT_EQ(state.en_passant_square, NotationInterface::idx_from_string("a3"));
     ASSERT_TRUE(state.en_passant);
     
-    move.start_square = NotationInterface::idx_from_string("a7");
-    move.end_square = NotationInterface::idx_from_string("a5");
+    move.source = NotationInterface::idx_from_string("a7");
+    move.target = NotationInterface::idx_from_string("a5");
     state.do_move(move);
     ASSERT_TRUE(state.en_passant);
     ASSERT_EQ(state.en_passant_square, NotationInterface::idx_from_string("a6"));
