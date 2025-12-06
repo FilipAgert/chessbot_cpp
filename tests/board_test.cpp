@@ -2,7 +2,6 @@
 #include "constants.h"
 #include <bitboard.h>
 #include <board.h>
-#include <board_state.h>
 #include <gtest/gtest.h>
 #include <integer_representation.h>
 #include <string>
@@ -36,40 +35,40 @@ TEST(BoardTest, MovePiece) {
 }
 
 TEST(BoardTest, bb_validation) {
-    BoardState state;
+    Board board;
 
     std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     uint64_t expected = masks::row(0) | masks::row(1);
-    uint64_t actual = state.board.get_bb(white);
+    uint64_t actual = board.get_bb(white);
     ASSERT_EQ(actual, expected);
     expected = masks::row(6) | masks::row(7);
-    actual = state.board.get_bb(black);
+    actual = board.get_bb(black);
     ASSERT_EQ(actual, expected);
 
     // Test pawns
     expected = masks::row(1);
-    actual = state.board.get_bb(pawn | white);
+    actual = board.get_bb(pawn | white);
     ASSERT_EQ(actual, expected);
     expected = masks::row(6);
-    actual = state.board.get_bb(pawn | black);
+    actual = board.get_bb(pawn | black);
     ASSERT_EQ(actual, expected);
 
     // Test kings
     expected = BitBoard::one_high(4);
-    actual = state.board.get_bb(king | white);
+    actual = board.get_bb(king | white);
     ASSERT_EQ(actual, expected);
     expected = BitBoard::one_high(60);
-    actual = state.board.get_bb(king | black);
+    actual = board.get_bb(king | black);
     ASSERT_EQ(actual, expected);
 
     // Test queen
     expected = BitBoard::one_high(3);
-    actual = state.board.get_bb(queen | white);
+    actual = board.get_bb(queen | white);
     ASSERT_EQ(actual, expected);
     expected = BitBoard::one_high(59);
-    actual = state.board.get_bb(queen | black);
+    actual = board.get_bb(queen | black);
     ASSERT_EQ(actual, expected);
 }
 
@@ -230,73 +229,73 @@ TEST(BoardTest, clear_board) {
 }
 
 TEST(BoardTest, king_check) {
-    BoardState state;
+    Board board;
 
     // 1. King NOT checked (Starting Position)
     std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     uint8_t king_color = pieces::white;
-    bool king_checked = state.board.king_checked(king_color);
+    bool king_checked = board.king_checked(king_color);
     bool expected = false;
     ASSERT_EQ(king_checked, expected) << ": King should NOT be in check for FEN: " << fen << "\n";
 
     // 2. King NOT checked (Early Game, check Black king)
     fen = "rnb1kbnr/pppp1ppp/4p3/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2";
-    state.read_fen(fen);
+    board.read_fen(fen);
     king_color = pieces::black;
-    king_checked = state.board.king_checked(king_color);
+    king_checked = board.king_checked(king_color);
     expected = false;
     ASSERT_EQ(king_checked, expected) << ": King should NOT be in check for FEN: " << fen << "\n";
     // 3. King IS checked by a Queen
     fen = "8/8/8/8/8/8/4q3/4K3 w - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = state.board.king_checked(king_color);
+    king_checked = board.king_checked(king_color);
     expected = true;
     ASSERT_EQ(king_checked, expected)
         << ": King should be in check by Queen for FEN: " << fen << "\n";
 
     // 4. King IS checked by a Knight
     fen = "8/8/8/8/8/3n4/8/4K3 w - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = state.board.king_checked(king_color);
+    king_checked = board.king_checked(king_color);
     expected = true;
     ASSERT_EQ(king_checked, expected)
         << ": King should be in check by Knight for FEN: " << fen << "\n";
 
     // 5. King IS checked by a Bishop (Diagonal Check)
     fen = "8/8/8/8/7b/8/8/4K3 w - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = state.board.king_checked(king_color);
+    king_checked = board.king_checked(king_color);
     expected = true;
     ASSERT_EQ(king_checked, expected)
         << ": King should be in check by Bishop for FEN: " << fen << "\n";
 
     // 6. King NOT checked (Blocked by friendly Pawn)
     fen = "8/8/4q3/4P3/8/8/8/4K3 w - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = state.board.king_checked(king_color);
+    king_checked = board.king_checked(king_color);
     expected = false;
     ASSERT_EQ(king_checked, expected)
         << ": King should NOT be checked (blocked by Pawn) for FEN: " << fen << "\n";
 
     // 7. King NOT checked (Blocked by friendly Knight)
     fen = "8/8/8/8/1b6/2N5/8/4K3 w - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = state.board.king_checked(king_color);
+    king_checked = board.king_checked(king_color);
     expected = false;
     ASSERT_EQ(king_checked, expected)
         << ": King should NOT be checked (blocked by Knight) for FEN: " << fen << "\n";
 
     // 8. King NOT checked (Blocked by friendly Bishop)
     fen = "8/8/8/4r3/4B3/8/8/4K3 w - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = state.board.king_checked(king_color);
+    king_checked = board.king_checked(king_color);
     expected = false;
     ASSERT_EQ(king_checked, expected)
         << ": King should NOT be checked (blocked by Bishop) for FEN: " << fen << "\n";

@@ -83,7 +83,7 @@ void UCIInterface::process_go_command(std::string command) {
             try {
                 int depth = std::stoi(int_token);
                 int print_depth = std::stoi(parts[2]);
-                int nodes = movegen_benchmark::gen_num_moves(Game::instance().get_state(), depth,
+                int nodes = movegen_benchmark::gen_num_moves(Game::instance().get_board(), depth,
                                                              print_depth);
                 std::string nodes_searched = std::to_string(nodes);
                 UCIInterface::uci_response("\nNodes searched: " + nodes_searched);
@@ -228,8 +228,8 @@ void UCIInterface::send_bestmove() {
 void UCIInterface::process_d_command() {
     Game::instance().display_board();
     UCIInterface::uci_response(Game::instance().get_fen());
-    BoardState state = Game::instance().get_state();
-    int eval = EvalState::eval(state);
+    Board board = Game::instance().get_board();
+    int eval = EvalState::eval(board);
     UCIInterface::uci_response("Board evaluation (0 depth): " + std::to_string(eval));
 }
 void UCIInterface::process_bench_command(std::string command) {
@@ -264,7 +264,7 @@ void UCIInterface::process_bench_command(std::string command) {
     int threads = std::stoi(parts[depthloc + 1]);
     UCIInterface::uci_response("Generating moves to depth: " + std::to_string(depth));
     auto start = std::chrono::high_resolution_clock::now();
-    int64_t nummoves = movegen_benchmark::gen_num_moves(Game::instance().get_state(), depth, -1);
+    int64_t nummoves = movegen_benchmark::gen_num_moves(Game::instance().get_board(), depth, -1);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     UCIInterface::uci_response(std::to_string(nummoves) + " nodes found at this depth.");

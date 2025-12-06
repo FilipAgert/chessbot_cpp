@@ -4,6 +4,12 @@
 #include <bitboard.h>
 #include <iostream>
 #include <notation_interface.h>
+struct search_type {
+    uint8_t quiesence_search : 1;
+    uint8_t normal_search : 1;
+    uint8_t king_checked : 1;
+    uint8_t king_double_checked1;
+};
 using namespace dirs;
 using namespace masks;
 namespace magic {

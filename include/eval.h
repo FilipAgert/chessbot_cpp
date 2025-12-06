@@ -1,9 +1,9 @@
 // Copyright 2025 Filip Agert
 #ifndef EVAL_H
 #define EVAL_H
-#include "board_state.h"
 #include <algorithm>
 #include <array>
+#include <board.h>
 /**
  * @brief Get manhattan distance between two squares
  *
@@ -36,7 +36,7 @@ constexpr std::array<uint8_t, 64> dist2centre = [] {
 }  // namespace helpers
 class EvalState {
  public:
-    static int eval(BoardState &state);
+    static int eval(Board &board);
     /**
      * @brief Sorts the moves in array by the scores in scores
      *
@@ -59,13 +59,13 @@ class EvalState {
      * @param[in] state staet
      * @return true if ply is grt or equal 100.
      */
-    static bool forced_draw_ply(BoardState &state);
+    static bool forced_draw_ply(Board &board);
 
  private:
-    static int eval_material(BoardState &state);
-    template <Piece_t p> static int eval_single_piece(BoardState &state);
+    static int eval_material(Board &board);
+    template <Piece_t p> static int eval_single_piece(Board &board);
 
-    static int eval_mobility(BoardState &state);
+    static int eval_mobility(Board &board);
     /**
      * @brief Evaluates king distance to centre score. At early game its negative, encouraging
      * safe play. Late game its positive, encouraging using the king.
@@ -73,7 +73,7 @@ class EvalState {
      * @param[in] state board state
      * @return evaluation of king distance to centre
      */
-    static int eval_king_dist2centre(BoardState &state);
+    static int eval_king_dist2centre(Board &board);
     /**
      * @brief Gets game phase in [0, 1] by linear interpolation of the number of pieces
      *

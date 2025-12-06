@@ -1,7 +1,7 @@
 // Copyright 2025 Filip Agert
 #ifndef MOVEGEN_BENCHMARK_H
 #define MOVEGEN_BENCHMARK_H
-#include <board_state.h>
+#include <board.h>
 #include <string>
 /**
  * @brief Class to assist with testing of movement generation. Timing movegeneration and for
@@ -19,9 +19,9 @@ class movegen_benchmark {
      * @return Number of moves at this depth.
      */
     static int gen_num_moves(std::string FEN, int depth, int print_depth = -1);
-    static int gen_num_moves(BoardState state, int depth, int print_depth = -1);
+    static int gen_num_moves(Board board, int depth, int print_depth = -1);
 
  private:
-    static int recurse_moves(BoardState state, int print_depth, int curr_depth, int to_depth);
+    static int recurse_moves(Board board, int print_depth, int curr_depth, int to_depth);
 };
 #endif

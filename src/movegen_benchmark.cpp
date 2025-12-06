@@ -1,25 +1,24 @@
 // Copyright 2025 Filip Agert
-#include <board_state.h>
+#include <board.h>
 #include <constants.h>
 #include <iostream>
 #include <move.h>
 #include <movegen_benchmark.h>
 #include <string>
 int movegen_benchmark::gen_num_moves(std::string FEN, int depth, int print_depth) {
-    BoardState boardState;
-    bool success = boardState.read_fen(FEN);
+    Board board;
+    bool success = board.read_fen(FEN);
     if (!success) {
         std::cerr << "There was an error reading the FEN. Exiting." << std::endl;
         exit(EXIT_FAILURE);
     }
-    return recurse_moves(boardState, print_depth, 0, depth);
+    return recurse_moves(board, print_depth, 0, depth);
 }
-int movegen_benchmark::gen_num_moves(BoardState state, int depth, int print_depth) {
+int movegen_benchmark::gen_num_moves(Board state, int depth, int print_depth) {
     return recurse_moves(state, print_depth, 0, depth);
 }
 
-int movegen_benchmark::recurse_moves(BoardState state, int print_depth, int curr_depth,
-                                     int to_depth) {
+int movegen_benchmark::recurse_moves(Board state, int print_depth, int curr_depth, int to_depth) {
     if (curr_depth == to_depth)
         return 1;
 

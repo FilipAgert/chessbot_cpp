@@ -14,9 +14,79 @@
 #include <cstdint>
 #include <string>
 struct Board {
+ private:
+    uint8_t castling = err_val8;
+    uint8_t turn_color = err_val8;  // 0b01000 for white 0b10000 for black
+    bool en_passant = false;
+    uint8_t en_passant_square = err_val8;
+    uint8_t check = 0;  // 0 For no check, white for white checked, black for black checked.
+
+    int ply_moves;
+    int full_moves;
+
  public:
     Board();
     ~Board();
+    uint8_t get_turn_color() { return turn_color; }
+    int get_ply_moves() { return ply_moves; }
+    bool get_en_passant() { return en_passant; }
+    uint8_t get_en_passant_square() { return en_passant_square; }
+    uint8_t get_castling() { return castling; }
+    int get_full_moves() { return full_moves; }
+    uint8_t get_check() { return check; }
+    /**
+     * @brief Does a move. Required: From and to square. Promotion. Changes board state accordingly
+     * and stores information into move.
+     *
+     * @param move
+     * @return * void
+     */
+    void do_move(Move &move);
+    void undo_move(const Move move);
+    /**
+     * @brief Changes whose turn it is: white <-> black. Only the turn_color parameter is changed.
+     *
+     */
+    void change_turn() {
+        turn_color ^= pieces::color_mask;
+    }  // Xor with color mask to change
+       // color.
+
+    /**
+     * @brief Get the all the possible legal moves and sets into provided array
+     *
+     * @param moves array containing moves
+     * @return * size_t: number of legal moves in array.
+     */
+    size_t get_moves(std::array<Move, max_legal_moves> &moves);
+    void reset() {
+        castling = err_val8;
+        turn_color = err_val8;
+        en_passant = false;
+        en_passant_square = err_val8;
+        check = 0;
+        ply_moves = err_val8;
+        full_moves = err_val8;
+        clear_board();
+    }
+
+    /**
+     * @brief Takes a FEN string and sets it into the board state.
+     *
+     * @param FEN String containing FEN
+     * @return true : Successfully parsed FEN.
+     * @return false : Did not succesfully parse FEN. BoardState undefined
+     */
+    bool read_fen(std::string FEN);
+
+    /**
+     * @brief Outputs fen from state.
+     *
+     * @return std::string
+     */
+    std::string fen_from_state() const;
+    void Display_board();
+    bool operator==(const Board &other) const;
     explicit Board(std::string fen);
 
     inline Piece get_piece_at(uint8_t row, uint8_t col) const {
@@ -42,8 +112,6 @@ struct Board {
     uint8_t get_square_color(uint8_t square) const;
 
     void clear_board();
-
-    bool operator==(const Board &other) const;
 
     /**
      * @brief Calculates if king is in check.
@@ -107,6 +175,8 @@ struct Board {
 
     std::vector<std::pair<Piece, uint8_t>> get_piece_num_moves(uint8_t castleinfo, uint64_t ep_bb);
 
+    size_t get_moves(std::array<Move, max_legal_moves> &moves, uint8_t turn_color, bool en_passant,
+                     uint8_t en_passant_square, uint8_t castling);
     // Piece loc independent way
     /**
      * @brief Get the all possible moves for specified player.

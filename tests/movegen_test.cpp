@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <bitboard.h>
-#include <board_state.h>
+#include <board.h>
 #include <constants.h>
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -40,11 +40,11 @@ TEST(magic_test, rookmagic) {
 }
 
 TEST(Movegentest, mated) {
-    BoardState state;
+    Board board;
     std::string fen = "8/7k/8/1P2Q1B1/8/P1K5/8/1B6 b - - 165 83";
-    state.read_fen(fen);
+    board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = state.get_moves(moves);
+    size_t num_moves = board.get_moves(moves);
 
     size_t expected = 1;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves)
@@ -52,11 +52,11 @@ TEST(Movegentest, mated) {
 }
 
 TEST(Movegentest, promo_BUG) {
-    BoardState state;
+    Board board;
     std::string fen = "8/1R3QP1/8/8/8/6PP/8/k3K3 w - - 1 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = state.get_moves(moves);
+    size_t num_moves = board.get_moves(moves);
 
     size_t expected = 41;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves)
@@ -144,11 +144,11 @@ TEST(Movegentest, p6) {
     }
 }
 TEST(Movegentest, gen_moves) {
-    BoardState state;
+    Board board;
     std::string starting_fen = NotationInterface::starting_FEN();
-    state.read_fen(starting_fen);
+    board.read_fen(starting_fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = state.get_moves(moves);
+    size_t num_moves = board.get_moves(moves);
 
     size_t expected = 20;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves)
@@ -156,12 +156,12 @@ TEST(Movegentest, gen_moves) {
 }
 TEST(Movegentest, capture_check) {
     // Fen: King move out of check or capture checker valid moves.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/4r2R/8/8/R3K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: NONE allowed because King is in check.
@@ -212,11 +212,11 @@ TEST(bbgentest, black_pawns) {
                                 << BitBoard::to_string_bb(expected) << "\n";
 }
 TEST(bbgentest, black_pawns_fen) {
-    BoardState state;
+    Board board;
     std::string fen = "8/p7/8/8/8/8/8/8 b - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = state.get_moves(moves);
+    size_t num_moves = board.get_moves(moves);
     std::vector<std::string> expected_moves = {"a7a6", "a7a5"};
     std::vector<std::string> generated_moves;
     for (size_t i = 0; i < num_moves; ++i) {
@@ -232,11 +232,11 @@ TEST(bbgentest, black_pawns_fen) {
         << "The generated moves do not match the expected moves for FEN: " << fen;
 }
 TEST(bbgentest, fen1) {
-    BoardState state;
+    Board board;
     std::string fen = "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = state.get_moves(moves);
+    size_t num_moves = board.get_moves(moves);
     std::vector<std::string> expected_moves = {
         "a7a6", "b7b6", "c7c6", "d7d6", "e7e6", "f7f6", "g7g6", "h7h6", "a7a5", "b7b5",
         "c7c5", "d7d5", "e7e5", "f7f5", "g7g5", "h7h5", "b8a6", "b8c6", "g8f6", "g8h6"};
@@ -256,11 +256,11 @@ TEST(bbgentest, fen1) {
 
 // 1.1 Castling disallowed (White, FEN Flag Not Present)
 TEST(castle_test, Disallowed_White_NoFlag) {
-    BoardState state;
+    Board board;
     std::string fen = "r3k2r/8/8/8/8/8/8/R3K2R w - - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // King moves (e1)
@@ -284,12 +284,12 @@ TEST(castle_test, Disallowed_White_NoFlag) {
 }
 TEST(castle_test, Allowed_White_Kingside_Queenside) {
     // FEN: Full castling rights for White, empty board for simplicity
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/8/8/8/R3K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     // Expected moves include O-O (e1g1) and O-O-O (e1c1), plus King/Rook normal moves
     std::vector<std::string> expected_moves = {
@@ -317,12 +317,12 @@ TEST(castle_test, Allowed_White_Kingside_Queenside) {
 }
 TEST(castle_test, Disallowed_White_Kingside_Blocked) {
     // FEN: Kingside path blocked by Knight on g1.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/8/8/8/R3K1NR w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: Only Queenside allowed (e1c1)
@@ -345,12 +345,12 @@ TEST(castle_test, Disallowed_White_Kingside_Blocked) {
 }
 TEST(castle_test, Disallowed_White_Queenside_Blocked1) {
     // FEN: Queenside path blocked by a Knight on c1. White has both flags.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/8/8/8/R1N1K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     // Expected: O-O (e1g1) is allowed. O-O-O (e1c1) is NOT allowed.
     std::vector<std::string> expected_moves = {
@@ -385,12 +385,12 @@ TEST(castle_test, Disallowed_White_Queenside_Blocked1) {
 }
 TEST(castle_test, Disallowed_White_Queenside_Blocked) {
     // FEN: Queenside path blocked by a Knight on c1. White has both flags.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/8/8/8/RN2K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     // Expected: O-O (e1g1) is allowed. O-O-O (e1c1) is NOT allowed.
     std::vector<std::string> expected_moves = {
@@ -424,12 +424,12 @@ TEST(castle_test, Disallowed_White_Queenside_Blocked) {
 }
 TEST(castle_test, Disallowed_Black_Kingside_Blocked) {
     // FEN: Black Kingside blocked by Knight on g8.
-    BoardState state;
+    Board board;
     std::string fen = "r3k1nr/8/8/8/8/8/8/8 b kq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: Only Queenside allowed
@@ -452,12 +452,12 @@ TEST(castle_test, Disallowed_Black_Kingside_Blocked) {
 }
 TEST(castle_test, Disallowed_Black_Queenside_Blocked) {
     // FEN: Black Queenside blocked by Knight on c8.
-    BoardState state;
+    Board board;
     std::string fen = "r1n1k2r/8/8/8/8/8/8/8 b kq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: Only Kingside allowed
@@ -480,12 +480,12 @@ TEST(castle_test, Disallowed_Black_Queenside_Blocked) {
 }
 TEST(castle_test, Disallowed_Black_Both_Blocked) {
     // FEN: Black Queenside blocked by knights next to king.
-    BoardState state;
+    Board board;
     std::string fen = "r2nkn1r/8/8/8/8/8/8/8 b kq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: Only Kingside allowed
@@ -508,12 +508,12 @@ TEST(castle_test, Disallowed_Black_Both_Blocked) {
 
 TEST(castle_test, Disallowed_White_bothsides_ThruCheck1) {
     // FEN: Black Bishop on g4 attacks d1 (path for Queenside).
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/8/8/4b3/R3K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // King Moves (d1 is attacked, so King cannot move there normally either)
@@ -532,12 +532,12 @@ TEST(castle_test, Disallowed_White_bothsides_ThruCheck1) {
 }
 TEST(castle_test, Disallowed_White_bothsides_ThruCheck2) {
     // FEN: Black Bishop on g4 attacks d1 (path for Queenside).
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/8/4b3/8/R3K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // King moves
@@ -556,12 +556,12 @@ TEST(castle_test, Disallowed_White_bothsides_ThruCheck2) {
 }
 TEST(castle_test, allowed_White_bothsides_next2check) {
     // Should be allowed. check is after.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/4b3/8/8/R3K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // King moves
@@ -584,12 +584,12 @@ TEST(castle_test, allowed_White_bothsides_next2check) {
 TEST(castle_test, Disallowed_Black_StartInCheck) {
     // FEN: Black King is in check from the White Rook on e5. Black has Kingside and queenside
     // rights.
-    BoardState state;
+    Board board;
     std::string fen = "r3k2r/8/8/4R3/8/8/8/8 b kq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     // Expected: No O-O (e8g8). King must move to a safe square.
     std::vector<std::string> expected_moves = {// King Escape Moves
@@ -609,12 +609,12 @@ TEST(castle_test, Disallowed_Black_StartInCheck) {
 }
 TEST(castle_test, Disallowed_White_ToCheck) {
     // FEN: White King has Kingside rights. Black Bishop on d4 attacks g1. King destination.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/3b4/8/8/4K2R w K - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     // Expected: No O-O (e1g1). King can move to e2, d1, f1, etc.
     std::vector<std::string> expected_moves = {// King Moves (g1 is NOT included)
@@ -637,12 +637,12 @@ TEST(castle_test, Disallowed_White_ToCheck) {
 }
 TEST(castle_test, Disallowed_White_ThruCheck) {
     // FEN: White King has Kingside rights. Black Bishop on d4 attacks g1. King destination.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/2b5/8/8/4K2R w K - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     // Expected: No O-O (e1g1). King can move to e2, d1, f1, etc.
     std::vector<std::string> expected_moves = {// King Moves (g1 is NOT included)
@@ -666,12 +666,12 @@ TEST(castle_test, Disallowed_White_ThruCheck) {
 
 TEST(castle_test, Disallowed_Black_both_ThruCheck1) {
     // FEN: White Bishop on c5 attacks f8.
-    BoardState state;
+    Board board;
     std::string fen = "r3k2r/4B3/8/8/8/8/8/8 b kq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: Queenside OK (e8c8). Kingside Disallowed.
@@ -691,12 +691,12 @@ TEST(castle_test, Disallowed_Black_both_ThruCheck1) {
 }
 TEST(castle_test, Disallowed_Black_both_ThruCheck2) {
     // FEN: White Bishop on c5 attacks f8.
-    BoardState state;
+    Board board;
     std::string fen = "r3k2r/8/4B3/8/8/8/8/8 b kq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: Queenside OK (e8c8). Kingside Disallowed.
@@ -716,12 +716,12 @@ TEST(castle_test, Disallowed_Black_both_ThruCheck2) {
 }
 TEST(castle_test, allowed_Black_both_enemyclose) {
     // FEN: White Bishop on c5 attacks f8.
-    BoardState state;
+    Board board;
     std::string fen = "r3k2r/8/8/4B3/8/8/8/8 b kq - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         "e8d8", "e8e7", "e8f8", "e8d7", "e8f7", "e8g8", "e8c8",
@@ -740,12 +740,12 @@ TEST(castle_test, allowed_Black_both_enemyclose) {
 
 TEST(castle_test, Disallowed_White_StartInCheck) {
     // FEN: White King is in check from Black Rook on e4.
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/4r3/8/8/R3K2R w KQ - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = state.get_moves(moves_array);
+    size_t num_moves = board.get_moves(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: NONE allowed because King is in check.
@@ -764,11 +764,11 @@ TEST(castle_test, Disallowed_White_StartInCheck) {
     ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
 }
 TEST(castle_test, kingside_white) {
-    BoardState state;
+    Board board;
     std::string fen = "8/8/8/8/8/8/7P/4K2R w K - 0 1";
-    state.read_fen(fen);
+    board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = state.get_moves(moves);
+    size_t num_moves = board.get_moves(moves);
     std::vector<std::string> expected_moves = {"e1f1", "e1g1", "h1g1", "h1f1", "h2h3",
                                                "h2h4", "e1d1", "e1d2", "e1e2", "e1f2"};
     std::vector<std::string> generated_moves;
@@ -781,7 +781,7 @@ TEST(castle_test, kingside_white) {
     std::sort(generated_moves.begin(), generated_moves.end());
 
     // 4. Assert that the sorted lists are identical
-    ASSERT_EQ(state.castling, 0b1);
+    ASSERT_EQ(board.get_castling(), 0b1);
     ASSERT_EQ(expected_moves, generated_moves)
         << "The generated moves do not match the expected moves for FEN: " << fen;
 }
