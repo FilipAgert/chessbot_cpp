@@ -20,7 +20,8 @@ int EvalState::eval(BoardState state) {
         score += sign * val;
     }
 
-    return score;
+    int color_fac = 1 - 2 * (state.turn_color == pieces::black);
+    return score * color_fac;
 }
 void EvalState::partial_move_sort(std::array<Move, max_legal_moves> &moves,
                                   std::array<int, max_legal_moves> &scores, size_t num_moves,

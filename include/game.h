@@ -53,7 +53,7 @@ class Game {
      * @param[[TODO:direction]] is_maximiser If maximiser.
      * @return Score of current state.
      */
-    int alpha_beta(size_t depth, int alpha, int beta, bool is_maximiser);
+    int alpha_beta(size_t depth, int alpha, int beta);
 
     /**
      * @brief Gets the current best known move to send to GUI.
