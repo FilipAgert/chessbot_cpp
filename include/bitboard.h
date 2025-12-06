@@ -12,6 +12,7 @@ namespace BitBoard {
 #define BitLoop(X)                                                                                 \
     for (; X;                                                                                      \
          X = X & (X - 1))  // The bitloop iterates over a bitboard, repeatedly clearing the LSB.
+#define BB uint64_t
 
 /** \
  * @brief Shifts the bitboard in a certain direction n # of steps. Branchless execution \
