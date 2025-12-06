@@ -1,4 +1,25 @@
-# Movegeneration
+# Board representation
+To speedup move generation.
+1. Remove 8x8 board containing pieces
+2. Generate template functions for move generation, color of player moved and type of move.
+This will drastically speed up do and undo move.
+Likely also for the generating bitboards etc.
+
+One template for each piece moved & colored.
+So move function would be
+<white_moved, piece_type, move_flag> do_move(uint8_t from, uint8_t to)
+undo function could be
+<white_moved, piece_type, move_flag, captured_piece> undo_move(uint8_t from, uint8_t to)
+
+E.g. when doing a move we have one flag for:
+castle long / castle short
+promote queen
+promote knight
+promote bishop
+promote rook
+double pawn push
+
+
 
 ## Magic bitboards:
 Try to generate magic numbers which reduce the span of the upper bound in the hash region.

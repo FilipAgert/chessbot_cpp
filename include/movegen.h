@@ -356,7 +356,7 @@ constexpr uint64_t get_rook_key(const uint8_t sq, const uint64_t occ) {
  * @param[in] occ occupancy bitboard (all pieces)
  * @return the key to lookup the magic bitboard with.
  */
-constexpr uint64_t get_bishop_key(const uint8_t sq, const uint64_t occ) {
+inline constexpr uint64_t get_bishop_key(const uint8_t sq, const uint64_t occ) {
     uint8_t shift = bishop_magic_shifts[sq];
     uint64_t magic = bishop_magics[sq];
     uint64_t occmask = bishop_occupancy_table[sq];
@@ -369,50 +369,18 @@ constexpr uint64_t get_bishop_key(const uint8_t sq, const uint64_t occ) {
  * @param[in] occ occupancy bitboard (can be unmasked.)
  * @return index to access array rook_magic_bitboards with.
  */
-constexpr int get_rook_magic_idx(const uint8_t sq, const uint64_t occ) {
+inline constexpr int get_rook_magic_idx(const uint8_t sq, const uint64_t occ) {
     return get_rook_key(sq, occ) + rook_magic_offsets[sq];
 }
-constexpr int get_bishop_magic_idx(const uint8_t sq, const uint64_t occ) {
+inline constexpr int get_bishop_magic_idx(const uint8_t sq, const uint64_t occ) {
     return get_bishop_key(sq, occ) + bishop_magic_offsets[sq];
 }
 /**
  * @brief Table of rook magic bitboards. Indexed by the function get_rook_magic_idx
  *
  */
-constexpr std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards =
-    [] {  // precompute the magic bitboards;
-        std::array<uint64_t, rook_magic_table_sz> rook_magic_bbs;
-        for (int sq = 0; sq < 64; sq++) {
-            std::array<uint64_t, max_size> occ, atk;
-            uint64_t occmask = occupancy_bits_rook(sq);
-            occ = gen_occ_variation(occmask, rook_num_occ_bits[sq]);
-            atk = compute_atk_bbs(occ, sq, true);
-            int nvars = 1 << rook_num_occ_bits[sq];
-
-            for (int i = 0; i < nvars; i++) {
-                int idx = get_rook_magic_idx(sq, occ[i]);
-                rook_magic_bbs[idx] = atk[i];
-            }
-        }
-        return rook_magic_bbs;
-    }();
-constexpr std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards =
-    [] {  // precompute the magic bitboards;
-        std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bbs;
-        for (int sq = 0; sq < 64; sq++) {
-            std::array<uint64_t, max_size> occ, atk;
-            uint64_t occmask = occupancy_bits_bishop(sq);
-            occ = gen_occ_variation(occmask, bishop_num_occ_bits[sq]);
-            atk = compute_atk_bbs(occ, sq, false);
-            int nvars = 1 << bishop_num_occ_bits[sq];
-
-            for (int i = 0; i < nvars; i++) {
-                int idx = get_bishop_magic_idx(sq, occ[i]);
-                bishop_magic_bbs[idx] = atk[i];
-            }
-        }
-        return bishop_magic_bbs;
-    }();
+extern const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards;
+extern const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards;
 /**
  * @brief Gets all the squares the rook can reach from the given position given an occupancy of the
  * board stored in the occ bitboard. Needs to be masked with friendly pieces to not capture them.
@@ -421,10 +389,10 @@ constexpr std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards =
  * @param[in] occ Occupancy bitboard for hess board
  * @return All attackable squares for the rook at sq.
  */
-constexpr uint64_t get_rook_atk_bb(const uint8_t sq, const uint64_t occ) {
+inline constexpr uint64_t get_rook_atk_bb(const uint8_t sq, const uint64_t occ) {
     return rook_magic_bitboards[get_rook_magic_idx(sq, occ)];
 }
-constexpr uint64_t get_bishop_atk_bb(const uint8_t sq, const uint64_t occ) {
+inline constexpr uint64_t get_bishop_atk_bb(const uint8_t sq, const uint64_t occ) {
     return bishop_magic_bitboards[get_bishop_magic_idx(sq, occ)];
 }
 }  // namespace magic

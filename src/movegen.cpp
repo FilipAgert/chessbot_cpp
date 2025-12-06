@@ -3,6 +3,43 @@
 #include <movegen.h>
 using namespace dirs;
 using namespace masks;
+namespace magic {
+const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards =
+    [] {  // precompute the magic bitboards;
+        std::array<uint64_t, rook_magic_table_sz> rook_magic_bbs;
+        for (int sq = 0; sq < 64; sq++) {
+            std::array<uint64_t, max_size> occ, atk;
+            uint64_t occmask = occupancy_bits_rook(sq);
+            occ = gen_occ_variation(occmask, rook_num_occ_bits[sq]);
+            atk = compute_atk_bbs(occ, sq, true);
+            int nvars = 1 << rook_num_occ_bits[sq];
+
+            for (int i = 0; i < nvars; i++) {
+                int idx = get_rook_magic_idx(sq, occ[i]);
+                rook_magic_bbs[idx] = atk[i];
+            }
+        }
+        return rook_magic_bbs;
+    }();
+const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards =
+    [] {  // precompute the magic bitboards;
+        std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bbs;
+        for (int sq = 0; sq < 64; sq++) {
+            std::array<uint64_t, max_size> occ, atk;
+            uint64_t occmask = occupancy_bits_bishop(sq);
+            occ = gen_occ_variation(occmask, bishop_num_occ_bits[sq]);
+            atk = compute_atk_bbs(occ, sq, false);
+            int nvars = 1 << bishop_num_occ_bits[sq];
+
+            for (int i = 0; i < nvars; i++) {
+                int idx = get_bishop_magic_idx(sq, occ[i]);
+                bishop_magic_bbs[idx] = atk[i];
+            }
+        }
+        return bishop_magic_bbs;
+    }();
+
+}  // namespace magic
 namespace movegen {
 
 uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const uint8_t pawn_col) {

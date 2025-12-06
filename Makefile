@@ -15,9 +15,9 @@ MAKEFLAGS+= -j$(NPROCS)
 
 type?=dev
 ifeq ($(type), release)
-	FLAGS = -Wall -std=c++23 -O3 -fconstexpr-ops-limit=1000000000 -MMD -MP
+	FLAGS = -Wall -std=c++23 -O3 -MMD -MP
 else
-	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast  -fconstexpr-ops-limit=1000000000 -MMD -MP
+	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast   -MMD -MP
 endif
 
 DEPS := $(OBJS:.o=.d)
