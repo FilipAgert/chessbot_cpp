@@ -1,4 +1,24 @@
+# Search
+- Quiesence search
+- King in check search
+    - Captures
+    - King moves
+    - Blocking
+- King in double check search
+    - Only king moves
+
+- Move ordering by simple heuristic. Eg. attacking piece.
+# Move representation
+Fit into 32 bit
+6: source
+6: target
+4: promotion
+4: captured
+4: castle
+Others?
 # Board representation
+dont put bitboards in array. put them raw. No need for bitboard for king either.
+
 To speedup move generation.
 1. Remove 8x8 board containing pieces
 2. Generate template functions for move generation, color of player moved and type of move.
