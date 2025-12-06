@@ -48,7 +48,7 @@ uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const
     uint8_t rowi =
         1 * (pawn_col == pieces::white) +
         6 * (pawn_col ==
-             pieces::black);  // Branchless execution. Evaluates to 1 or 7 depending on color.
+             pieces::black);  // Branchless execution. Evaluates to 1 or 6 depending on color.
     uint64_t blocker = BitBoard::shift_bb(all_bb, -dir);           // Blocking pieces are one up
     uint64_t moves = BitBoard::shift_bb(pawn_bb & ~blocker, dir);  // All one moves up
     blocker = blocker | BitBoard::shift_bb(blocker, -dir);         // Pieces now block two moves...

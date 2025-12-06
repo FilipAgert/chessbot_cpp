@@ -196,7 +196,7 @@ size_t Board::get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves, co
     uint64_t pawn_bb = bit_boards[color | pieces::pawn];
     uint64_t knight_bb = bit_boards[color | pieces::knight];
     uint64_t king_bb = bit_boards[color | pieces::king];
-    uint64_t ep_bb = BitBoard::one_high(en_passant_sq);
+    uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_sq) : 0;
     gen_add_all_moves(moves, num_moves, queen_bb, pieces::queen, friendly_bb, enemy_bb, ep_bb,
                       castleinfo, color);
     gen_add_all_moves(moves, num_moves, bishop_bb, pieces::bishop, friendly_bb, enemy_bb, ep_bb,
