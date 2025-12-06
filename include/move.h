@@ -13,6 +13,7 @@ struct Move {
     uint8_t start_square = err_val8, end_square = err_val8;
     uint8_t en_passant_square = err_val8;
     uint8_t castling_rights;
+    uint8_t ply;
     bool check = false;  // Flag if move leads to check or not. For use in move order selection.
 
     constexpr explicit Move(std::string move_str) {

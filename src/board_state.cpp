@@ -35,6 +35,7 @@ size_t BoardState::get_moves(std::array<Move, max_legal_moves> &moves) {
 void BoardState::do_move(Move &move) {
     move.castling_rights = this->castling;
     move.en_passant_square = this->en_passant ? this->en_passant_square : err_val8;
+    move.ply = ply_moves;
     ply_moves += 1;
     if (this->turn_color == black)
         full_moves += 1;
@@ -84,6 +85,9 @@ void BoardState::do_move(Move &move) {
             0b0100;  // kingside b
     this->castling &= ~castlemask;
 
+    if (move.captured_piece.get_value() || moved.get_type() == pawn)
+        ply_moves = 0;  // reset ply on move pawn or capture piece.
+
     if (move.captured_piece.get_value()) {
         if (en_passant && moved.get_type() == pawn && move.end_square == en_passant_square) {
             uint8_t captured_pawn_loc =
@@ -119,6 +123,7 @@ void BoardState::undo_move(const Move move) {
     castling = move.castling_rights;
     en_passant_square = move.en_passant_square;
     en_passant = en_passant_square < 64;
+    ply_moves = move.ply;
     board.move_piece(move.end_square, move.start_square);
     if (move.promotion.get_value()) {
         board.promote_piece(move.start_square,
@@ -156,7 +161,6 @@ void BoardState::undo_move(const Move move) {
         }
     }
 
-    ply_moves -= 1;
     if (this->turn_color == white)
         full_moves -= 1;
     change_turn();  // Changes turn color from white <-> black.
