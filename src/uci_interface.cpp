@@ -24,30 +24,38 @@ void UCIInterface::process_quit_command() {
 
 void UCIInterface::process_new_game_command() { UCIInterface::uci_response("New game started."); }
 void UCIInterface::send_info_msg(InfoMsg msg) {
-    std::string str_depth = "depth " + std::to_string(msg.depth);
-    std::string str_seldepth = "seldepth " + std::to_string(msg.seldepth);
-    std::string str_time = "time " + std::to_string(msg.time);
-    std::string str_nodes = "nodes " + std::to_string(msg.nodes);
-    std::string str_nmoves = "nmoves " + std::to_string(msg.moves_generated);
-    std::string str_nps = "knps ";
-    if (msg.time > 0) {
-        str_nps.append(std::to_string((msg.nodes) / msg.time));
+    std::vector<std::string> parts = {"info"};
+
+    parts.push_back("depth " + std::to_string(msg.depth));
+    std::optional<int> moves_to_mate = EvalState::moves_to_mate(msg.score);
+    if (moves_to_mate) {
+        parts.push_back("mate " + std::to_string(moves_to_mate.value()));
     } else {
-        str_nps.append("NaN");
+        parts.push_back("score cp " + std::to_string(msg.score));
     }
-    std::string str_pv = "pv ";
-    for (Move m : msg.pv)
-        str_pv.append(m.toString() + " ");
+    parts.push_back("time " + std::to_string(msg.time));
+    parts.push_back("nodes " + std::to_string(msg.nodes));
 
-    std::string str_currmove = "currmove " + msg.currmove.toString();
-    std::string str_score = "score cp " + std::to_string(msg.score);
-    std::string str_d0score = "d0 " + std::to_string(msg.d0score);
-    std::string str_mate = "mate " + std::to_string(msg.mate);
+    if (msg.seldepth > msg.depth) {  // quiesence search.
+        parts.push_back("seldepth " + std::to_string(msg.seldepth));
+    }
 
-    std::string str_infostub = "info";
-    std::string str =
-        join({str_infostub, str_depth, str_pv, str_score, str_time, str_nodes, str_nps}, ' ');
-    UCIInterface::uci_response(str);
+    if (msg.time > 0) {
+        int64_t knps = (msg.nodes * 1000) / msg.time;
+        parts.push_back("nps " + std::to_string(knps));
+    }
+
+    if (!msg.pv.empty()) {
+        std::string str_pv = "pv";
+        for (const auto &m : msg.pv) {
+            str_pv.append(" " + m.toString());
+        }
+        parts.push_back(str_pv);
+    }
+
+    std::string final_str = join(parts, ' ');
+
+    UCIInterface::uci_response(final_str);
 }
 void UCIInterface::send_info_if_has() {
     for (; !Game::instance().info_queue.empty(); Game::instance().info_queue.pop()) {
