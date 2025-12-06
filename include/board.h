@@ -115,7 +115,8 @@ struct Board {
      */
     template <Piece_t pval, bool is_white> BB get_piece_bb() {
         constexpr uint8_t col = is_white ? pieces::white : pieces::black;
-        constexpr uint8_t type = pval | pieces::piece_mask;
+        constexpr uint8_t type = pval & pieces::piece_mask;
+
         return bit_boards[col | type];
     }
     BB occupancy() { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
@@ -134,15 +135,20 @@ struct Board {
 
         int mobility = 0;
         BB occ = occupancy();
-        BitLoop(piece_bb) {
-            uint8_t sq = BitBoard::lsb(piece_bb);
-            BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ);
-            mobility += BitBoard::bitcount(piece_atk_bb);
-        }
         if constexpr (omit_pawn_controlled) {
             BB enemy_pawn_bb = get_piece_bb<pieces::pawn, !is_white>();
             BB enemy_pawn_atk = movegen::pawn_atk_bb(enemy_pawn_bb, !is_white);
-            mobility &= ~enemy_pawn_atk;
+            BitLoop(piece_bb) {
+                uint8_t sq = BitBoard::lsb(piece_bb);
+                BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ) & ~enemy_pawn_atk;
+                mobility += BitBoard::bitcount(piece_atk_bb);
+            }
+        } else {
+            BitLoop(piece_bb) {
+                uint8_t sq = BitBoard::lsb(piece_bb);
+                BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ);
+                mobility += BitBoard::bitcount(piece_atk_bb);
+            }
         }
         return mobility;
     }
