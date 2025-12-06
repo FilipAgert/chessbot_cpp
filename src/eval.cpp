@@ -84,3 +84,13 @@ int EvalState::eval_king_dist2centre(BoardState &state) {
                 black_dist * PieceValue::king_dist2centre_value;
     return (1. * value * (2 * EvalState::eval_game_phase(state.get_num_pieces()) - 1.0));
 }
+std::optional<int> EvalState::moves_to_mate(int score) {
+    // Negative score should remain negative.
+    int dist = abs(abs(score) - MATE_SCORE);
+    int move_to_mate = (dist + 1) / 2;  // from ply to moves.
+    if (move_to_mate < 100) {
+        return std::make_optional(move_to_mate * (score / abs(score)));
+    } else {
+        return {};
+    }
+}

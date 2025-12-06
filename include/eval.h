@@ -51,14 +51,7 @@ class EvalState {
                                   bool ascending);
 
     static constexpr int MATE_SCORE = 30000;
-    static constexpr std::optional<int> moves_to_mate(int score) {
-        int dist = abs(abs(score) - MATE_SCORE);
-        if (dist < 100) {
-            return std::make_optional(dist);
-        } else {
-            return {};
-        }
-    }
+    static std::optional<int> moves_to_mate(int score);
 
     /**
      * @brief Evaluates true if state has forced draw from ply moves (gte 100 ply)

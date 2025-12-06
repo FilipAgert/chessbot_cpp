@@ -32,6 +32,7 @@ void Game::think_loop(const time_control rem_time) {
     std::array<Move, max_legal_moves> moves;
     int num_moves = state.get_moves(moves);
     if (num_moves == 0)
+
         return;
 
     std::shared_ptr<TimeManager> time_manager(
@@ -56,6 +57,16 @@ void Game::think_loop(const time_control rem_time) {
             this->undo_move();
             best_eval = std::max(eval, best_eval);
             num_moves_evaluated++;
+            std::optional<int> moves_to_mate = EvalState::moves_to_mate(best_eval);
+
+            if (moves_to_mate) {  // if we have mate, dont need to check further.
+                if (moves_to_mate.value() >
+                    0) {  // Negative value means we are getting mated. ofc check all moves.
+                    ponder = false;
+                    break;
+                }
+            }
+
             if (time_manager->get_should_stop()) {
                 // Even if we break early we get information from this evaluation.
                 // Due to the move ordering after each depth, we search the best moves first.
@@ -66,6 +77,8 @@ void Game::think_loop(const time_control rem_time) {
                 break;
             }
         }
+        std::optional<int> moves_to_mate = EvalState::moves_to_mate(best_eval);
+
         EvalState::partial_move_sort(moves, evaluations, num_moves_evaluated,
                                      false);  // Sort moves by score in order to help next
                                               // depth improve move ordering.
@@ -80,6 +93,9 @@ void Game::think_loop(const time_control rem_time) {
         info_queue.push(new_msg);
         // Sort move list by the score list.
         depth++;
+        if (moves_to_mate) {
+            break;
+        }
     }
 
     time_manager->stop_and_join();  // Join time manager thread to this one.
