@@ -16,6 +16,7 @@
 #include <utility>
 bool Game::set_fen(std::string FEN) {
     bool success = board.read_fen(FEN);
+    reset_state_stack();
     return success;
 }
 void Game::start_thinking(const time_control rem_time) {
@@ -27,6 +28,16 @@ void Game::reset_infos() {
     moves_generated = 0;
     nodes_evaluated = 0;
     bestmove = Move();
+}
+
+void Game::reset_state_stack() {
+    state_stack.reset();
+    uint64_t board_hash = ZobroistHasher::get().hash_board(board);
+    std::cout << "reseting stack. Board:" << std::endl;
+    board.Display_board();
+    std::cout << "Hash: \n";
+    BitBoard::print(board_hash);
+    state_stack.push(board_hash);
 }
 
 void Game::think_loop(const time_control rem_time) {
@@ -93,6 +104,10 @@ void Game::think_loop(const time_control rem_time) {
 }
 
 int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
+    if (this->check_repetition()) {
+        return 0;  // Checks if position is a repeat.
+    }
+
     if (depth == 0) {
         nodes_evaluated++;
         return EvalState::eval(board);
@@ -131,18 +146,33 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
     return alpha;
 }
 
+bool Game::check_repetition() {
+    // Checks if we have repeated this board state.
+    uint64_t hash = state_stack.top();
+    constexpr int instances_for_draw =
+        2;  // How many occurences of this board should have occured for a draw?
+    std::cout << "hash:\n";
+    BitBoard::print(hash);
+    std::cout << " on stack: \n";
+    state_stack.print();
+    bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
+    std::cout << "atleast2: " << atleast2 << "\n";
+    return atleast2;
+}
 Move Game::get_bestmove() const { return bestmove; }
 
-void Game::reset_game() { bool success = board.read_fen(NotationInterface::starting_FEN()); }
 std::string Game::get_fen() const { return board.fen_from_state(); }
 
 void Game::make_move(Move move) {
     board.do_move(move);
     move_stack.push(move);
+    uint64_t state_hash = ZobroistHasher::get().hash_board(board);
+    state_stack.push(state_hash);
 }
 
 void Game::undo_move() {
     Move move = move_stack.top();
     move_stack.pop();
     board.undo_move(move);
+    state_stack.pop();
 }

@@ -248,7 +248,7 @@ void UCIInterface::process_bench_command(std::string command) {
     } else if (parts.size() == 3) {
         if (parts[0] == "current") {
         } else if (parts[0] == "default") {
-            Game::instance().reset_game();
+            Game::instance().set_startpos();
         } else {
             UCIInterface::uci_response(
                 "fentype must be one of: current, default, or a literal <fen> string ");

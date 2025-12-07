@@ -27,13 +27,13 @@ struct Board {
  public:
     Board();
     ~Board();
-    uint8_t get_turn_color() { return turn_color; }
-    int get_ply_moves() { return ply_moves; }
-    bool get_en_passant() { return en_passant; }
-    uint8_t get_en_passant_square() { return en_passant_square; }
-    uint8_t get_castling() { return castleinfo; }
-    int get_full_moves() { return full_moves; }
-    uint8_t get_check() { return check; }
+    uint8_t get_turn_color() const { return turn_color; }
+    int get_ply_moves() const { return ply_moves; }
+    bool get_en_passant() const { return en_passant; }
+    uint8_t get_en_passant_square() const { return en_passant_square; }
+    uint8_t get_castling() const { return castleinfo; }
+    int get_full_moves() const { return full_moves; }
+    uint8_t get_check() const { return check; }
     /**
      * @brief Does a move. Required: From and to square. Promotion. Changes board state accordingly
      * and stores information into move.
@@ -223,7 +223,7 @@ struct Board {
      * @tparam is_white get white or black piece
      * @return Bitboard of piece
      */
-    template <Piece_t pval, bool is_white> BB get_piece_bb() {
+    template <Piece_t pval, bool is_white> BB get_piece_bb() const {
         constexpr uint8_t col = is_white ? pieces::white : pieces::black;
         constexpr uint8_t type = pval & pieces::piece_mask;
 
