@@ -5,7 +5,7 @@ DOBJ = ./build
 DEXE = ./bin
 DTEST = ./tests
 
-EXEN = filipbot
+EXE?=filipbot
 TEST_EXE = testsuite
 MAGIC_EXE = gen_magics
 
@@ -37,10 +37,10 @@ MAGIC_OBJ = $(DOBJ)/gen_magic_nums.o
 TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o $(DOBJ)/movegen_test.o $(DOBJ)/time_manager_test.o $(DOBJ)/transposition_test.o
 
 # Targets
-main: $(DEXE)/$(EXEN)
+main: $(DEXE)/$(EXE)
 
 # Link the main executable
-$(DEXE)/$(EXEN): $(OBJECTS) $(MAIN_OBJ)
+$(DEXE)/$(EXE): $(OBJECTS) $(MAIN_OBJ)
 	$(CCL) $@ $(MAIN_OBJ) $(OBJECTS) $(LIBS)
 
 $(DEXE)/$(MAGIC_EXE): $(OBJECTS) $(MAGIC_OBJ)
