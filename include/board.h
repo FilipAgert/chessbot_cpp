@@ -279,7 +279,7 @@ struct Board {
         } else {
             BitLoop(piece_bb) {
                 uint8_t sq = BitBoard::lsb(piece_bb);
-                BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ) * ~friendly;
+                BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ) & ~friendly;
                 mobility += BitBoard::bitcount(piece_atk_bb);
             }
         }
