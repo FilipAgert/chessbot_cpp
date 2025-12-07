@@ -33,10 +33,6 @@ void Game::reset_infos() {
 void Game::reset_state_stack() {
     state_stack.reset();
     uint64_t board_hash = ZobroistHasher::get().hash_board(board);
-    std::cout << "reseting stack. Board:" << std::endl;
-    board.Display_board();
-    std::cout << "Hash: \n";
-    BitBoard::print(board_hash);
     state_stack.push(board_hash);
 }
 
@@ -151,12 +147,7 @@ bool Game::check_repetition() {
     uint64_t hash = state_stack.top();
     constexpr int instances_for_draw =
         2;  // How many occurences of this board should have occured for a draw?
-    std::cout << "hash:\n";
-    BitBoard::print(hash);
-    std::cout << " on stack: \n";
-    state_stack.print();
     bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
-    std::cout << "atleast2: " << atleast2 << "\n";
     return atleast2;
 }
 Move Game::get_bestmove() const { return bestmove; }
