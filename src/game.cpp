@@ -50,6 +50,7 @@ void Game::think_loop(const time_control rem_time) {
 
         return;
 
+    MoveOrder::apply_move_sort(moves, num_moves, board);
     std::shared_ptr<TimeManager> time_manager(
         new TimeManager(rem_time, buffer, fraction, board.get_turn_color() == pieces::white));
     time_manager->start_time_management();
