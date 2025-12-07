@@ -2,11 +2,55 @@
 #ifndef TRANSPOSITION_H
 #define TRANSPOSITION_H
 
+#include <algorithm>
 #include <bitboard.h>
 #include <board.h>
 #include <cstdint>
 #include <piece.h>
 #include <random>
+/**
+ * @brief Class for storing the occured game states for checking 3 move repetion draws.
+ */
+
+class StateStack {
+ private:
+    size_t top = 0;
+    constexpr static size_t max_size = 512;
+    std::array<uint64_t, max_size> stack;
+
+ public:
+    inline void push(uint64_t hash) { stack[++top] = hash; }
+    inline void pop() { top--; }
+    /**
+     * @brief Counts number of occurences of hash in stack.
+     *
+     * @param[[TODO:direction]] hash [TODO:description]
+     * @return [TODO:description]
+     */
+    inline int count_elem(uint64_t hash) {
+        int ctr = 0;
+        for (int i = std::min(top, max_size - 1); i >= 0; i--) {
+            ctr += stack[i] == hash;
+        }
+        return ctr;
+    }
+
+    /**
+     * @brief Checks if there are atleast some number of occurences or more in the stack
+     *
+     * @param[in] hash hash to check for
+     * @param[in] num number of hashes in stack
+     * @return true if there are at least num hashes of this hash in the stack.
+     */
+    inline bool atleast_num(uint64_t hash, int num) {
+        int ctr = 0;
+        int idx = std::min(top, max_size - 1);
+        while ((ctr < num) && (idx >= 0)) {
+            ctr += hash == stack[idx];
+        }
+        return ctr == num;
+    }
+};
 
 struct transposition_entry {
     uint64_t hash;
