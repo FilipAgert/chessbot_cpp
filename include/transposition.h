@@ -14,8 +14,8 @@
 
 class StateStack {
  private:
-    size_t top_idx = 0;
-    constexpr static size_t max_size = 512;
+    int top_idx = -1;
+    constexpr static int max_size = 512;
     std::array<uint64_t, max_size> stack;
 
  public:
@@ -45,7 +45,7 @@ class StateStack {
      * @brief Resets stack.
      *
      */
-    inline void reset() { top_idx = 0; }
+    inline void reset() { top_idx = -1; }
 
     /**
      * @brief Checks if there are atleast some number of occurences or more in the stack
@@ -59,6 +59,7 @@ class StateStack {
         int idx = std::min(top_idx, max_size - 1);
         while ((ctr < num) && (idx >= 0)) {
             ctr += hash == stack[idx];
+            idx--;
         }
         return ctr == num;
     }
