@@ -52,31 +52,6 @@ template <Piece_t p> int EvalState::eval_single_piece(Board &board) {
     int pvalue = PieceValue::piecevals[p];
     return (board.get_piece_cnt<p, true>() - board.get_piece_cnt<p, false>()) * pvalue;
 }
-void EvalState::partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                                  std::array<int, max_legal_moves> &scores, size_t num_moves,
-                                  bool ascending) {
-    std::vector<std::pair<Move, int>> zipped;
-
-    for (size_t i = 0; i < num_moves; i++) {
-        int s = scores[i];
-        if (!ascending)
-            s = s * (-1);
-        zipped.push_back({moves[i], s});
-    }
-
-    std::sort(zipped.begin(), zipped.end(), [](auto a, auto b) {
-        return a.second < b.second;
-    });  // Lambda to specify sort by second (score).
-
-    for (size_t i = 0; i < num_moves; i++) {
-        moves[i] = zipped[i].first;
-        int s = zipped[i].second;
-        if (!ascending)
-            s = s * (-1);
-
-        scores[i] = s;
-    }
-}
 int EvalState::eval_king_dist2centre(Board &board) {
     uint8_t white_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, true>());
     uint8_t black_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, false>());

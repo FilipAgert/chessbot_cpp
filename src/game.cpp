@@ -1,6 +1,8 @@
 // Copyright 2025 Filip Agert
 #include <algorithm>
 #include <array>
+#include <moveorder.h>
+
 #include <board.h>
 #include <chrono>
 #include <climits>  // For infinity
@@ -80,7 +82,7 @@ void Game::think_loop(const time_control rem_time) {
         }
         std::optional<int> moves_to_mate = EvalState::moves_to_mate(best_eval);
 
-        EvalState::partial_move_sort(moves, evaluations, num_moves_evaluated,
+        MoveOrder::partial_move_sort(moves, evaluations, num_moves_evaluated,
                                      false);  // Sort moves by score in order to help next
                                               // depth improve move ordering.
         bestmove = moves[0];

@@ -37,18 +37,6 @@ constexpr std::array<uint8_t, 64> dist2centre = [] {
 class EvalState {
  public:
     static int eval(Board &board);
-    /**
-     * @brief Sorts the moves in array by the scores in scores
-     *
-     * @param[[TODO:direction]] moves [TODO:description]
-     * @param[[TODO:direction]] scores [TODO:description]
-     * @param[[TODO:direction]] num_moves [TODO:description]
-     * @param[in] ascending: bool to sort in ascending order. If false sorts by descending order.
-     * True if minimiser, false if maximiser.
-     */
-    static void partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                                  std::array<int, max_legal_moves> &scores, size_t num_moves,
-                                  bool ascending);
 
     static constexpr int MATE_SCORE = 30000;
     static std::optional<int> moves_to_mate(int score);
