@@ -7,26 +7,21 @@ void MoveOrder::partial_move_sort(std::array<Move, max_legal_moves> &moves,
                                   std::array<int, max_legal_moves> &scores, size_t num_moves,
                                   bool ascending) {
     std::vector<std::pair<Move, int>> zipped;
+    std::array<size_t, max_legal_moves> indices;
+    std::ranges::iota(indices.begin(), indices.begin() + num_moves, 0);
 
-    for (size_t i = 0; i < num_moves; i++) {
-        int s = scores[i];
-        if (!ascending)
-            s = s * (-1);
-        zipped.push_back({moves[i], s});
+    std::sort(indices.begin(), indices.begin() + num_moves, [&](size_t a, size_t b) {
+        if (ascending)
+            return scores[a] < scores[b];
+        else
+            return scores[a] > scores[b];
+    });
+    std::array<Move, max_legal_moves> sorted_moves;
+    for (size_t i = 0; i < num_moves; ++i) {
+        sorted_moves[i] = moves[indices[i]];
     }
 
-    std::sort(zipped.begin(), zipped.end(), [](auto a, auto b) {
-        return a.second < b.second;
-    });  // Lambda to specify sort by second (score).
-
-    for (size_t i = 0; i < num_moves; i++) {
-        moves[i] = zipped[i].first;
-        int s = zipped[i].second;
-        if (!ascending)
-            s = s * (-1);
-
-        scores[i] = s;
-    }
+    std::copy(sorted_moves.begin(), sorted_moves.begin() + num_moves, moves.begin());
 }
 
 int MoveOrder::move_heuristics(Move &move, Board &board) {
