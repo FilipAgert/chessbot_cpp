@@ -56,19 +56,10 @@ void Game::think_loop(const time_control rem_time) {
         for (int i = 0; i < num_moves; i++) {
             this->make_move(moves[i]);
             eval = -alpha_beta(depth - 1, 1, -INF, INF);
-            evaluations[i] = eval;
             this->undo_move();
+            evaluations[i] = eval;
             best_eval = std::max(eval, best_eval);
             num_moves_evaluated++;
-            std::optional<int> moves_to_mate = EvalState::moves_to_mate(best_eval);
-
-            if (moves_to_mate) {  // if we have mate, dont need to check further.
-                if (moves_to_mate.value() >
-                    0) {  // Negative value means we are getting mated. ofc check all moves.
-                    ponder = false;
-                    break;
-                }
-            }
 
             if (time_manager->get_should_stop()) {
                 // Even if we break early we get information from this evaluation.
@@ -80,7 +71,6 @@ void Game::think_loop(const time_control rem_time) {
                 break;
             }
         }
-        std::optional<int> moves_to_mate = EvalState::moves_to_mate(best_eval);
 
         MoveOrder::partial_move_sort(moves, evaluations, num_moves_evaluated,
                                      false);  // Sort moves by score in order to help next
@@ -96,6 +86,7 @@ void Game::think_loop(const time_control rem_time) {
         info_queue.push(new_msg);
         // Sort move list by the score list.
         depth++;
+        std::optional<int> moves_to_mate = EvalState::moves_to_mate(best_eval);
         if (moves_to_mate) {
             break;
         }
@@ -132,15 +123,15 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
         this->make_move(moves[i]);
-        eval = std::max(eval, -alpha_beta(depth - 1, ply + 1, -beta, -alpha));
-        alpha = std::max(alpha, eval);
+        eval = -alpha_beta(depth - 1, ply + 1, -beta, -alpha);
         this->undo_move();
         if (eval >= beta) {
-            break;  // fail soft.
+            return beta;
         }
+        alpha = std::max(alpha, eval);
     }
 
-    return eval;
+    return alpha;
 }
 
 Move Game::get_bestmove() const { return bestmove; }
