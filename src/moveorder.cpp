@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include <algorithm>
 #include <eval.h>
+#include <integer_representation.h>
 #include <moveorder.h>
 #include <vector>
 void MoveOrder::partial_move_sort(std::array<Move, max_legal_moves> &moves,
@@ -25,18 +26,25 @@ void MoveOrder::partial_move_sort(std::array<Move, max_legal_moves> &moves,
 }
 
 int MoveOrder::move_heuristics(Move &move, Board &board) {
-    int piece_cap_eval = 0;
+    int heuristics = 0;
     if (!board.is_square_empty(move.target)) {
-        piece_cap_eval = PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10 -
-                         PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
+        heuristics += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10 -
+                      PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
     }
 
-    int piece_promotion_eval = 0;
     if (move.promotion.get_type() > 0) {
-        piece_promotion_eval = PieceValue::piecevals[move.promotion.get_type()];
+        heuristics += PieceValue::piecevals[move.promotion.get_type()];
     }
 
-    return piece_cap_eval + piece_promotion_eval;
+    uint8_t col = board.get_turn_color();
+    BB pawn_atk_bb = movegen::pawn_atk_bb(board.get_bb(pieces::pawn | col), col);
+    if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
+        heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
+                                                .get_type()];  // penalize if target square is on a
+                                                               // square defended by a pawn.
+    }
+
+    return heuristics;
 }
 
 void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
