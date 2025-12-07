@@ -64,7 +64,7 @@ clean:
 # Run the main executable
 run:
 	cd $(DEXE); \
-	./$(EXEN)
+	./$(EXE)
 
 # Run all tests
 test: $(DEXE)/$(TEST_EXE)
