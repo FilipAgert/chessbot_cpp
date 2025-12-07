@@ -5,6 +5,14 @@
 #include <random>
 #include <transposition.h>
 
+std::array<std::array<uint64_t, 64>, 12>
+    ZobroistHasher::piece_numbers{};                        // one number for each piece and square
+std::array<uint64_t, 16> ZobroistHasher::castle_numbers{};  // one for each castle combination
+std::array<uint64_t, 8> ZobroistHasher::ep_numbers{};       // file of ep
+uint64_t ZobroistHasher::black_number;                      // indicate if black is playing or not.
+std::uniform_int_distribution<uint64_t> ZobroistHasher::generator;
+std::mt19937_64 ZobroistHasher::engine;
+
 const bool ZobroistHasher::s_initialized = []() {
     ZobroistHasher::initialize_engine();
     ZobroistHasher::randomize_local_vars();
@@ -50,7 +58,7 @@ void ZobroistHasher::hash_ep(uint64_t &hash, const Board &board) {
         hash ^= ZobroistHasher::ep_numbers[ep_file];
     }
 }
-uint64_t ZobroistHasher::hash_board(Board &board) {
+uint64_t ZobroistHasher::hash_board(const Board &board) {
     uint64_t hash = 0;
     ZobroistHasher::hash_both_piece<pieces::king>(hash, board);
     ZobroistHasher::hash_both_piece<pieces::queen>(hash, board);

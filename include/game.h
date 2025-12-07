@@ -86,6 +86,7 @@ class Game {
      */
     bool set_fen(std::string FEN);
 
+    void set_startpos() { set_fen(NotationInterface::starting_FEN()); }
     Board get_board() { return board; }
 
     /**
