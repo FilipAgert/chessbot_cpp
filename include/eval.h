@@ -68,7 +68,9 @@ class EvalState {
      * @param[in] num_pieces Number of pieces and pawns
      * @return Game phase. 0 is early game and 1 is end game
      */
-    constexpr static float eval_game_phase(const int num_pieces) { return (num_pieces - 2.) / 30.; }
+    constexpr static float eval_game_phase(const int num_pieces) {
+        return 1. - (num_pieces - 1.) / 15.;
+    }
 };
 
 struct PieceValue {

@@ -57,9 +57,18 @@ int EvalState::eval_king_dist2centre(Board &board) {
     uint8_t black_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, false>());
     uint8_t white_dist = helpers::dist2centre[white_king_sq];
     uint8_t black_dist = helpers::dist2centre[black_king_sq];
-    int value = white_dist * PieceValue::king_dist2centre_value -
-                black_dist * PieceValue::king_dist2centre_value;
-    return (1. * value * (2 * EvalState::eval_game_phase(board.get_num_pieces()) - 1.0));
+    uint8_t king_dist = helpers::manhattan(white_king_sq, black_king_sq);
+    float white_endgame =
+        2 * eval_game_phase(board.get_num_pieces<false>()) - 1;  // eval based on black pieces
+    float black_endgame =
+        2 * eval_game_phase(board.get_num_pieces<true>()) - 1;  // eval based on white pieces
+
+    // Absolute king position value.
+    float wval = -white_dist * PieceValue::king_dist2centre_value * white_endgame;
+    float bval = black_dist * PieceValue::king_dist2centre_value * black_endgame;
+
+    float relval = king_dist * (white_endgame - black_endgame) * PieceValue::king_dist2centre_value;
+    return static_cast<int>(wval + bval + relval);
 }
 std::optional<int> EvalState::moves_to_mate(int score) {
     // Negative score should remain negative.
