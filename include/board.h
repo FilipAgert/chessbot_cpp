@@ -247,6 +247,10 @@ struct Board {
     std::vector<Piece> get_pieces();
 
     BB occupancy() { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
+    template <bool is_white> BB occupancy() {
+        constexpr uint8_t idx = is_white ? pieces::white : pieces::black;
+        return bit_boards[idx];
+    }
     /**
      * @brief Gets piece mobility for a given piece type
      *
@@ -262,18 +266,20 @@ struct Board {
 
         int mobility = 0;
         BB occ = occupancy();
+        BB friendly = occuancy<is_white>();
         if constexpr (omit_pawn_controlled) {
             BB enemy_pawn_bb = get_piece_bb<pieces::pawn, !is_white>();
             BB enemy_pawn_atk = movegen::pawn_atk_bb(enemy_pawn_bb, !is_white);
             BitLoop(piece_bb) {
                 uint8_t sq = BitBoard::lsb(piece_bb);
-                BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ) & ~enemy_pawn_atk;
+                BB piece_atk_bb =
+                    movegen::get_atk_bb<pval, is_white>(sq, occ) & ~(~friendly | enemy_pawn_atk);
                 mobility += BitBoard::bitcount(piece_atk_bb);
             }
         } else {
             BitLoop(piece_bb) {
                 uint8_t sq = BitBoard::lsb(piece_bb);
-                BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ);
+                BB piece_atk_bb = movegen::get_atk_bb<pval, is_white>(sq, occ) * ~friendly;
                 mobility += BitBoard::bitcount(piece_atk_bb);
             }
         }
