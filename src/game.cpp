@@ -13,6 +13,7 @@
 #include <move.h>
 #include <string>
 #include <time_manager.h>
+#include <utility>
 bool Game::set_fen(std::string FEN) {
     bool success = board.read_fen(FEN);
     return success;
@@ -42,24 +43,22 @@ void Game::think_loop(const time_control rem_time) {
         new TimeManager(rem_time, buffer, fraction, board.get_turn_color() == pieces::white));
     time_manager->start_time_management();
 
-    std::array<int, max_legal_moves> evaluations;
-
     int depth = 1;
     bool ponder = true;
 
     while (ponder) {
         int eval;
-        int best_eval;
-        size_t num_moves_evaluated = 0;
-
-        best_eval = INT_MIN;
+        int alpha = -INF;
+        const int beta = INF;
+        int best_move_idx = 0;
         for (int i = 0; i < num_moves; i++) {
             this->make_move(moves[i]);
-            eval = -alpha_beta(depth - 1, 1, -INF, INF);
+            eval = -alpha_beta(depth - 1, 1, -beta, -alpha);
             this->undo_move();
-            evaluations[i] = eval;
-            best_eval = std::max(eval, best_eval);
-            num_moves_evaluated++;
+            if (eval > alpha) {
+                alpha = eval;
+                best_move_idx = i;  //
+            }
 
             if (time_manager->get_should_stop()) {
                 // Even if we break early we get information from this evaluation.
@@ -71,10 +70,8 @@ void Game::think_loop(const time_control rem_time) {
                 break;
             }
         }
+        std::swap(moves[0], moves[best_move_idx]);  // Set best move first.
 
-        MoveOrder::partial_move_sort(moves, evaluations, num_moves_evaluated,
-                                     false);  // Sort moves by score in order to help next
-                                              // depth improve move ordering.
         bestmove = moves[0];
 
         InfoMsg new_msg;
@@ -82,11 +79,10 @@ void Game::think_loop(const time_control rem_time) {
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
         new_msg.pv = {bestmove};
-        new_msg.score = best_eval;
+        new_msg.score = alpha;
         info_queue.push(new_msg);
-        // Sort move list by the score list.
         depth++;
-        std::optional<int> moves_to_mate = EvalState::moves_to_mate(best_eval);
+        std::optional<int> moves_to_mate = EvalState::moves_to_mate(alpha);
         if (moves_to_mate) {
             break;
         }
