@@ -69,11 +69,6 @@ class Game {
      *
      */
     Move get_bestmove() const;
-    /**
-     * @brief Set game to start position.
-     *
-     */
-    void reset_game();
     void make_move(Move move);
     void undo_move();
     /**
@@ -103,6 +98,12 @@ class Game {
 
  private:
     std::stack<Move> move_stack;
+    /**
+     * @brief Clear stack and pushes current board state onto it.
+     *
+     */
+    void reset_state_stack();
+    StateStack state_stack;
     Move bestmove;
     Board board;
     uint64_t moves_generated;

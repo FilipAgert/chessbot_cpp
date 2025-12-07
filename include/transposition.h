@@ -36,6 +36,12 @@ class StateStack {
     }
 
     /**
+     * @brief Resets stack.
+     *
+     */
+    inline void reset() { top = 0; }
+
+    /**
      * @brief Checks if there are atleast some number of occurences or more in the stack
      *
      * @param[in] hash hash to check for
@@ -106,13 +112,13 @@ class ZobroistHasher {
      * @param[in] board Board to hash
      * @return hash of board.
      */
-    static uint64_t hash_board(Board &board);
+    static uint64_t hash_board(const Board &board);
     /**
      * @brief Hash can be incremented by XORing the parts that changed. This is color and pieces
      * moved and castle information.
      *
      * @param[[TODO:direction]] hash [TODO:description]
      */
-    static void update_hash(uint64_t &hash, Move move);
+    static void update_hash(uint64_t &hash, const Move move);
 };
 #endif

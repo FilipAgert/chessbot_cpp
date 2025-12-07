@@ -16,6 +16,7 @@
 #include <utility>
 bool Game::set_fen(std::string FEN) {
     bool success = board.read_fen(FEN);
+    reset_state_stack();
     return success;
 }
 void Game::start_thinking(const time_control rem_time) {
@@ -27,6 +28,12 @@ void Game::reset_infos() {
     moves_generated = 0;
     nodes_evaluated = 0;
     bestmove = Move();
+}
+
+void Game::reset_state_stack() {
+    state_stack.reset();
+    uint64_t board_hash = ZobroistHasher::hash_board(board);
+    state_stack.push(board_hash);
 }
 
 void Game::think_loop(const time_control rem_time) {
@@ -132,16 +139,18 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
 
 Move Game::get_bestmove() const { return bestmove; }
 
-void Game::reset_game() { bool success = board.read_fen(NotationInterface::starting_FEN()); }
 std::string Game::get_fen() const { return board.fen_from_state(); }
 
 void Game::make_move(Move move) {
     board.do_move(move);
     move_stack.push(move);
+    uint64_t state_hash = ZobroistHasher::hash_board(board);
+    state_stack.push(state_hash);
 }
 
 void Game::undo_move() {
     Move move = move_stack.top();
     move_stack.pop();
     board.undo_move(move);
+    state_stack.pop();
 }
