@@ -99,6 +99,10 @@ void Game::think_loop(const time_control rem_time) {
 }
 
 int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
+    if (this->check_repetition()) {
+        return 0;  // Checks if position is a repeat.
+    }
+
     if (depth == 0) {
         nodes_evaluated++;
         return EvalState::eval(board);
@@ -137,6 +141,13 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
     return alpha;
 }
 
+bool Game::check_repetition() {
+    // Checks if we have repeated this board state.
+    uint64_t hash = state_stack.top();
+    constexpr int instances_for_draw =
+        2;  // How many occurences of this board should have occured for a draw?
+    return state_stack.atleast_num(hash, instances_for_draw);
+}
 Move Game::get_bestmove() const { return bestmove; }
 
 std::string Game::get_fen() const { return board.fen_from_state(); }

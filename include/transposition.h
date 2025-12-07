@@ -14,13 +14,14 @@
 
 class StateStack {
  private:
-    size_t top = 0;
+    size_t top_idx = 0;
     constexpr static size_t max_size = 512;
     std::array<uint64_t, max_size> stack;
 
  public:
-    inline void push(uint64_t hash) { stack[++top] = hash; }
-    inline void pop() { top--; }
+    inline void push(uint64_t hash) { stack[++top_idx] = hash; }
+    inline void pop() { top_idx--; }
+    inline uint64_t top() { return stack[top_idx]; }
     /**
      * @brief Counts number of occurences of hash in stack.
      *
@@ -29,7 +30,7 @@ class StateStack {
      */
     inline int count_elem(uint64_t hash) {
         int ctr = 0;
-        for (int i = std::min(top, max_size - 1); i >= 0; i--) {
+        for (int i = std::min(top_idx, max_size - 1); i >= 0; i--) {
             ctr += stack[i] == hash;
         }
         return ctr;
@@ -39,7 +40,7 @@ class StateStack {
      * @brief Resets stack.
      *
      */
-    inline void reset() { top = 0; }
+    inline void reset() { top_idx = 0; }
 
     /**
      * @brief Checks if there are atleast some number of occurences or more in the stack
@@ -50,7 +51,7 @@ class StateStack {
      */
     inline bool atleast_num(uint64_t hash, int num) {
         int ctr = 0;
-        int idx = std::min(top, max_size - 1);
+        int idx = std::min(top_idx, max_size - 1);
         while ((ctr < num) && (idx >= 0)) {
             ctr += hash == stack[idx];
         }
