@@ -5,6 +5,7 @@
 #include <notation_interface.h>
 #include <piece.h>
 #include <time_manager.h>
+#include <transposition.h>
 
 #include <queue>
 #include <stack>
