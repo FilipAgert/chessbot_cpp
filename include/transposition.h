@@ -2,15 +2,14 @@
 #ifndef TRANSPOSITION_H
 #define TRANSPOSITION_H
 
+#include <bitboard.h>
 #include <board.h>
 #include <cstdint>
+#include <piece.h>
 #include <random>
-struct board_hash {
-    uint64_t hash;
-};
 
 struct transposition_entry {
-    board_hash hash;
+    uint64_t hash;
     int eval;
 };
 
@@ -34,6 +33,28 @@ class ZobroistHasher {
     static void randomize_local_vars();
     static const bool s_initialized;
 
+    /**
+     * @brief Adds to hash for a piece
+     *
+     * @tparam Piece_t type of piece
+     * @tparam iswhite color of piece
+     * @param[inout] hash Hash as input. new hash as output
+     * @param[in] board to hash.
+     */
+    template <Piece_t p, bool is_white> static void hash_piece(uint64_t &hash, const Board &board);
+    template <Piece_t p> static void hash_both_piece(uint64_t &hash, const Board &board);
+    template <Piece_t p, bool is_white> constexpr static uint8_t piece_key() {
+        uint8_t col_offset = is_white ? 0 : 6;
+        return col_offset + (p - 1);
+    }
+    static void hash_ep(uint64_t &hash, const Board &board);
+    static void hash_castle(uint64_t &hash, const Board &board) { hash ^= board.get_castling(); }
+    static void hash_turn(uint64_t &hash, const Board &board) {
+        if (board.get_turn_color() == pieces::black) {
+            hash ^= ZobroistHasher::black_number;
+        }
+    }
+
  public:
     /**
      * @brief Generate hash from a board
@@ -41,13 +62,13 @@ class ZobroistHasher {
      * @param[in] board Board to hash
      * @return hash of board.
      */
-    board_hash hash_board(Board &board);
+    static uint64_t hash_board(Board &board);
     /**
      * @brief Hash can be incremented by XORing the parts that changed. This is color and pieces
      * moved and castle information.
      *
      * @param[[TODO:direction]] hash [TODO:description]
      */
-    void update_hash(board_hash &hash, Move move);
+    static void update_hash(uint64_t &hash, Move move);
 };
 #endif
