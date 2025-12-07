@@ -32,6 +32,14 @@ class Game {
     void end_game();
 
     /**
+     * @brief Returns true if this board state has occured already in the tree. This means that if
+     * the zobroist hash is already in the game stack. It is okay with just one and not thrice,
+     * since its easier and since the state is deterministic anyway.
+     *
+     * @return true if this position already occured.
+     */
+    bool check_repetition();
+    /**
      * @brief Enter the game loop logic. This should be called when UCI command GO is received.
      * @param rem_time: Time control structure from input.
      *
