@@ -266,7 +266,7 @@ struct Board {
 
         int mobility = 0;
         BB occ = occupancy();
-        BB friendly = occuancy<is_white>();
+        BB friendly = occupancy<is_white>();
         if constexpr (omit_pawn_controlled) {
             BB enemy_pawn_bb = get_piece_bb<pieces::pawn, !is_white>();
             BB enemy_pawn_atk = movegen::pawn_atk_bb(enemy_pawn_bb, !is_white);
