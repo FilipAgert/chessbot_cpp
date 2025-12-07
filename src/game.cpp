@@ -127,6 +127,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
     }
     // End mate and draws.
 
+    MoveOrder::apply_move_sort(moves, num_moves, board);
     int eval = -INF;
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
