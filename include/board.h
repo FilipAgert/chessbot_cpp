@@ -195,6 +195,15 @@ struct Board {
      */
     bool does_move_check(const Move candidate, const uint8_t king_color);
     inline uint8_t get_num_pieces() { return num_pieces; }
+    /**
+     * @brief Gets number of pieces for a player
+     *
+     * @tparam is_white white or black
+     * @return number of pieces for selected player
+     */
+    template <bool is_white> inline constexpr uint8_t get_num_pieces() {
+        return BitBoard::bitcount(is_white ? bit_boards[pieces::white] : bit_boards[pieces::black]);
+    }
     void print_piece_loc() const;
     inline const uint64_t get_bb(const uint8_t bb_idx) { return bit_boards[bb_idx]; }
 
@@ -236,8 +245,6 @@ struct Board {
      *
      */
     std::vector<Piece> get_pieces();
-
-    std::vector<std::pair<Piece, uint8_t>> get_piece_num_moves(uint8_t castleinfo, uint64_t ep_bb);
 
     BB occupancy() { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
     /**
