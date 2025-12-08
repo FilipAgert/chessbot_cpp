@@ -101,34 +101,6 @@ std::vector<Piece> Board::get_pieces() {
     }
     return pieces;
 }
-uint64_t Board::to_squares(uint8_t ptype, uint8_t sq, uint64_t friendly_bb, uint64_t enemy_bb,
-                           uint64_t ep_bb, uint8_t castleinfo, uint8_t turn_color) const {
-    uint64_t piece_bb = BitBoard::one_high(sq);
-    uint8_t enemy_col = turn_color ^ pieces::color_mask;
-    uint64_t to_squares;
-    switch (ptype) {
-    case pieces::pawn:
-        to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, turn_color);
-        break;
-    case pieces::bishop:
-        to_squares = movegen::bishop_moves_sq(sq, friendly_bb, enemy_bb);
-        break;
-    case pieces::knight:
-        to_squares = movegen::knight_moves(sq, friendly_bb);
-        break;
-    case pieces::rook:
-        to_squares = movegen::rook_moves_sq(sq, friendly_bb, enemy_bb);
-        break;
-    case pieces::queen:
-        to_squares = movegen::queen_moves_sq(sq, friendly_bb, enemy_bb);
-        break;
-    case pieces::king:
-        to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
-                                         get_atk_bb(enemy_col), castleinfo, turn_color);
-        break;
-    }
-    return to_squares;
-}
 
 /**
  * @brief Adds moves to movelist
@@ -161,22 +133,6 @@ void Board::add_moves_pawn(std::array<Move, max_legal_moves> &moves, size_t &num
     }
 }
 
-void Board::gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
-                              uint64_t &piece_bb, const uint8_t piecetype,
-                              const uint64_t friendly_bb, const uint64_t enemy_bb,
-                              const uint64_t ep_bb, const uint8_t castleinfo,
-                              const uint8_t turn_color) const {
-    BitLoop(piece_bb) {
-        uint8_t sq = BitBoard::lsb(piece_bb);
-        uint64_t to_sqs =
-            to_squares(piecetype, sq, friendly_bb, enemy_bb, ep_bb, castleinfo, turn_color);
-        if (piecetype == pieces::pawn) {
-            add_moves_pawn(moves, num_moves, to_sqs, sq, turn_color);
-        } else {
-            add_moves(moves, num_moves, to_sqs, sq);
-        }
-    }
-}
 uint64_t Board::get_atk_bb(const uint8_t color) const {
     uint8_t enemy_color = color ^ pieces::color_mask;
 

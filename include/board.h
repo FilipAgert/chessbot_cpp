@@ -91,27 +91,27 @@ struct Board {
                                  const uint8_t color) const {
         size_t num_moves = 0;
         uint8_t enemy_color = color ^ pieces::color_mask;
-        uint64_t friendly_bb = bit_boards[color];
-        uint64_t enemy_bb = bit_boards[enemy_color];
-        uint64_t queen_bb = bit_boards[color | pieces::queen];
-        uint64_t bishop_bb = bit_boards[color | pieces::bishop];
-        uint64_t rook_bb = bit_boards[color | pieces::rook];
-        uint64_t pawn_bb = bit_boards[color | pieces::pawn];
-        uint64_t knight_bb = bit_boards[color | pieces::knight];
-        uint64_t king_bb = bit_boards[color | pieces::king];
+        BB friendly_bb = bit_boards[color];
+        BB enemy_bb = bit_boards[enemy_color];
+        BB queen_bb = get_piece_bb<pieces::queen>(color);
+        BB bishop_bb = get_piece_bb<pieces::bishop>(color);
+        BB rook_bb = get_piece_bb<pieces::rook>(color);
+        BB pawn_bb = get_piece_bb<pieces::pawn>(color);
+        BB king_bb = get_piece_bb<pieces::king>(color);
+        BB knight_bb = get_piece_bb<pieces::knight>(color);
         uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_square) : 0;
-        gen_add_all_moves(moves, num_moves, queen_bb, pieces::queen, friendly_bb, enemy_bb, ep_bb,
-                          castleinfo, color);
-        gen_add_all_moves(moves, num_moves, bishop_bb, pieces::bishop, friendly_bb, enemy_bb, ep_bb,
-                          castleinfo, color);
-        gen_add_all_moves(moves, num_moves, rook_bb, pieces::rook, friendly_bb, enemy_bb, ep_bb,
-                          castleinfo, color);
-        gen_add_all_moves(moves, num_moves, king_bb, pieces::king, friendly_bb, enemy_bb, ep_bb,
-                          castleinfo, color);
-        gen_add_all_moves(moves, num_moves, knight_bb, pieces::knight, friendly_bb, enemy_bb, ep_bb,
-                          castleinfo, color);
-        gen_add_all_moves(moves, num_moves, pawn_bb, pieces::pawn, friendly_bb, enemy_bb, ep_bb,
-                          castleinfo, color);
+        gen_add_all_moves<pieces::queen>(moves, num_moves, queen_bb, friendly_bb, enemy_bb, ep_bb,
+                                         castleinfo, color);
+        gen_add_all_moves<pieces::bishop>(moves, num_moves, bishop_bb, friendly_bb, enemy_bb, ep_bb,
+                                          castleinfo, color);
+        gen_add_all_moves<pieces::rook>(moves, num_moves, rook_bb, friendly_bb, enemy_bb, ep_bb,
+                                        castleinfo, color);
+        gen_add_all_moves<pieces::king>(moves, num_moves, king_bb, friendly_bb, enemy_bb, ep_bb,
+                                        castleinfo, color);
+        gen_add_all_moves<pieces::knight>(moves, num_moves, knight_bb, friendly_bb, enemy_bb, ep_bb,
+                                          castleinfo, color);
+        gen_add_all_moves<pieces::pawn>(moves, num_moves, pawn_bb, friendly_bb, enemy_bb, ep_bb,
+                                        castleinfo, color);
         return num_moves;
     }
     /**
@@ -224,9 +224,22 @@ struct Board {
      * @return Bitboard of piece
      */
     template <Piece_t pval, bool is_white> BB get_piece_bb() const {
-        constexpr uint8_t col = is_white ? pieces::white : pieces::black;
+        uint8_t col;
+        if constexpr (is_white)
+            col = pieces::white;
+        else
+            col = pieces::black;
         constexpr uint8_t type = pval & pieces::piece_mask;
 
+        return bit_boards[col | type];
+    }
+    /**
+     * @brief Gets piece bitboard compile time.
+     * @tparam pval [Value of piece]
+     * @return Bitboard of piece
+     */
+    template <Piece_t pval> BB get_piece_bb(uint8_t col) const {
+        constexpr uint8_t type = pval & pieces::piece_mask;
         return bit_boards[col | type];
     }
     /**
@@ -329,10 +342,22 @@ struct Board {
      * @param[in] castleinfo int containing info about a castle
      * @param[in] turn_color color of player
      */
+    template <Piece_t ptype>
     void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
-                           uint64_t &piece_bb, const uint8_t piecetype, const uint64_t friendly_bb,
-                           const uint64_t enemy_bb, const uint64_t ep_bb, const uint8_t castleinfo,
-                           const uint8_t turn_color) const;
+                           uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
+                           const uint64_t ep_bb, const uint8_t castleinfo,
+                           const uint8_t turn_color) const {
+        BitLoop(piece_bb) {
+            uint8_t sq = BitBoard::lsb(piece_bb);
+            uint64_t to_sqs =
+                to_squares<ptype>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo, turn_color);
+            if constexpr (ptype == pieces::pawn) {
+                add_moves_pawn(moves, num_moves, to_sqs, sq, turn_color);
+            } else {
+                add_moves(moves, num_moves, to_sqs, sq);
+            }
+        }
+    }
 
     std::array<Piece, 64> game_board;
     std::array<uint8_t, 32>
@@ -358,8 +383,28 @@ struct Board {
      * @param[in] turn_color Color of player to eval
      * @return bitboard containing ones in the squares where this piece (or pieces) can move to.
      */
-    uint64_t to_squares(uint8_t ptype, uint8_t sq, uint64_t friendly_bb, uint64_t enemy_bb,
-                        uint64_t ep_bb, uint8_t castleinfo, uint8_t turn_color) const;
+    template <Piece_t ptype>
+    BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo,
+                  uint8_t turn_color) const {
+        BB piece_bb = BitBoard::one_high(sq);
+        uint8_t enemy_col = turn_color ^ pieces::color_mask;
+        BB to_squares;
+        if constexpr (ptype == pieces::pawn) {
+            to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, turn_color);
+        } else if constexpr (ptype == pieces::bishop) {
+            to_squares = movegen::bishop_moves_sq(sq, friendly_bb, enemy_bb);
+        } else if constexpr (ptype == pieces::knight) {
+            to_squares = movegen::knight_moves(sq, friendly_bb);
+        } else if constexpr (ptype == pieces::rook) {
+            to_squares = movegen::rook_moves_sq(sq, friendly_bb, enemy_bb);
+        } else if constexpr (ptype == pieces::queen) {
+            to_squares = movegen::queen_moves_sq(sq, friendly_bb, enemy_bb);
+        } else if constexpr (ptype == pieces::king) {
+            to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
+                                             get_atk_bb(enemy_col), castleinfo, turn_color);
+        }
+        return to_squares;
+    }
     /**
      * @brief Handles moving piece on bitboard.
      * board.
