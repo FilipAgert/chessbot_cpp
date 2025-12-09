@@ -66,11 +66,13 @@ void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t
         for (int m = 0; m < num_moves; m++) {
             int move_score = move_heuristics(moves[m], board);
             if (moves[m].source == first.source && moves[m].target == first.target)
-                m = firstmoveidx;
+                firstmoveidx = m;
             move_scores[m] = move_score;
         }
-        if (firstmoveidx == -1)
+        if (firstmoveidx == -1) {
+            std::cout << firstmove.value().toString() << std::endl;
             throw std::runtime_error("firstmove was not found in movelist");
+        }
         std::swap(move_scores[0], move_scores[firstmoveidx]);
         std::swap(moves[0], moves[firstmoveidx]);
         partial_move_sort(moves, move_scores, firstmoveidx, num_moves, false);

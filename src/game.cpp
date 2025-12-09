@@ -9,6 +9,7 @@
 #include <config.h>
 #include <eval.h>
 #include <game.h>
+#include <iostream>
 #include <memory>
 #include <move.h>
 #include <string>
@@ -114,7 +115,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     std::optional<transposition_entry> maybe_entry = trans_table.get(zob_hash);
     std::optional<Move> first_move = {};
     int movelb = 0;
-    Move bestmove;
+    Move best_curr_move;
     int bestscore = -INF;
     int nodetype = transposition_entry::ub;
     if (maybe_entry) {
@@ -156,7 +157,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             }
 
             bestscore = eval;
-            bestmove = entry.bestmove;
+            best_curr_move = entry.bestmove;
             if (eval > alpha) {  // alpha raised and node is exact.
                 alpha = eval;
                 nodetype = transposition_entry::exact;
@@ -191,9 +192,9 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         this->undo_move();
         if (eval > bestscore) {
             bestscore = eval;
-            bestmove = moves[i];
+            best_curr_move = moves[i];
             if (eval >= beta) {  // FAIL HIGH.
-                trans_table.store(zob_hash, bestmove, eval, transposition_entry::lb,
+                trans_table.store(zob_hash, best_curr_move, eval, transposition_entry::lb,
                                   depth);  // Can update hash to curr depth.
                 return beta;  // This move is too good. The minimising player (beta) will never
                               // allow the board to go here. we can return.
@@ -204,7 +205,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             nodetype = transposition_entry::exact;
         }
     }
-    trans_table.store(zob_hash, bestmove, alpha, nodetype, depth);
+    trans_table.store(zob_hash, best_curr_move, alpha, nodetype, depth);
     return alpha;
 }
 
