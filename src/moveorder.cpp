@@ -5,24 +5,25 @@
 #include <moveorder.h>
 #include <vector>
 void MoveOrder::partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                                  std::array<int, max_legal_moves> &scores, size_t num_moves,
-                                  bool ascending) {
+                                  std::array<int, max_legal_moves> &scores, size_t start,
+                                  size_t num_moves, bool ascending) {
     std::vector<std::pair<Move, int>> zipped;
     std::array<size_t, max_legal_moves> indices;
-    std::ranges::iota(indices.begin(), indices.begin() + num_moves, 0);
+    std::ranges::iota(indices.begin() + start, indices.begin() + num_moves, 0);
 
-    std::sort(indices.begin(), indices.begin() + num_moves, [&](size_t a, size_t b) {
+    std::sort(indices.begin() + start, indices.begin() + num_moves, [&](size_t a, size_t b) {
         if (ascending)
             return scores[a] < scores[b];
         else
             return scores[a] > scores[b];
     });
     std::array<Move, max_legal_moves> sorted_moves;
-    for (size_t i = 0; i < num_moves; ++i) {
+    for (size_t i = start; i < num_moves; ++i) {
         sorted_moves[i] = moves[indices[i]];
     }
 
-    std::copy(sorted_moves.begin(), sorted_moves.begin() + num_moves, moves.begin());
+    std::copy(sorted_moves.begin() + start, sorted_moves.begin() + num_moves,
+              moves.begin() + start);
 }
 
 int MoveOrder::move_heuristics(Move &move, Board &board) {
@@ -55,4 +56,25 @@ void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t
         move_scores[m] = move_score;
     }
     partial_move_sort(moves, move_scores, num_moves, false);
+}
+void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
+                                std::optional<Move> firstmove, Board &board) {
+    if (firstmove) {
+        std::array<int, max_legal_moves> move_scores;
+        int firstmoveidx = -1;
+        Move first = firstmove.value();
+        for (int m = 0; m < num_moves; m++) {
+            int move_score = move_heuristics(moves[m], board);
+            if (moves[m].source == first.source && moves[m].target == first.target)
+                m = firstmoveidx;
+            move_scores[m] = move_score;
+        }
+        if (firstmoveidx == -1)
+            throw std::runtime_error("firstmove was not found in movelist");
+        std::swap(move_scores[0], move_scores[firstmoveidx]);
+        std::swap(moves[0], moves[firstmoveidx]);
+        partial_move_sort(moves, move_scores, firstmoveidx, num_moves, false);
+    } else {
+        apply_move_sort(moves, num_moves, board);
+    }
 }

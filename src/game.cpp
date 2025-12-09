@@ -162,20 +162,21 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     }
     // End mate and draws.
 
-    MoveOrder::apply_move_sort(moves, num_moves, board);
+    MoveOrder::apply_move_sort(moves, num_moves, first_move, board);
     int eval = -INF;
     // Normal move generation.
     //
-    for (int i = 0; i < num_moves; i++) {
+    for (int i = movelb; i < num_moves; i++) {
         this->make_move(moves[i]);
         int extension = calculate_extension(moves[i], num_extensions);
 
         eval =
             -alpha_beta(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         this->undo_move();
-        if (eval >= beta) {
-            return beta;
-        }
+        if (eval >= beta)  // FAIL HIGH.
+            return beta;   // This move is too good. The minimising player (beta) will never allow
+                           // the board to go here. we can return.
+
         alpha = std::max(alpha, eval);
     }
 
