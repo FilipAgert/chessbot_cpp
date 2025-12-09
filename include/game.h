@@ -59,9 +59,10 @@ class Game {
      * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
      * @param[[TODO:direction]] alpha Maximum guaranteed score of maximising player.
      * @param[[TODO:direction]] beta Minimum guaranteeds core of minimising player
+     * @param[in] num_extensions - number of move extensions performed so far
      * @return Score of current state.
      */
-    int alpha_beta(int depth, int ply, int alpha, int beta);
+    int alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
     /**
      * @brief Quiesence search. Only evaluates captures
      * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
@@ -70,6 +71,16 @@ class Game {
      * @return Score of current state.
      */
     int quiesence(int ply, int alpha, int beta);
+
+    /**
+     * @brief Computes the extension for this move
+     *
+     * @param[in] move move played
+     * @param[in] board board state
+     * @param[in] num_extensions number of extensions previously performed
+     * @return move extensions
+     */
+    int calculate_extension(const Move &move, int num_extensions) const;
 
     /**
      * @brief Gets the current best known move to send to GUI.

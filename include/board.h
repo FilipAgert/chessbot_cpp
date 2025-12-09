@@ -67,8 +67,8 @@ struct Board {
             if (!king_checked(king_color)) {
                 // PERF: Check how expensive this king_checked thing is. Is it worth the move
                 // ordering benefit?
-                //            bool opponent_checked = board.king_checked(opposite_color);
-                //           pseudolegal_moves[m].check = opponent_checked;
+                bool opponent_checked = board.king_checked(opposite_color);
+                pseudolegal_moves[m].check = opponent_checked;
                 moves[num_moves++] = pseudolegal_moves[m];
             }
             undo_move(pseudolegal_moves[m]);
