@@ -46,13 +46,13 @@ struct Board {
     /**
      * @brief Get the all the possible legal moves and sets into provided array
      *
-     * @tparam type of move to generate.
+     * @tparam stype of move to generate.
      * @param moves array containing moves
      * @return * size_t: number of legal moves in array.
      */
-    template <search_type type> size_t get_moves(std::array<Move, max_legal_moves> &moves) {
+    template <search_type stype> size_t get_moves(std::array<Move, max_legal_moves> &moves) {
         std::array<Move, max_legal_moves> pseudolegal_moves;
-        size_t num_pseudolegal_moves = get_pseudolegal_moves<type>(pseudolegal_moves, turn_color);
+        size_t num_pseudolegal_moves = get_pseudolegal_moves<stype>(pseudolegal_moves, turn_color);
         uint8_t king_color = turn_color;
         //  uint8_t opposite_color = turn_color ^ color_mask;
 
@@ -78,7 +78,7 @@ struct Board {
     /**
      * @brief Get the all possible moves for specified player.
      *
-     * @tparam type of moves to generate
+     * @tparam stype of moves to generate
      * @param[out] Array containing the moves
      * @param[in] Color of player to find moves for.
      * @param[in] en_passant bool flag for en passant
@@ -86,7 +86,7 @@ struct Board {
      * @param[in] castle_info integer containing information for castling.
      * @return size_t Number of legal moves found.
      */
-    template <search_type type>
+    template <search_type stype>
     size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
                                  const uint8_t color) const {
         size_t num_moves = 0;
@@ -100,18 +100,18 @@ struct Board {
         BB king_bb = get_piece_bb<pieces::king>(color);
         BB knight_bb = get_piece_bb<pieces::knight>(color);
         uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_square) : 0;
-        gen_add_all_moves<pieces::queen>(moves, num_moves, queen_bb, friendly_bb, enemy_bb, ep_bb,
-                                         castleinfo, color);
-        gen_add_all_moves<pieces::bishop>(moves, num_moves, bishop_bb, friendly_bb, enemy_bb, ep_bb,
-                                          castleinfo, color);
-        gen_add_all_moves<pieces::rook>(moves, num_moves, rook_bb, friendly_bb, enemy_bb, ep_bb,
-                                        castleinfo, color);
-        gen_add_all_moves<pieces::king>(moves, num_moves, king_bb, friendly_bb, enemy_bb, ep_bb,
-                                        castleinfo, color);
-        gen_add_all_moves<pieces::knight>(moves, num_moves, knight_bb, friendly_bb, enemy_bb, ep_bb,
-                                          castleinfo, color);
-        gen_add_all_moves<pieces::pawn>(moves, num_moves, pawn_bb, friendly_bb, enemy_bb, ep_bb,
-                                        castleinfo, color);
+        gen_add_all_moves<pieces::queen, stype>(moves, num_moves, queen_bb, friendly_bb, enemy_bb,
+                                                ep_bb, castleinfo, color);
+        gen_add_all_moves<pieces::bishop, stype>(moves, num_moves, bishop_bb, friendly_bb, enemy_bb,
+                                                 ep_bb, castleinfo, color);
+        gen_add_all_moves<pieces::rook, stype>(moves, num_moves, rook_bb, friendly_bb, enemy_bb,
+                                               ep_bb, castleinfo, color);
+        gen_add_all_moves<pieces::king, stype>(moves, num_moves, king_bb, friendly_bb, enemy_bb,
+                                               ep_bb, castleinfo, color);
+        gen_add_all_moves<pieces::knight, stype>(moves, num_moves, knight_bb, friendly_bb, enemy_bb,
+                                                 ep_bb, castleinfo, color);
+        gen_add_all_moves<pieces::pawn, stype>(moves, num_moves, pawn_bb, friendly_bb, enemy_bb,
+                                               ep_bb, castleinfo, color);
         return num_moves;
     }
     /**
@@ -331,18 +331,19 @@ struct Board {
      * @brief For a bitboard with locations of pieces, generate all possible moves and add to move
      * vector
      *
+     * @tparam[in] ptype type of piece.
+     * @tparam[in] stype type of search.
      * @param[inout] moves array containing moves generated so far. will be filled with new moves
      * @param[inout] num_moves number of moves generated before this subroutine on in, increased by
      * number of moves this routine generated on oute
      * @param[in] piece_bb bitboard with piece locations. destroyed by this method
-     * @param[in] piecetype type of piece
      * @param[in] friendly_bb bb with all friendly pieces
      * @param[in] enemy_bb bb with all enemy pieces
      * @param[in] ep_bb bitboard with en passant square
      * @param[in] castleinfo int containing info about a castle
      * @param[in] turn_color color of player
      */
-    template <Piece_t ptype>
+    template <Piece_t ptype, search_type stype>
     void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
                            uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
                            const uint64_t ep_bb, const uint8_t castleinfo,
@@ -350,7 +351,7 @@ struct Board {
         BitLoop(piece_bb) {
             uint8_t sq = BitBoard::lsb(piece_bb);
             uint64_t to_sqs =
-                to_squares<ptype>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo, turn_color);
+                to_squares<ptype, stype>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo, turn_color);
             if constexpr (ptype == pieces::pawn) {
                 add_moves_pawn(moves, num_moves, to_sqs, sq, turn_color);
             } else {
@@ -374,7 +375,8 @@ struct Board {
     /**
      * @brief For a given piece type, generate all possible to squares.
      *
-     * @param[in] ptype Piece type
+     * @tparam[in] ptype Piece type
+     * @tparam[in] s_type type of search to be conducted.
      * @param[in] sq Square of piece
      * @param[in] friendly_bb Bit board of all friendly pieces
      * @param[in] enemy_bb Bit board of all enemy pieces
@@ -383,7 +385,7 @@ struct Board {
      * @param[in] turn_color Color of player to eval
      * @return bitboard containing ones in the squares where this piece (or pieces) can move to.
      */
-    template <Piece_t ptype>
+    template <Piece_t ptype, search_type s_type>
     BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo,
                   uint8_t turn_color) const {
         BB piece_bb = BitBoard::one_high(sq);
@@ -402,6 +404,9 @@ struct Board {
         } else if constexpr (ptype == pieces::king) {
             to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
                                              get_atk_bb(enemy_col), castleinfo, turn_color);
+        }
+        if constexpr (s_type.quiesence_search) {  // Only search for captures in Quiesence.
+            to_squares &= enemy_bb;
         }
         return to_squares;
     }

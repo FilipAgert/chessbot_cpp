@@ -59,10 +59,17 @@ class Game {
      * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
      * @param[[TODO:direction]] alpha Maximum guaranteed score of maximising player.
      * @param[[TODO:direction]] beta Minimum guaranteeds core of minimising player
-     * @param[[TODO:direction]] is_maximiser If maximiser.
      * @return Score of current state.
      */
     int alpha_beta(int depth, int ply, int alpha, int beta);
+    /**
+     * @brief Quiesence search. Only evaluates captures
+     * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
+     * @param[in] alpha Maximum guaranteed score of maximising player.
+     * @param[in] beta Minimum guaranteeds core of minimising player
+     * @return Score of current state.
+     */
+    int quiesence(int ply, int alpha, int beta);
 
     /**
      * @brief Gets the current best known move to send to GUI.
