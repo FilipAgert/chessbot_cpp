@@ -30,10 +30,10 @@ CCL = g++ -o
 CC = g++ $(FLAGS) -MMD -MP -c
 
 # objects
-OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o $(DOBJ)/game.o $(DOBJ)/notation_interface.o $(DOBJ)/bitboard.o $(DOBJ)/movegen.o $(DOBJ)/movegen_benchmark.o $(DOBJ)/time_manager.o $(DOBJ)/eval.o $(DOBJ)/moveorder.o $(DOBJ)/transposition.o
+OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o $(DOBJ)/game.o $(DOBJ)/notation_interface.o $(DOBJ)/bitboard.o $(DOBJ)/movegen.o $(DOBJ)/movegen_benchmark.o $(DOBJ)/time_manager.o $(DOBJ)/eval.o $(DOBJ)/moveorder.o $(DOBJ)/tables.o
 MAIN_OBJ = $(DOBJ)/main.o
 MAGIC_OBJ = $(DOBJ)/gen_magic_nums.o
-TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o $(DOBJ)/movegen_test.o $(DOBJ)/time_manager_test.o $(DOBJ)/transposition_test.o
+TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o $(DOBJ)/movegen_test.o $(DOBJ)/time_manager_test.o $(DOBJ)/tables_test.o
 
 # Target
 all: $(DEXE)/$(EXE)

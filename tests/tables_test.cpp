@@ -2,7 +2,7 @@
 #include <board.h>
 #include <gtest/gtest.h>
 #include <notation_interface.h>
-#include <transposition.h>
+#include <tables.h>
 
 TEST(ZobroistTest, rand) {
     int numhi = 0;

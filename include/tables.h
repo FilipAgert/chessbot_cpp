@@ -1,6 +1,6 @@
 // Copyright 2025 Filip Agert
-#ifndef TRANSPOSITION_H
-#define TRANSPOSITION_H
+#ifndef TABLES_H
+#define TABLES_H
 
 #include <algorithm>
 #include <bitboard.h>

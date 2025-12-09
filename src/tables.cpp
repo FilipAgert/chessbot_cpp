@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <piece.h>
 #include <random>
-#include <transposition.h>
+#include <tables.h>
 
 void ZobroistHasher::initialize_engine() {
     std::random_device sd;
