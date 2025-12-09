@@ -18,8 +18,9 @@ void partial_move_sort(std::array<Move, max_legal_moves> &moves,
  * @param[in] ascending: bool to sort in ascending order. If false sorts by descending order.
  * True if minimiser, false if maximiser.
  */
-void partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                       std::array<int, max_legal_moves> &scores, size_t num_moves, bool ascending) {
+inline void partial_move_sort(std::array<Move, max_legal_moves> &moves,
+                              std::array<int, max_legal_moves> &scores, size_t num_moves,
+                              bool ascending) {
     partial_move_sort(moves, scores, 0, num_moves, ascending);
 }
 /**
