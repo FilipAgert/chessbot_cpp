@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <bitboard.h>
 #include <board.h>
+#include <cmath>
 #include <cstdint>
 #include <piece.h>
 #include <random>
@@ -67,7 +68,41 @@ class StateStack {
 
 struct transposition_entry {
     uint64_t hash;
-    int eval;
+    Move bestmove;
+    int IBV;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n - 1 =
+              // an upper bound.
+    int depth;
+    int age;  // Age of node.
+
+    bool get_eval() { return IBV / 4; }
+    bool is_exact() { return (IBV & 0b111) == 0b100; }
+    bool is_ub() { return (IBV & 0b111) == 0b011; }
+    bool is_lb() { return (IBV & 0b111) == 0b101; }
+    int IBV_LB(int lb) { return lb * 4 + 1; }
+    int IBV_exact(int eval) { return eval * 4; }
+    int IBV_UB(int ub) { return ub * 4 - 1; }
+    static constexpr int entry_size = 32;  // bytes
+};
+struct transposition_table {
+    static constexpr int size_MB = 16;
+    static constexpr int nbits = [] constexpr {
+        constexpr int num_entries = size_MB * 1000000 / transposition_entry::entry_size;
+        int msb = 0;
+        int val = num_entries;
+        while (val >>= 1)
+            msb++;
+
+        int numbits;
+        if (num_entries & ~(1ULL << msb)) {  // if other bits were set high too.
+            numbits = msb + 1;
+        } else {
+            numbits = msb;
+        }
+
+        return numbits;
+    }();
+    static constexpr int table_size = 1ULL << nbits;
+    static constexpr int actual_size_kB = (table_size * transposition_entry::entry_size) / 1000;
 };
 
 class ZobroistHasher {
