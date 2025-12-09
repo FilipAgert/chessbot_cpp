@@ -102,14 +102,51 @@ void Game::think_loop(const time_control rem_time) {
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
+    if (EvalState::forced_draw_ply(board))
+        return 0;
 
-    if (depth == 0) {
+    if (depth <= 0) {
         nodes_evaluated++;
         return quiesence(ply, alpha, beta);
     }
 
-    if (EvalState::forced_draw_ply(board))
-        return 0;
+    uint64_t zob_hash = ZobroistHasher::get().hash_board(board);
+    std::optional<transposition_entry> maybe_entry = trans_table.get(zob_hash);
+    std::optional<Move> first_move = {};
+    int movelb = 0;
+    if (maybe_entry) {
+        transposition_entry entry = maybe_entry.value();
+        if (trans_table.is_useable_entry(entry, depth)) {
+            // If exact, return score
+            int IBV = entry.IBV;  //
+            int eval = transposition_entry::get_eval(IBV);
+            if (transposition_entry::is_exact(IBV))  // if exact value
+                return eval;
+            else if (transposition_entry::is_lb(IBV) &&
+                     eval >= beta)  // if its a lower bound, but this lower bound is BETTER than any
+                                    // move opponent can make
+                return eval;
+            else if (transposition_entry::is_ub(IBV) &&
+                     eval < alpha)  // if its an upper bound, and this upper bound is worse than any
+                                    // move we could make, dont need to search more.
+                return eval;
+        }
+        // If the transposition table entry was not useable due to bad depth, or if it was not
+        // enough to produce a cutoff, it can still be used for move ordering.
+        first_move = std::make_optional(entry.bestmove);
+        // We first search the first move before generating the other moves. If it generates a
+        // cutoff, we save plenty of time.
+        if (entry.is_valid_move()) {  // need ot check if its a valid move or not, since it might be
+                                      // e.g. no moves available on this state.
+            int extension = calculate_extension(entry.bestmove, num_extensions);
+            make_move(entry.bestmove);
+            int eval = -alpha_beta(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
+            undo_move();
+            if (eval >= beta)  // FAIL HIGH: move is too good, will never get here.
+                return beta;
+            movelb = 1;
+        }
+    }
 
     // Handle if king is checked or no moves can be made.
     std::array<Move, max_legal_moves> moves;

@@ -73,8 +73,11 @@ struct transposition_entry {
                   // = an upper bound.
     uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
                         // same or shallower.
+    inline bool is_valid_move() { return bestmove.source != bestmove.target; }
 
-    inline bool get_eval() { return IBV / 4; }
+    inline int get_eval() { return get_eval(IBV); }
+    static inline int get_eval(int IBV) { return IBV / 4; }
+
     inline bool is_exact() { return is_exact(IBV); }
     static inline bool is_exact(int IBV) { return (IBV & 0b111) == 0b100; }
 
