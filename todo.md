@@ -1,5 +1,6 @@
 # Search
 - Quiesence search
+    Add king in check.
 - King in check search
     - Captures
     - King moves
