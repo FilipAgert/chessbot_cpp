@@ -123,6 +123,9 @@ struct transposition_table {
      */
     std::optional<transposition_entry> get(uint64_t hash);
     inline void set(transposition_entry entry) { arr[get_key(entry.hash)] = entry; }
+    inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
+        set({hash, bestmove, eval, nodetype, depth});
+    }
     /**
      * @brief Gets if the entry provided is
      *
