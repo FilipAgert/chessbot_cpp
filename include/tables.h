@@ -71,18 +71,23 @@ struct transposition_entry {
     Move bestmove = Move();
     int IBV = 0;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n - 1
                   // = an upper bound.
-    int depth = 0;  // to what depth was this move searched? Can only accept if our depth is same or
-                    // shallower.
-    int age = 0;    // Age of node.
+    uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
+                        // same or shallower.
 
-    bool get_eval() { return IBV / 4; }
-    bool is_exact() { return (IBV & 0b111) == 0b100; }
-    bool is_ub() { return (IBV & 0b111) == 0b011; }
-    bool is_lb() { return (IBV & 0b111) == 0b101; }
-    int IBV_LB(int lb) { return lb * 4 + 1; }
-    int IBV_exact(int eval) { return eval * 4; }
-    int IBV_UB(int ub) { return ub * 4 - 1; }
-    static constexpr int entry_size = 32;  // bytes
+    inline bool get_eval() { return IBV / 4; }
+    inline bool is_exact() { return is_exact(IBV); }
+    static inline bool is_exact(int IBV) { return (IBV & 0b111) == 0b100; }
+
+    inline bool is_ub() { return is_ub(IBV); }
+    static inline bool is_ub(int IBV) { return (IBV & 0b111) == 0b011; }
+
+    inline bool is_lb() { return is_lb(IBV); }
+    static inline bool is_lb(int IBV) { return (IBV & 0b111) == 0b101; }
+
+    inline int IBV_LB(int lb) { return lb * 4 + 1; }
+    inline int IBV_exact(int eval) { return eval * 4; }
+    inline int IBV_UB(int ub) { return ub * 4 - 1; }
+    static constexpr int entry_size = 24;  // bytes
 };
 struct transposition_table {
     static constexpr int size_MB = 16;
