@@ -118,18 +118,22 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         transposition_entry entry = maybe_entry.value();
         if (trans_table.is_useable_entry(entry, depth)) {
             // If exact, return score
-            int IBV = entry.IBV;  //
-            int eval = transposition_entry::get_eval(IBV);
-            if (transposition_entry::is_exact(IBV))  // if exact value
+            int eval = entry.eval;   //
+            if (entry.is_exact()) {  // if exact value
                 return eval;
-            else if (transposition_entry::is_lb(IBV) &&
-                     eval >= beta)  // if its a lower bound, but this lower bound is BETTER than any
-                                    // move opponent can make
-                return eval;
-            else if (transposition_entry::is_ub(IBV) &&
-                     eval < alpha)  // if its an upper bound, and this upper bound is worse than any
-                                    // move we could make, dont need to search more.
-                return eval;
+            } else if (entry.is_lb()) {
+                if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than any
+                                   // move opponent can make
+                    return eval;
+                else
+                    alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha.
+            } else if (entry.is_ub()) {
+                if (eval < alpha)  // if its an upper bound, and this upper bound is worse
+                                   // than any move we could make, dont need to search more.
+                    return eval;
+                else
+                    beta = std::min(beta, eval);  // an upper bound can still tighten beta.
+            }
         }
         // If the transposition table entry was not useable due to bad depth, or if it was not
         // enough to produce a cutoff, it can still be used for move ordering.
@@ -140,10 +144,12 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
                                       // e.g. no moves available on this state.
             int extension = calculate_extension(entry.bestmove, num_extensions);
             make_move(entry.bestmove);
-            int eval = -alpha_beta(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
+            int eval_IBV =
+                -alpha_beta(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move();
-            if (eval >= beta)  // FAIL HIGH: move is too good, will never get here.
+            if (eval_IBV >= beta)  // FAIL HIGH: move is too good, will never get here.
                 return beta;
+
             movelb = 1;
         }
     }

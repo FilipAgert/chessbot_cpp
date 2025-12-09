@@ -69,28 +69,18 @@ class StateStack {
 struct transposition_entry {
     uint64_t hash = 0;
     Move bestmove = Move();
-    int IBV = 0;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n - 1
-                  // = an upper bound.
+    int eval = 0;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n -
+                   // 1 = an upper bound.
+    uint8_t nodetype = 0;
     uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
                         // same or shallower.
     inline bool is_valid_move() { return bestmove.source != bestmove.target; }
 
-    inline int get_eval() { return get_eval(IBV); }
-    static inline int get_eval(int IBV) { return IBV / 4; }
-
-    inline bool is_exact() { return is_exact(IBV); }
-    static inline bool is_exact(int IBV) { return (IBV & 0b111) == 0b100; }
-
-    inline bool is_ub() { return is_ub(IBV); }
-    static inline bool is_ub(int IBV) { return (IBV & 0b111) == 0b011; }
-
-    inline bool is_lb() { return is_lb(IBV); }
-    static inline bool is_lb(int IBV) { return (IBV & 0b111) == 0b101; }
-
-    inline int IBV_LB(int lb) { return lb * 4 + 1; }
-    inline int IBV_exact(int eval) { return eval * 4; }
-    inline int IBV_UB(int ub) { return ub * 4 - 1; }
+    bool is_exact() { return nodetype == exact; }
+    bool is_lb() { return nodetype == lb; }
+    bool is_ub() { return nodetype == ub; }
     static constexpr int entry_size = 24;  // bytes
+    enum nodetype { exact, lb, ub };
 };
 struct transposition_table {
     static constexpr int size_MB = 16;
