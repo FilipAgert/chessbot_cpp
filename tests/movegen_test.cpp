@@ -214,9 +214,11 @@ TEST(bbgentest, black_pawns) {
 TEST(bbgentest, black_pawns_fen) {
     Board board;
     std::string fen = "8/p7/8/8/8/8/8/8 b - - 0 1";
+    std::cout << "here";
     board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_moves<normal_search>(moves);
+    size_t num_moves = board.get_pseudolegal_moves<normal_search>(moves, board.get_turn_color());
+    std::cout << "here";
     std::vector<std::string> expected_moves = {"a7a6", "a7a5"};
     std::vector<std::string> generated_moves;
     for (size_t i = 0; i < num_moves; ++i) {
