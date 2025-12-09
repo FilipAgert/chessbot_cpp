@@ -100,9 +100,8 @@ void Game::think_loop(const time_control rem_time) {
 }
 
 int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
-    if (this->check_repetition()) {
+    if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
-    }
 
     if (depth == 0) {
         nodes_evaluated++;
@@ -140,6 +139,48 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
     }
 
     return alpha;
+}
+
+int Game::quiesence(int ply, int alpha, int beta) {
+    if (this->check_repetition())
+        return 0;  // Checks if position is a repeat.
+    if (EvalState::forced_draw_ply(board))
+        return 0;
+
+    int static_eval = EvalState::eval(board);
+
+    int best_value = static_eval;  // Standing pat
+    // This assumes that there is at least one move that can match, or increase the current score.
+    // So best_value is a lower bound.
+    if (best_value >= beta)
+        return best_value;
+    if (best_value > alpha)
+        alpha = best_value;
+
+    // Handle if king is checked or no moves can be made.
+    std::array<Move, max_legal_moves> moves;
+    int num_moves = board.get_moves<quiesence_search>(moves);
+    moves_generated += num_moves;
+    if (num_moves == 0) {
+        //?
+    }
+
+    MoveOrder::apply_move_sort(moves, num_moves, board);
+    int eval = -INF;
+    // Normal move generation.
+    for (int i = 0; i < num_moves; i++) {
+        this->make_move(moves[i]);
+        eval = -quiesence(ply + 1, -beta, -alpha);
+        this->undo_move();
+        if (eval >= beta)
+            return beta;
+        if (eval > best_value)
+            best_value = eval;
+        if (eval > alpha)
+            alpha = eval;
+    }
+
+    return best_value;
 }
 
 bool Game::check_repetition() {
