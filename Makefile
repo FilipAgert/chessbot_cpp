@@ -15,20 +15,19 @@ MAKEFLAGS+= -j$(NPROCS)
 
 type?=dev
 ifeq ($(type), release)
-	FLAGS = -Wall -std=c++23 -O3 -MMD -MP
+	FLAGS = -Wall -std=c++23 -O3
 else
-	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast   -MMD -MP
+	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast
 endif
 
-DEPS := $(OBJS:.o=.d)
--include $(DEPS)
 
 LIBS = -lgtest -lgtest_main -pthread  # Google Test and pthread libs
 
 
-# commands for compilation
+# commands for linking.
 CCL = g++ -o
-CC = g++ $(FLAGS) -c -g
+# Commands for compilation.
+CC = g++ $(FLAGS) -MMD -MP -c
 
 # objects
 OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o $(DOBJ)/game.o $(DOBJ)/notation_interface.o $(DOBJ)/bitboard.o $(DOBJ)/movegen.o $(DOBJ)/movegen_benchmark.o $(DOBJ)/time_manager.o $(DOBJ)/eval.o $(DOBJ)/moveorder.o $(DOBJ)/transposition.o
@@ -36,8 +35,8 @@ MAIN_OBJ = $(DOBJ)/main.o
 MAGIC_OBJ = $(DOBJ)/gen_magic_nums.o
 TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o $(DOBJ)/movegen_test.o $(DOBJ)/time_manager_test.o $(DOBJ)/transposition_test.o
 
-# Targets
-main: $(DEXE)/$(EXE)
+# Target
+all: $(DEXE)/$(EXE)
 
 # Link the main executable
 $(DEXE)/$(EXE): $(OBJECTS) $(MAIN_OBJ)
@@ -50,16 +49,20 @@ $(DEXE)/$(TEST_EXE): $(TEST_OBJECTS) $(OBJECTS)
 	$(CCL) $@ $(TEST_OBJECTS) $(OBJECTS) $(LIBS)
 
 # Compile test object files (from ./test folder)
-$(DOBJ)/%.o: $(DTEST)/%.cpp
-	$(CC) -I$(DINC) -I$(GTEST_INCLUDE_DIR) -c $< -o $@
+$(DOBJ)/%.o: $(DTEST)/%.cpp Makefile
+	$(CC) -I$(DINC) -c $< -o $@
+
+
+DEPS := $(OBJECTS:.o=.d)
+-include $(DEPS)
 
 # Compile source object files (from ./src folder)
-$(DOBJ)/%.o: $(DSRC)/%.cpp
+$(DOBJ)/%.o: $(DSRC)/%.cpp Makefile
 	$(CC) -I$(DINC) -c $< -o $@
 
 # Clean up build artifacts
 clean:
-	rm -rf $(DOBJ)/*.o $(DEXE)/*.exe
+	rm -rf $(DOBJ)/*.o $(DEXE)/* $(DOBJ)/*.d
 
 # Run the main executable
 run:
@@ -72,3 +75,4 @@ test: $(DEXE)/$(TEST_EXE)
 
 magic: $(DEXE)/$(MAGIC_EXE)
 	./$(DEXE)/$(MAGIC_EXE)
+
