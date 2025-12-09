@@ -62,7 +62,7 @@ $(DOBJ)/%.o: $(DSRC)/%.cpp Makefile
 
 # Clean up build artifacts
 clean:
-	rm -rf $(DOBJ)/*.o $(DEXE)/* $(DOBJ)/*.d
+	rm -rf $(DOBJ)/*.o $(DEXE)/$(EXE) $(DOBJ)/*.d
 
 # Run the main executable
 run:
