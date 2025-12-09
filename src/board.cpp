@@ -160,9 +160,22 @@ bool does_move_check(const Move candidate, const uint8_t king_color) {
 }
 bool Board::king_checked(const uint8_t turn_color) const {
     uint64_t king_bb = bit_boards[turn_color | pieces::king];
+    uint8_t kingsq = BitBoard::lsb(king_bb);
     uint8_t other_col = turn_color ^ pieces::color_mask;
-    uint64_t enemy_atk_bb = get_atk_bb(other_col);
-    return (king_bb & enemy_atk_bb) != 0;
+    BB occ = occupancy();
+    if ((knight_atk(kingsq) & bit_boards[other_col | pieces::knight]) > 0)
+        return true;
+    if ((bishop_atk(kingsq, occ) &
+         (bit_boards[other_col | pieces::bishop] | bit_boards[other_col | pieces::queen])) > 0)
+        return true;
+    if ((rook_atk(kingsq, occ) &
+         (bit_boards[other_col | pieces::rook] | bit_boards[other_col | pieces::queen])) > 0)
+        return true;
+    if ((pawn_atk_bb(king_bb, turn_color) & bit_boards[other_col | pieces::pawn]) > 0)
+        return true;
+    if ((king_atk(kingsq) & bit_boards[other_col | pieces::king]) > 0)
+        return true;
+    return false;
 }
 
 bool Board::operator==(const Board &other) const {

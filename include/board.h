@@ -249,7 +249,7 @@ struct Board {
      * @tparam is_white flag if white or not
      * @return Number of pieces
      */
-    template <Piece_t piece, bool is_white> uint8_t get_piece_cnt() {
+    template <Piece_t piece, bool is_white> uint8_t get_piece_cnt() const {
         return BitBoard::bitcount(get_piece_bb<piece, is_white>());
     }
 
@@ -259,8 +259,8 @@ struct Board {
      */
     std::vector<Piece> get_pieces();
 
-    BB occupancy() { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
-    template <bool is_white> BB occupancy() {
+    BB occupancy() const { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
+    template <bool is_white> BB occupancy() const {
         constexpr uint8_t idx = is_white ? pieces::white : pieces::black;
         return bit_boards[idx];
     }
@@ -274,7 +274,7 @@ struct Board {
      * @return number of squares piece of this type and color can move to.
      */
     template <Piece_t pval, bool omit_pawn_controlled, bool is_white>
-    constexpr int get_piece_mobility() {  // TODO: Add EP squares, add castling.
+    constexpr int get_piece_mobility() const {  // TODO: Add EP squares, add castling.
         BB piece_bb = get_piece_bb<pval, is_white>();
 
         int mobility = 0;
