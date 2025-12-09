@@ -132,8 +132,9 @@ class ZobroistHasher {
      * @brief Hash can be incremented by XORing the parts that changed. This is color and pieces
      * moved and castle information.
      *
-     * @param[[TODO:direction]] hash [TODO:description]
+     * @tparam forward true if move is forwards in time, false if backwards (undo).
+     * @param[in] hash hash updated with the move.
      */
-    void update_hash(uint64_t &hash, const Move move);
+    template <bool forward> void update_hash(uint64_t &hash, const Move move) {}
 };
 #endif
