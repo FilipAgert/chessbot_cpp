@@ -8,8 +8,8 @@
 #include <cstdint>
 #include <string>
 struct Move {
-    Piece captured = none_piece;  // captured.
-    Piece promotion = none_piece;       // Piece to be promoted into
+    Piece captured = none_piece;   // captured.
+    Piece promotion = none_piece;  // Piece to be promoted into
     uint8_t source = err_val8, target = err_val8;
     uint8_t en_passant_square = err_val8;
     uint8_t castling_rights;
@@ -40,13 +40,13 @@ struct Move {
         if (source == err_val8)
             return "0000";
 
-        std::string out = NotationInterface::string_from_idx(source) +
-                          NotationInterface::string_from_idx(target);
+        std::string out =
+            NotationInterface::string_from_idx(source) + NotationInterface::string_from_idx(target);
         if (!(promotion == none_piece))
             out += promotion.get_char_lc();
         return out;
     }
-    Move() {}
+    constexpr Move() {}
 };
 
 #endif

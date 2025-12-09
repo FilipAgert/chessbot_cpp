@@ -67,12 +67,13 @@ class StateStack {
 };
 
 struct transposition_entry {
-    uint64_t hash;
-    Move bestmove;
-    int IBV;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n - 1 =
-              // an upper bound.
-    int depth;
-    int age;  // Age of node.
+    uint64_t hash = 0;
+    Move bestmove = Move();
+    int IBV = 0;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n - 1
+                  // = an upper bound.
+    int depth = 0;  // to what depth was this move searched? Can only accept if our depth is same or
+                    // shallower.
+    int age = 0;    // Age of node.
 
     bool get_eval() { return IBV / 4; }
     bool is_exact() { return (IBV & 0b111) == 0b100; }
@@ -102,7 +103,38 @@ struct transposition_table {
         return numbits;
     }();
     static constexpr int table_size = 1ULL << nbits;
+    static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
+    static constexpr int shift = 64 - nbits;
     static constexpr int actual_size_kB = (table_size * transposition_entry::entry_size) / 1000;
+    std::array<transposition_entry, table_size> arr;  // array holding the data.
+    size_t hits = 0;        // how many times did we access the table and find the board inside?
+    size_t misses = 0;      // how many times did we access the table and not find the board?
+    size_t collisions = 0;  // how many times did we have a hash collision?
+
+    /**
+     * @brief Gets key to access the table with
+     *
+     * @param[in] hash hash of board
+     * @return key to access array with.
+     */
+    static inline constexpr size_t get_key(uint64_t hash) { return hash & mask; }
+    /**
+     * @brief Gets entry from table. If hash matches, return entry.
+     *
+     * @param[in] hash hash of board.
+     */
+    std::optional<transposition_entry> get(uint64_t hash);
+    inline void set(transposition_entry entry) { arr[get_key(entry.hash)] = entry; }
+    /**
+     * @brief Gets if the entry provided is
+     *
+     * @param[in] entry entry to validate
+     * @param[in] depth depth this state occured at
+     * @return True if the current depth is smaller than or equal the entries depth.
+     */
+    static bool is_useable_entry(const transposition_entry entry, const int depth) {
+        return depth <= entry.depth;
+    }
 };
 
 class ZobroistHasher {

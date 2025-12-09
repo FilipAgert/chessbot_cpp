@@ -57,3 +57,19 @@ uint64_t ZobroistHasher::hash_board(const Board &board) {
     hash_turn(hash, board);
     return hash;
 }
+std::optional<transposition_entry> transposition_table::get(uint64_t hash) {
+    size_t key = get_key(hash);
+    transposition_entry curr = arr[key];
+    std::optional<transposition_entry> maybe;
+    if (curr.hash == hash) {
+        hits++;
+        maybe = std::make_optional(curr);
+    } else {
+        maybe = {};
+        misses++;
+        if (curr.hash != 0) {
+            collisions++;
+        }
+    }
+    return maybe;
+}
