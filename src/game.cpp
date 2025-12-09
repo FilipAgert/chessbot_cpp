@@ -105,7 +105,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta) {
 
     if (depth == 0) {
         nodes_evaluated++;
-        return EvalState::eval(board);
+        return quiesence(ply, alpha, beta);
     }
 
     if (EvalState::forced_draw_ply(board))
