@@ -128,13 +128,13 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             } else if (entry.is_lb()) {
                 if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than any
                                    // move opponent can make
-                    return eval;
+                    return beta;
                 else
                     alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha.
             } else if (entry.is_ub()) {
                 if (eval < alpha)  // if its an upper bound, and this upper bound is worse
                                    // than any move we could make, dont need to search more.
-                    return eval;
+                    return alpha;
                 else
                     beta = std::min(beta, eval);  // an upper bound can still tighten beta.
             }
