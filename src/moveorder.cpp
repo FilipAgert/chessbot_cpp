@@ -75,7 +75,7 @@ void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t
         }
         std::swap(move_scores[0], move_scores[firstmoveidx]);
         std::swap(moves[0], moves[firstmoveidx]);
-        partial_move_sort(moves, move_scores, firstmoveidx, num_moves, false);
+        partial_move_sort(moves, move_scores, 1, num_moves, false);
     } else {
         apply_move_sort(moves, num_moves, board);
     }
