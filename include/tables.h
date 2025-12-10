@@ -10,6 +10,7 @@
 #include <iostream>
 #include <piece.h>
 #include <random>
+#include <vector>
 /**
  * @brief Class for storing the occured game states for checking 3 move repetion draws.
  */
@@ -85,63 +86,6 @@ struct transposition_entry {
 constexpr transposition_entry nullentry = {0, Move(0, 0), 0, transposition_entry::invalid,
                                            0};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 
-struct transposition_table {
-    static constexpr size_t entry_size = sizeof(transposition_entry);
-    static constexpr int size_MB = 16;
-    static constexpr int nbits = [] constexpr {
-        constexpr size_t num_entries = size_MB * 1000000 / entry_size;
-        int msb = 0;
-        int val = num_entries;
-        while (val >>= 1)
-            msb++;
-
-        int numbits;
-        if (num_entries & ~(1ULL << msb)) {  // if other bits were set high too.
-            numbits = msb + 1;
-        } else {
-            numbits = msb;
-        }
-
-        return numbits;
-    }();
-    static constexpr int table_size = 1ULL << nbits;
-    static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
-    static constexpr int actual_size_kB = (table_size * entry_size) / 1000;
-    std::array<transposition_entry, table_size> arr;  // array holding the data.
-    size_t hits = 0;        // how many times did we access the table and find the board inside?
-    size_t misses = 0;      // how many times did we access the table and not find the board?
-    size_t collisions = 0;  // how many times did we have a hash collision?
-
-    /**
-     * @brief Gets key to access the table with
-     *
-     * @param[in] hash hash of board
-     * @return key to access array with.
-     */
-    static inline constexpr size_t get_key(uint64_t hash) { return hash & mask; }
-    /**
-     * @brief Gets entry from table. If hash matches, return entry.
-     *
-     * @param[in] hash hash of board.
-     */
-    std::optional<transposition_entry> get(uint64_t hash);
-    inline void set(transposition_entry entry) { arr[get_key(entry.hash)] = entry; }
-    inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
-        set({hash, bestmove, eval, nodetype, depth});
-    }
-    /**
-     * @brief Gets if the entry provided is
-     *
-     * @param[in] entry entry to validate
-     * @param[in] depth depth this state occured at
-     * @return True if the current depth is smaller than or equal the entries depth.
-     */
-    static bool is_useable_entry(const transposition_entry entry, const int depth) {
-        return depth <= entry.depth;
-    }
-    void clear() { std::fill(arr.begin(), arr.end(), transposition_entry{0, Move(), 0, 0, 0}); }
-};
-
 class ZobroistHasher {
  private:
     ZobroistHasher() {
@@ -210,5 +154,81 @@ class ZobroistHasher {
      * @param[in] hash hash updated with the move.
      */
     template <bool forward> void update_hash(uint64_t &hash, const Move move) {}
+};
+struct transposition_table {
+    static constexpr size_t entry_size = sizeof(transposition_entry);
+    static constexpr int size_MB = 16;
+    static constexpr int nbits = [] constexpr {
+        constexpr size_t num_entries = size_MB * 1000000 / entry_size;
+        int msb = 0;
+        int val = num_entries;
+        while (val >>= 1)
+            msb++;
+
+        int numbits;
+        if (num_entries & ~(1ULL << msb)) {  // if other bits were set high too.
+            numbits = msb + 1;
+        } else {
+            numbits = msb;
+        }
+
+        return numbits;
+    }();
+    static constexpr int table_size = 1ULL << nbits;
+    static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
+    static constexpr int actual_size_kB = (table_size * entry_size) / 1000;
+    std::array<transposition_entry, table_size> arr;  // array holding the data.
+    size_t hits = 0;        // how many times did we access the table and find the board inside?
+    size_t misses = 0;      // how many times did we access the table and not find the board?
+    size_t collisions = 0;  // how many times did we have a hash collision?
+
+    /**
+     * @brief Gets key to access the table with
+     *
+     * @param[in] hash hash of board
+     * @return key to access array with.
+     */
+    static inline constexpr size_t get_key(uint64_t hash) { return hash & mask; }
+    /**
+     * @brief Gets entry from table. If hash matches, return entry.
+     *
+     * @param[in] hash hash of board.
+     */
+    std::optional<transposition_entry> get(uint64_t hash);
+    inline void set(transposition_entry entry) { arr[get_key(entry.hash)] = entry; }
+    inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
+        set({hash, bestmove, eval, nodetype, depth});
+    }
+    /**
+     * @brief Gets if the entry provided is
+     *
+     * @param[in] entry entry to validate
+     * @param[in] depth depth this state occured at
+     * @return True if the current depth is smaller than or equal the entries depth.
+     */
+    static bool is_useable_entry(const transposition_entry entry, const int depth) {
+        return depth <= entry.depth;
+    }
+    void clear() { std::fill(arr.begin(), arr.end(), transposition_entry{0, Move(), 0, 0, 0}); }
+
+    std::vector<Move> get_pv(Board &board) {
+        std::vector<Move> pv_line;
+        uint64_t hash = ZobroistHasher::get().hash_board(board);
+        std::optional<transposition_entry> entry = get(hash);
+        while (entry) {
+            if (entry.value().is_valid_move()) {
+                pv_line.push_back(entry.value().bestmove);
+                board.do_move(entry.value().bestmove);
+                hash = ZobroistHasher::get().hash_board(board);
+                entry = get(hash);
+            } else {
+                break;
+            }
+        }
+        for (int i = pv_line.size() - 1; i >= 0; i--) {
+            board.undo_move(pv_line[i]);
+        }
+        return pv_line;
+    }
 };
 #endif
