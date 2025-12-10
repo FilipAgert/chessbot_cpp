@@ -5,6 +5,7 @@
 #include <memory>
 #include <notation_interface.h>
 #include <tables.h>
+#include <moveorder.h>
 
 TEST(ZobroistTest, rand) {
     int numhi = 0;
@@ -49,7 +50,6 @@ TEST(ZobroistTest, hashState) {
 }
 
 TEST(TransTest, optionalReturn) {
-    ASSERT_TRUE(true);
     Board state;
     state.read_fen(NotationInterface::starting_FEN());
     uint64_t hash = ZobroistHasher::get().hash_board(state);
@@ -57,6 +57,22 @@ TEST(TransTest, optionalReturn) {
     ASSERT_FALSE(tab->get(hash));
     tab->store(hash, Move{2, 9}, 0, transposition_entry::exact, 0);
     ASSERT_TRUE(tab->get(hash));
+}
+TEST(TransTest, moveOrderTest) {
+    Board state;
+    state.read_fen(NotationInterface::starting_FEN());
+    Move bestmove = Move("a2a4");
+    std::array<Move, max_legal_moves> moves;
+    size_t nummoves = state.get_moves<normal_search>(moves);
+    MoveOrder::apply_move_sort(moves, nummoves, bestmove, state); 
+    ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
+    bestmove = Move("b2b4");
+    MoveOrder::apply_move_sort(moves, nummoves, bestmove, state); 
+    ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
+    for(int i = nummoves; i < max_legal_moves; i++){
+        ASSERT_EQ(moves[i].source , err_val8);
+        ASSERT_EQ(moves[i].target , err_val8);
+    }
 }
 TEST(ZobroistTest, TranspositionIdentity) {
     // We will establish the position after 1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6
