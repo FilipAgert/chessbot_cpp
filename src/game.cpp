@@ -194,7 +194,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             bestscore = eval;
             best_curr_move = moves[i];
             if (eval >= beta) {  // FAIL HIGH.
-                trans_table.store(zob_hash, best_curr_move, eval, transposition_entry::lb,
+                trans_table.store(zob_hash, best_curr_move, beta, transposition_entry::lb,
                                   depth);  // Can update hash to curr depth.
                 return beta;  // This move is too good. The minimising player (beta) will never
                               // allow the board to go here. we can return.
