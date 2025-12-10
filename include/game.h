@@ -128,6 +128,7 @@ class Game {
     Board board;
     uint64_t moves_generated;
     uint64_t nodes_evaluated;
+    std::shared_ptr<TimeManager> time_manager;
     Game() = default;
     static constexpr int INF = 10000000;
     std::unique_ptr<transposition_table> trans_table = std::make_unique<transposition_table>();

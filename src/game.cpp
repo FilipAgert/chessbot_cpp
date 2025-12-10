@@ -42,8 +42,9 @@ void Game::think_loop(const time_control rem_time) {
     int buffer = STANDARD_TIME_BUFFER;  // ms
     int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
 
-    std::shared_ptr<TimeManager> time_manager(
-        new TimeManager(rem_time, buffer, fraction, board.get_turn_color() == pieces::white));
+    time_manager = std::make_shared<TimeManager>(rem_time, buffer, fraction,
+                                                 board.get_turn_color() == pieces::white);
+
     time_manager->start_time_management();
 
     int depth = 1;
@@ -79,6 +80,10 @@ void Game::think_loop(const time_control rem_time) {
 }
 
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+    if (depth > 2 && nodes_evaluated % 2048 == 0) {
+        if (time_manager->get_should_stop())
+            return alpha;
+    }
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
