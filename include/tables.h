@@ -190,7 +190,7 @@ class ZobroistHasher {
     }
     void hash_turn(uint64_t &hash, const Board &board) {
         if (board.get_turn_color() == pieces::black) {
-            hash ^= ZobroistHasher::black_number;
+            hash ^= black_number;
         }
     }
 
