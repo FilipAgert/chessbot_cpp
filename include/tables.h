@@ -102,7 +102,6 @@ struct transposition_table {
     }();
     static constexpr int table_size = 1ULL << nbits;
     static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
-    static constexpr int shift = 64 - nbits;
     static constexpr int actual_size_kB = (table_size * entry_size) / 1000;
     std::array<transposition_entry, table_size> arr;  // array holding the data.
     size_t hits = 0;        // how many times did we access the table and find the board inside?
@@ -145,16 +144,6 @@ class ZobroistHasher {
         randomize_local_vars();
     }
 
- public:
-    static ZobroistHasher &get() {
-        static ZobroistHasher instance;
-        return instance;
-    }
-
-    std::array<std::array<uint64_t, 64>, 12> piece_numbers;  // one number for each piece and square
-    std::array<uint64_t, 16> castle_numbers;                 // one for each castle combination
-    std::array<uint64_t, 8> ep_numbers;                      // file of ep
-    uint64_t black_number;                                   // indicate if black is playing or not.
     std::uniform_int_distribution<uint64_t> generator;
     std::mt19937_64 engine;
     /**
@@ -166,6 +155,16 @@ class ZobroistHasher {
     void initialize_engine();
     void randomize_local_vars();
 
+ public:
+    static ZobroistHasher &get() {
+        static ZobroistHasher instance;
+        return instance;
+    }
+
+    std::array<std::array<uint64_t, 64>, 12> piece_numbers;  // one number for each piece and square
+    std::array<uint64_t, 16> castle_numbers;                 // one for each castle combination
+    std::array<uint64_t, 8> ep_numbers;                      // file of ep
+    uint64_t black_number;                                   // indicate if black is playing or not.
     /**
      * @brief Adds to hash for a piece
      *

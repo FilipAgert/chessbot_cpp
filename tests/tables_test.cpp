@@ -45,3 +45,13 @@ TEST(ZobroistTest, hashState) {
     assert(bitcount > 15);
     assert(bitcount < 64 - 15);
 }
+
+TEST(TranspositionTest, default_invalid) {
+    Board state;
+    state.read_fen(NotationInterface::starting_FEN());
+    transposition_table tab;
+    uint64_t hash = ZobroistHasher::get().hash_board(state);
+    ASSERT_FALSE(tab.get(hash));
+    tab.store(hash, Move{2, 9}, 0, transposition_entry::exact, 0);
+    ASSERT_TRUE(tab.get(hash));
+}
