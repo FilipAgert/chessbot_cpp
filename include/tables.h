@@ -81,6 +81,9 @@ struct transposition_entry {
     bool is_ub() { return nodetype == ub; }
     enum nodetype { exact, lb, ub };
 };
+constexpr transposition_entry nullentry = {
+    0, {0, 0}, 0, 4, 0};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
+
 struct transposition_table {
     static constexpr size_t entry_size = sizeof(transposition_entry);
     static constexpr int size_MB = 16;
@@ -135,6 +138,7 @@ struct transposition_table {
     static bool is_useable_entry(const transposition_entry entry, const int depth) {
         return depth <= entry.depth;
     }
+    void clear() { arr.fill(nullentry); }
 };
 
 class ZobroistHasher {

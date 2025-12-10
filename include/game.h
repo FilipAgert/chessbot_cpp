@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include <board.h>
 #include <constants.h>
+#include <memory>
 #include <move.h>
 #include <notation_interface.h>
 #include <piece.h>
@@ -129,7 +130,7 @@ class Game {
     uint64_t nodes_evaluated;
     Game() = default;
     static constexpr int INF = 10000000;
-    transposition_table trans_table;
+    std::unique_ptr<transposition_table> trans_table;
     /**
      * @brief Main game logic loop for thinking about a position.
      *

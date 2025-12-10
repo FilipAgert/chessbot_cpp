@@ -18,6 +18,7 @@
 bool Game::set_fen(std::string FEN) {
     bool success = board.read_fen(FEN);
     reset_state_stack();
+    trans_table->clear();
     return success;
 }
 void Game::start_thinking(const time_control rem_time) {
@@ -112,7 +113,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     }
 
     uint64_t zob_hash = ZobroistHasher::get().hash_board(board);
-    std::optional<transposition_entry> maybe_entry = trans_table.get(zob_hash);
+    std::optional<transposition_entry> maybe_entry = trans_table->get(zob_hash);
     std::optional<Move> first_move = {};
     int movelb = 0;
     Move best_curr_move;
@@ -120,7 +121,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     int nodetype = transposition_entry::ub;
     if (maybe_entry) {
         transposition_entry entry = maybe_entry.value();
-        if (trans_table.is_useable_entry(entry, depth)) {
+        if (trans_table->is_useable_entry(entry, depth)) {
             // If exact, return score
             int eval = entry.eval;   //
             if (entry.is_exact()) {  // if exact value
@@ -151,8 +152,8 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             int eval = -alpha_beta(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move();
             if (eval >= beta) {  // FAIL HIGH: move is too good, will never get here.
-                trans_table.store(zob_hash, entry.bestmove, beta, transposition_entry::lb,
-                                  depth);  // Can update hash to curr depth.
+                trans_table->store(zob_hash, entry.bestmove, beta, transposition_entry::lb,
+                                   depth);  // Can update hash to curr depth.
                 return beta;
             }
 
@@ -194,8 +195,8 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             bestscore = eval;
             best_curr_move = moves[i];
             if (eval >= beta) {  // FAIL HIGH.
-                trans_table.store(zob_hash, best_curr_move, beta, transposition_entry::lb,
-                                  depth);  // Can update hash to curr depth.
+                trans_table->store(zob_hash, best_curr_move, beta, transposition_entry::lb,
+                                   depth);  // Can update hash to curr depth.
                 return beta;  // This move is too good. The minimising player (beta) will never
                               // allow the board to go here. we can return.
             }
@@ -205,7 +206,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             nodetype = transposition_entry::exact;
         }
     }
-    trans_table.store(zob_hash, best_curr_move, alpha, nodetype, depth);
+    trans_table->store(zob_hash, best_curr_move, alpha, nodetype, depth);
     return alpha;
 }
 

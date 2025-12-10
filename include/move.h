@@ -30,11 +30,18 @@ struct Move {
     constexpr Move(uint8_t from, uint8_t to) {
         source = from;
         target = to;
+        promotion = Piece();
+        castling_rights = 0;
+        ply = 0;
+        check = false;
     }
     constexpr Move(uint8_t from, uint8_t to, Piece promo) {
         source = from;
         target = to;
         promotion = promo;
+        castling_rights = 0;
+        ply = 0;
+        check = false;
     }
     std::string toString() const {
         if (source == err_val8)
