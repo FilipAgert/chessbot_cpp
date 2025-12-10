@@ -71,7 +71,7 @@ struct transposition_entry {
     Move bestmove = Move();
     int eval = 0;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n -
                    // 1 = an upper bound.
-    uint8_t nodetype = 0;
+    uint8_t nodetype = 4;
     uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
                         // same or shallower.
     inline bool is_valid_move() { return bestmove.source != bestmove.target; }
@@ -79,13 +79,13 @@ struct transposition_entry {
     bool is_exact() { return nodetype == exact; }
     bool is_lb() { return nodetype == lb; }
     bool is_ub() { return nodetype == ub; }
-    static constexpr int entry_size = 24;  // bytes
     enum nodetype { exact, lb, ub };
 };
 struct transposition_table {
+    static constexpr size_t entry_size = sizeof(transposition_entry);
     static constexpr int size_MB = 16;
     static constexpr int nbits = [] constexpr {
-        constexpr int num_entries = size_MB * 1000000 / transposition_entry::entry_size;
+        constexpr size_t num_entries = size_MB * 1000000 / entry_size;
         int msb = 0;
         int val = num_entries;
         while (val >>= 1)
@@ -103,7 +103,7 @@ struct transposition_table {
     static constexpr int table_size = 1ULL << nbits;
     static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
     static constexpr int shift = 64 - nbits;
-    static constexpr int actual_size_kB = (table_size * transposition_entry::entry_size) / 1000;
+    static constexpr int actual_size_kB = (table_size * entry_size) / 1000;
     std::array<transposition_entry, table_size> arr;  // array holding the data.
     size_t hits = 0;        // how many times did we access the table and find the board inside?
     size_t misses = 0;      // how many times did we access the table and not find the board?
