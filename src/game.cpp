@@ -151,7 +151,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             int eval = -alpha_beta(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move();
             if (eval >= beta) {  // FAIL HIGH: move is too good, will never get here.
-                trans_table.store(zob_hash, entry.bestmove, eval, transposition_entry::lb,
+                trans_table.store(zob_hash, entry.bestmove, beta, transposition_entry::lb,
                                   depth);  // Can update hash to curr depth.
                 return beta;
             }
