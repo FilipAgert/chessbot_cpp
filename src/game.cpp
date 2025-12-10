@@ -80,7 +80,7 @@ void Game::think_loop(const time_control rem_time) {
 }
 
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
-    if (depth > 2 && nodes_evaluated % 2048 == 0) {
+    if (depth > 0) {
         if (time_manager->get_should_stop())
             return alpha;
     }
