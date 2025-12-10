@@ -66,8 +66,6 @@ void Game::think_loop(const time_control rem_time) {
         new_msg.pv = trans_table->get_pv(board, depth);
         if (new_msg.pv.size() > 0)
             bestmove = new_msg.pv[0];
-        else
-            bestmove = Move(0, 0);
 
         std::optional<transposition_entry> entry = trans_table->get(hash);
         if (entry) {
