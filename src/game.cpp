@@ -51,38 +51,37 @@ void Game::think_loop(const time_control rem_time) {
     bool ponder = true;
 
     uint64_t hash = ZobroistHasher::get().hash_board(board);
+    one_depth_complete = false;
     while (ponder) {
         if (time_manager->get_should_stop()) {
             break;
         }
-        trans_table->clear();
-        int eval;
         int alpha = -INF;
         const int beta = INF;
-        eval = alpha_beta(depth, 0, alpha, beta, 0);
-        int best_move_idx = 0;
+        alpha_beta(depth, 0, alpha, beta, 0);
         InfoMsg new_msg;
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
         new_msg.pv = trans_table->get_pv(board);
         bestmove = new_msg.pv[0];
-        new_msg.score = eval;
+        new_msg.score = trans_table->get(hash).value().eval;
         info_queue.push(new_msg);
         depth++;
         std::optional<int> moves_to_mate = EvalState::moves_to_mate(alpha);
         if (moves_to_mate) {
             break;
         }
+        one_depth_complete = true;
     }
 
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
-    if (depth > 0) {
+    if (depth > 0 && one_depth_complete) {
         if (time_manager->get_should_stop())
-            return alpha;
+            return 0;
     }
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
@@ -134,6 +133,8 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             make_move(entry.bestmove);
             int eval = -alpha_beta(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move();
+            if (time_manager->get_should_stop() && one_depth_complete)
+                return 0;
             if (eval >= beta) {  // FAIL HIGH: move is too good, will never get here.
                 trans_table->store(zob_hash, entry.bestmove, beta, transposition_entry::lb,
                                    depth);  // Can update hash to curr depth.

@@ -136,5 +136,6 @@ class Game {
      * @brief Main game logic loop for thinking about a position.
      *
      */
+    bool one_depth_complete;
     void think_loop(const time_control rem_time);
 };
