@@ -9,7 +9,7 @@ void MoveOrder::partial_move_sort(std::array<Move, max_legal_moves> &moves,
                                   size_t num_moves, bool ascending) {
     std::vector<std::pair<Move, int>> zipped;
     std::array<size_t, max_legal_moves> indices;
-    std::ranges::iota(indices.begin() + start, indices.begin() + num_moves, 0);
+    std::ranges::iota(indices.begin() + start, indices.begin() + num_moves, start);
 
     std::sort(indices.begin() + start, indices.begin() + num_moves, [&](size_t a, size_t b) {
         if (ascending)
