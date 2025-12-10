@@ -114,7 +114,7 @@ constexpr std::array<size_t, 64> bishop_magic_sizes = [] {
  * @brief the shift values used for each rook square. 64-#bits
  *
  */
-constexpr std::array<uint8_t, 64> rook_magic_shifts = [] {  // the shift value. saves a subtraction.
+constexpr std::array<uint8_t, 64> rook_magic_shifts =  [] {  // the shift value. saves a subtraction.
     std::array<uint8_t, 64> rook_magic_shifts;
     for (int i = 0; i < 64; i++) {
         rook_magic_shifts[i] = 64 - rook_magic_sizes_bits[i];
