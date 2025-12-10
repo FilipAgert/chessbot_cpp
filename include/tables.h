@@ -7,6 +7,7 @@
 #include <board.h>
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 #include <piece.h>
 #include <random>
 /**
@@ -71,7 +72,7 @@ struct transposition_entry {
     Move bestmove = Move();
     int eval = 0;  // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n -
                    // 1 = an upper bound.
-    uint8_t nodetype = 4;
+    uint8_t nodetype = invalid;
     uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
                         // same or shallower.
     inline bool is_valid_move() { return bestmove.source != bestmove.target; }
@@ -79,10 +80,10 @@ struct transposition_entry {
     bool is_exact() { return nodetype == exact; }
     bool is_lb() { return nodetype == lb; }
     bool is_ub() { return nodetype == ub; }
-    enum nodetype { exact, lb, ub };
+    enum nodetype { exact, lb, ub, invalid };
 };
-constexpr transposition_entry nullentry = {
-    0, {0, 0}, 0, 4, 0};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
+constexpr transposition_entry nullentry = {0, Move(0, 0), 0, transposition_entry::invalid,
+                                           0};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 
 struct transposition_table {
     static constexpr size_t entry_size = sizeof(transposition_entry);
@@ -138,7 +139,7 @@ struct transposition_table {
     static bool is_useable_entry(const transposition_entry entry, const int depth) {
         return depth <= entry.depth;
     }
-    void clear() { arr.fill(nullentry); }
+    void clear() { std::fill(arr.begin(), arr.end(), transposition_entry{0, Move(), 0, 0, 0}); }
 };
 
 class ZobroistHasher {
@@ -184,7 +185,9 @@ class ZobroistHasher {
         return col_offset + (p - 1);
     }
     void hash_ep(uint64_t &hash, const Board &board);
-    void hash_castle(uint64_t &hash, const Board &board) { hash ^= board.get_castling(); }
+    void hash_castle(uint64_t &hash, const Board &board) {
+        hash ^= castle_numbers[board.get_castling()];
+    }
     void hash_turn(uint64_t &hash, const Board &board) {
         if (board.get_turn_color() == pieces::black) {
             hash ^= ZobroistHasher::black_number;
