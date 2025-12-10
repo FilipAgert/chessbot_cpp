@@ -211,18 +211,16 @@ struct transposition_table {
     }
     void clear() { std::fill(arr.begin(), arr.end(), transposition_entry{0, Move(), 0, 0, 0}); }
 
-    std::vector<Move> get_pv(Board &board) {
+    std::vector<Move> get_pv(Board &board, int depth) {
         std::vector<Move> pv_line;
-        uint64_t hash = ZobroistHasher::get().hash_board(board);
-        std::optional<transposition_entry> entry = get(hash);
-        while (entry) {
-            if (entry.value().is_valid_move()) {
-                pv_line.push_back(entry.value().bestmove);
-                board.do_move(entry.value().bestmove);
-                hash = ZobroistHasher::get().hash_board(board);
-                entry = get(hash);
-            } else {
-                break;
+        for (int i = 0; i <= depth; i++) {
+            uint64_t hash = ZobroistHasher::get().hash_board(board);
+            std::optional<transposition_entry> entry = get(hash);
+            if (entry) {
+                if (entry.value().is_valid_move()) {
+                    pv_line.push_back(entry.value().bestmove);
+                    board.do_move(entry.value().bestmove);
+                }
             }
         }
         for (int i = pv_line.size() - 1; i >= 0; i--) {

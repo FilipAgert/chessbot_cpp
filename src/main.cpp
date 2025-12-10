@@ -41,6 +41,8 @@ int main() {
             UCIInterface::process_bench_command(body);
         } else if (command == "quit") {
             UCIInterface::process_quit_command();
+        } else if (command == "self") {
+            UCIInterface::process_self_command(body);
         } else if (command == "debug") {
             std::cout << "Debug mode is not implemented yet." << std::endl;
         } else if (command == "help") {

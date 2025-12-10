@@ -63,9 +63,20 @@ void Game::think_loop(const time_control rem_time) {
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
-        new_msg.pv = trans_table->get_pv(board);
-        bestmove = new_msg.pv[0];
-        new_msg.score = trans_table->get(hash).value().eval;
+        new_msg.pv = trans_table->get_pv(board, depth);
+        if (new_msg.pv.size() > 0)
+            bestmove = new_msg.pv[0];
+        else
+            bestmove = Move(0, 0);
+
+        std::optional<transposition_entry> entry = trans_table->get(hash);
+        if (entry) {
+            new_msg.score = entry.value().eval;
+        } else {
+            std::cout << "Err: could not get entry for hash" << std::endl;
+            new_msg.score = 0;
+        }
+
         info_queue.push(new_msg);
         depth++;
         std::optional<int> moves_to_mate = EvalState::moves_to_mate(alpha);
@@ -175,6 +186,8 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         int eval =
             -alpha_beta(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         this->undo_move();
+        if (time_manager->get_should_stop() && one_depth_complete)
+            return 0;
         if (eval > bestscore) {
             bestscore = eval;
             best_curr_move = moves[i];

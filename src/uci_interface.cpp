@@ -314,3 +314,18 @@ std::string UCIInterface::join(std::vector<std::string> strings, char del) {
     }
     return str;
 }
+void UCIInterface::process_self_command(std::string command) {
+    std::string fen = Game::instance().get_fen();
+    std::vector<std::string> parts = split(command, ' ');
+    if (parts.size() == 0) {
+        UCIInterface::uci_response("Correct syntax is self <nmoves>");
+        return;
+    }
+    int nummoves = std::stoi(parts[0]);
+    std::string comm = fen + " moves ";
+    for (int i = 0; i < nummoves; i++) {
+        process_go_command("wtime 1000 btime 1000 winc 0 binc 0");
+        Move bestmove = Game::instance().get_bestmove();
+        Game::instance().make_move(bestmove);
+    }
+}
