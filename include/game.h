@@ -130,7 +130,7 @@ class Game {
     uint64_t nodes_evaluated;
     Game() = default;
     static constexpr int INF = 10000000;
-    std::unique_ptr<transposition_table> trans_table;
+    std::unique_ptr<transposition_table> trans_table = std::make_unique<transposition_table>();
     /**
      * @brief Main game logic loop for thinking about a position.
      *

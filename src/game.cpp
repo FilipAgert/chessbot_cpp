@@ -57,6 +57,7 @@ void Game::think_loop(const time_control rem_time) {
     bool ponder = true;
 
     while (ponder) {
+        trans_table->clear();
         int eval;
         int alpha = -INF;
         const int beta = INF;
@@ -118,7 +119,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     int movelb = 0;
     Move best_curr_move;
     int bestscore = -INF;
-    int nodetype = transposition_entry::ub;
+    uint8_t nodetype = transposition_entry::ub;
     if (maybe_entry) {
         transposition_entry entry = maybe_entry.value();
         if (trans_table->is_useable_entry(entry, depth)) {
@@ -130,14 +131,14 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
                 if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than any
                                    // move opponent can make
                     return beta;
-                else
-                    alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha.
+                // else
+                // alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha./
             } else if (entry.is_ub()) {
                 if (eval < alpha)  // if its an upper bound, and this upper bound is worse
                                    // than any move we could make, dont need to search more.
                     return alpha;
-                else
-                    beta = std::min(beta, eval);  // an upper bound can still tighten beta.
+                // else
+                // beta = std::min(beta, eval);  // an upper bound can still tighten beta.
             }
         }
         // If the transposition table entry was not useable due to bad depth, or if it was not
