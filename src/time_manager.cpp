@@ -31,11 +31,11 @@ int64_t TimeManager::calculate_target_move_time_ms() {
         target_time = base_time + inc - buffer;  // With a 50 ms buffer.
     }
 
-    int64_t mintime = 10;
+    int64_t mintime = 2;
     return std::max(target_time, mintime);
 }
 void TimeManager::time_loop_function(int64_t target_move_time_ms) {
-    constexpr auto check_interval = 10ms;  // Check every 10 ms if calc thread stops us
+    constexpr auto check_interval = 1ms;  // Check every 10 ms if calc thread stops us
     //
 
     while (true) {
