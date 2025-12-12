@@ -44,6 +44,7 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
         parts.push_back("nps " + std::to_string(knps));
     }
 
+    parts.push_back("hashfull " + std::to_string(msg.hashfill));
     if (!msg.pv.empty()) {
         std::string str_pv = "pv";
         for (const auto &m : msg.pv) {
@@ -51,8 +52,6 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
         }
         parts.push_back(str_pv);
     }
-
-    parts.push_back("hashfull " + std::to_string(msg.hashfill));
 
     std::string final_str = join(parts, ' ');
 
