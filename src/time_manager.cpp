@@ -7,6 +7,9 @@
 
 using namespace std::chrono;
 bool TimeManager::get_should_stop() const { return should_stop.load(); }
+bool TimeManager::get_should_start_new_iteration() const {
+    return should_start_next_iteration.load();
+}
 void TimeManager::set_should_stop(bool stop_flag) { should_stop.store(stop_flag); }
 void TimeManager::set_should_start_next_iteration(bool start_flag) {
     should_start_next_iteration.store(start_flag);
