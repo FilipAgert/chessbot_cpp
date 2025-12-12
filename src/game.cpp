@@ -260,7 +260,7 @@ bool Game::check_repetition() {
     // Checks if we have repeated this board state.
     uint64_t hash = state_stack.top();
     constexpr int instances_for_draw =
-        2;  // How many occurences of this board should have occured for a draw?
+        3;  // How many occurences of this board should have occured for a draw?
     bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
     return atleast2;
 }
