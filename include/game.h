@@ -23,6 +23,7 @@ struct InfoMsg {
     Move currmove = Move();     // Current move (root) being evaluated.
     int score = 0;              // Current evaluated best move score
     int d0score = 0;            // Score of state (no going deep)
+    int hashfill = 0;
 };
 class Game {
  public:
@@ -129,6 +130,7 @@ class Game {
     Board board;
     uint64_t moves_generated;
     uint64_t nodes_evaluated;
+    int seldepth = 0;
     std::shared_ptr<TimeManager> time_manager;
     Game() = default;
     static constexpr int INF = 10000000;

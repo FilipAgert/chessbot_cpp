@@ -49,6 +49,7 @@ void Game::think_loop(const time_control rem_time) {
     int max_depth = 256;
     uint64_t hash = ZobroistHasher::get().hash_board(board);
     for (int depth = 1; depth < max_depth; depth++) {
+        seldepth = 0;
         if (!time_manager->get_should_start_new_iteration())
             break;
         int alpha = -INF;
@@ -59,6 +60,8 @@ void Game::think_loop(const time_control rem_time) {
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
         new_msg.pv = trans_table->get_pv(board, depth);
+        new_msg.seldepth = seldepth;
+        new_msg.hashfill = trans_table->load_factor();
         if (new_msg.pv.size() > 0) {
             bestmove = new_msg.pv[0];
             if (bestmove.source == bestmove.target) {
@@ -87,6 +90,7 @@ void Game::think_loop(const time_control rem_time) {
 
 template <bool is_root>
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+    seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
@@ -219,6 +223,7 @@ int Game::quiesence(int ply, int alpha, int beta) {
         return 0;
 
     int eval = EvalState::eval(board);
+    seldepth = std::max(ply, seldepth);
 
     // This assumes that there is at least one move that can match, or increase the current score.
     // So best_value is a lower bound.

@@ -27,6 +27,9 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     std::vector<std::string> parts = {"info"};
 
     parts.push_back("depth " + std::to_string(msg.depth));
+    if (msg.seldepth > msg.depth) {  // quiesence search.
+        parts.push_back("seldepth " + std::to_string(msg.seldepth));
+    }
     std::optional<int> moves_to_mate = EvalState::moves_to_mate(msg.score);
     if (moves_to_mate) {
         parts.push_back("score mate " + std::to_string(moves_to_mate.value()));
@@ -35,10 +38,6 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     }
     parts.push_back("time " + std::to_string(msg.time));
     parts.push_back("nodes " + std::to_string(msg.nodes));
-
-    if (msg.seldepth > msg.depth) {  // quiesence search.
-        parts.push_back("seldepth " + std::to_string(msg.seldepth));
-    }
 
     if (msg.time > 0) {
         int64_t knps = (msg.nodes * 1000) / msg.time;
@@ -52,6 +51,8 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
         }
         parts.push_back(str_pv);
     }
+
+    parts.push_back("hashfull " + std::to_string(msg.hashfill));
 
     std::string final_str = join(parts, ' ');
 

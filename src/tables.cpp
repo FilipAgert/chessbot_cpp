@@ -73,3 +73,4 @@ std::optional<transposition_entry> transposition_table::get(uint64_t hash) {
     }
     return maybe;
 }
+int transposition_table::load_factor() const { return overwrites * 1000 / writes; }
