@@ -86,8 +86,8 @@ void Game::think_loop(const time_control rem_time) {
 
 template <bool is_root>
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
-    // if (this->check_repetition())
-    //     return 0;  // Checks if position is a repeat.
+    if (this->check_repetition())
+        return 0;  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
         return 0;
 
