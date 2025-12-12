@@ -181,6 +181,8 @@ struct transposition_table {
     size_t hits = 0;        // how many times did we access the table and find the board inside?
     size_t misses = 0;      // how many times did we access the table and not find the board?
     size_t collisions = 0;  // how many times did we have a hash collision?
+    size_t overwrites = 0;
+    size_t writes = 0;
 
     /**
      * @brief Gets key to access the table with
@@ -195,7 +197,14 @@ struct transposition_table {
      * @param[in] hash hash of board.
      */
     std::optional<transposition_entry> get(uint64_t hash);
-    inline void set(transposition_entry entry) { arr[get_key(entry.hash)] = entry; }
+    inline void set(transposition_entry entry) {
+        size_t key = get_key(entry.hash);
+        writes++;
+        if (arr[key].nodetype != transposition_entry::invalid) {
+            overwrites++;
+        }
+        arr[key] = entry;
+    }
     inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
         if (bestmove.source == bestmove.target) {
             std::cout << "ERROR: Trying to set invalid move" << std::endl;
@@ -213,7 +222,20 @@ struct transposition_table {
     static bool is_useable_entry(const transposition_entry entry, const int depth) {
         return depth <= entry.depth;
     }
-    void clear() { std::fill(arr.begin(), arr.end(), transposition_entry{0, Move(), 0, 0, 0}); }
+    void clear() {
+        std::fill(arr.begin(), arr.end(),
+                  transposition_entry{0, Move(), 0, transposition_entry::invalid, 0});
+        writes = 0;
+        overwrites = 0;
+    }
+
+    /**
+     * @brief Gets the load factor of the hash table in permille. This is the ratio of filled slots.
+     * entries.
+     *
+     * @return [Load factor of table in permille]
+     */
+    int load_factor() const;
 
     std::vector<Move> get_pv(Board &board, int depth) {
         std::vector<Move> pv_line;

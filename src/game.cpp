@@ -49,6 +49,7 @@ void Game::think_loop(const time_control rem_time) {
     int max_depth = 256;
     uint64_t hash = ZobroistHasher::get().hash_board(board);
     for (int depth = 1; depth < max_depth; depth++) {
+        seldepth = 0;
         if (!time_manager->get_should_start_new_iteration())
             break;
         int alpha = -INF;
@@ -59,6 +60,8 @@ void Game::think_loop(const time_control rem_time) {
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
         new_msg.pv = trans_table->get_pv(board, depth);
+        new_msg.seldepth = seldepth;
+        new_msg.hashfill = trans_table->load_factor();
         if (new_msg.pv.size() > 0) {
             bestmove = new_msg.pv[0];
             if (bestmove.source == bestmove.target) {
@@ -67,15 +70,16 @@ void Game::think_loop(const time_control rem_time) {
         }
 
         std::optional<transposition_entry> entry = trans_table->get(hash);
+        std::optional<int> eval = {};
         if (entry) {
             new_msg.score = entry.value().eval;
+            info_queue.push(new_msg);
+            eval = std::make_optional(new_msg.score);
         } else {
             std::cout << "Err: could not get entry for hash" << std::endl;
-            new_msg.score = 0;
         }
 
-        info_queue.push(new_msg);
-        std::optional<int> moves_to_mate = EvalState::moves_to_mate(alpha);
+        std::optional<int> moves_to_mate = eval ? EvalState::moves_to_mate(eval.value()) : 0;
         if (moves_to_mate) {
             break;
         }
@@ -86,6 +90,7 @@ void Game::think_loop(const time_control rem_time) {
 
 template <bool is_root>
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+    seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
@@ -106,26 +111,25 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     uint8_t nodetype = transposition_entry::ub;
     if (maybe_entry) {
         transposition_entry entry = maybe_entry.value();
-        // if (trans_table->is_useable_entry(entry, depth)) {
-        //     // If exact, return score
-        //     int eval = entry.eval;   //
-        //     if (entry.is_exact()) {  // if exact value
-        //         return eval;
-        //     } else if (entry.is_lb()) {
-        //         if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than
-        //         any
-        //                            // move opponent can make
-        //             return beta;
-        //         else
-        //             alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha./
-        //     } else if (entry.is_ub()) {
-        //         if (eval < alpha)  // if its an upper bound, and this upper bound is worse
-        //                            // than any move we could make, dont need to search more.
-        //             return alpha;
-        //         else
-        //         beta = std::min(beta, eval);  // an upper bound can still tighten beta.
-        //     }
-        // }
+        if (trans_table->is_useable_entry(entry, depth)) {
+            // If exact, return score
+            int eval = entry.eval;   //
+            if (entry.is_exact()) {  // if exact value
+                return eval;
+            } else if (entry.is_lb()) {
+                if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than
+                    // any move opponent can make
+                    return beta;
+                else
+                    alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha./
+            } else if (entry.is_ub()) {
+                if (eval < alpha)  // if its an upper bound, and this upper bound is worse
+                                   // than any move we could make, dont need to search more.
+                    return alpha;
+                else
+                    beta = std::min(beta, eval);  // an upper bound can still tighten beta.
+            }
+        }
         // If the transposition table entry was not useable due to bad depth, or if it was not
         // enough to produce a cutoff, it can still be used for move ordering.
         first_move = std::make_optional(entry.bestmove);
@@ -219,6 +223,7 @@ int Game::quiesence(int ply, int alpha, int beta) {
         return 0;
 
     int eval = EvalState::eval(board);
+    seldepth = std::max(ply, seldepth);
 
     // This assumes that there is at least one move that can match, or increase the current score.
     // So best_value is a lower bound.
