@@ -222,7 +222,10 @@ struct transposition_table {
     static bool is_useable_entry(const transposition_entry entry, const int depth) {
         return depth <= entry.depth;
     }
-    void clear() { std::fill(arr.begin(), arr.end(), transposition_entry{0, Move(), 0, 0, 0}); }
+    void clear() {
+        std::fill(arr.begin(), arr.end(),
+                  transposition_entry{0, Move(), 0, transposition_entry::invalid, 0});
+    }
 
     /**
      * @brief Gets the load factor of the hash table in permille. This is the ratio of filled slots.
