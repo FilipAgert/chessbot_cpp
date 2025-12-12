@@ -63,6 +63,7 @@ class Game {
      * @param[in] num_extensions - number of move extensions performed so far
      * @return Score of current state.
      */
+    template <bool is_root>
     int alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
     /**
      * @brief Quiesence search. Only evaluates captures

@@ -197,6 +197,10 @@ struct transposition_table {
     std::optional<transposition_entry> get(uint64_t hash);
     inline void set(transposition_entry entry) { arr[get_key(entry.hash)] = entry; }
     inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
+        if (bestmove.source == bestmove.target) {
+            std::cout << "ERROR: Trying to set invalid move" << std::endl;
+            exit(0);
+        }
         set({hash, bestmove, eval, nodetype, depth});
     }
     /**

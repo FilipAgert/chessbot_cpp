@@ -28,10 +28,10 @@ int64_t TimeManager::calculate_target_move_time_ms() {
         int64_t base_time =
             remtime / this->remtime_frac;  // Use up 1/20th of the remaining time plus increment.
 
-        target_time = base_time + inc - buffer;  // With a 50 ms buffer.
+        target_time = base_time + inc - buffer;
     }
 
-    int64_t mintime = 2;
+    int64_t mintime = 10;
     return std::max(target_time, mintime);
 }
 void TimeManager::time_loop_function(int64_t target_move_time_ms) {

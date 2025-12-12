@@ -9,6 +9,6 @@ inline std::string const ID_version = "0.2";
 
 constexpr int STANDARD_TIME = 60 * 1000;  // 60 seconds. 60 * 5 * 1000;  // 5 minutes
 constexpr int STANDARD_TINC = 0;          // 0 seconds additional per move.
-constexpr int STANDARD_TIME_BUFFER = 50;  // 50 ms buffer to aim for.
-constexpr int STANDARD_TIME_FRAC = 40;    // use 1/40th of remanining itme
+constexpr int STANDARD_TIME_BUFFER = 10;  // 50 ms buffer to aim for.
+constexpr int STANDARD_TIME_FRAC = 25;    // use 1/40th of remanining itme
 #endif

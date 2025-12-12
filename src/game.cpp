@@ -58,14 +58,18 @@ void Game::think_loop(const time_control rem_time) {
         }
         int alpha = -INF;
         const int beta = INF;
-        alpha_beta(depth, 0, alpha, beta, 0);
+        alpha_beta<true>(depth, 0, alpha, beta, 0);
         InfoMsg new_msg;
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
         new_msg.pv = trans_table->get_pv(board, depth);
-        if (new_msg.pv.size() > 0)
+        if (new_msg.pv.size() > 0) {
             bestmove = new_msg.pv[0];
+            if (bestmove.source == bestmove.target) {
+                std::cout << "Illegal move made." << std::endl;
+            }
+        }
 
         std::optional<transposition_entry> entry = trans_table->get(hash);
         if (entry) {
@@ -87,13 +91,10 @@ void Game::think_loop(const time_control rem_time) {
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
+template <bool is_root>
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
-    if (depth > 0 && one_depth_complete) {
-        if (time_manager->get_should_stop())
-            return 0;
-    }
-    if (this->check_repetition())
-        return 0;  // Checks if position is a repeat.
+    // if (this->check_repetition())
+    //     return 0;  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
         return 0;
 
@@ -107,6 +108,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     std::optional<Move> first_move = {};
     int movelb = 0;
     Move best_curr_move;
+    bool atleast_one_move_searched = false;
     int bestscore = -INF;
     uint8_t nodetype = transposition_entry::ub;
     if (maybe_entry) {
@@ -140,18 +142,24 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
                                       // e.g. no moves available on this state.
             int extension = calculate_extension(entry.bestmove, num_extensions);
             make_move(entry.bestmove);
-            int eval = -alpha_beta(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
+            int eval =
+                -alpha_beta<false>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move();
-            if (time_manager->get_should_stop() && one_depth_complete)
+            bestscore = eval;
+            best_curr_move = entry.bestmove;
+            if (time_manager->get_should_stop()) {
+                if (is_root) {
+                    trans_table->store(zob_hash, best_curr_move, eval, transposition_entry::lb,
+                                       depth);
+                }
                 return 0;
+            }
             if (eval >= beta) {  // FAIL HIGH: move is too good, will never get here.
                 trans_table->store(zob_hash, entry.bestmove, beta, transposition_entry::lb,
                                    depth);  // Can update hash to curr depth.
                 return beta;
             }
 
-            bestscore = eval;
-            best_curr_move = entry.bestmove;
             if (eval > alpha) {  // alpha raised and node is exact.
                 alpha = eval;
                 nodetype = transposition_entry::exact;
@@ -181,20 +189,28 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         this->make_move(moves[i]);
         int extension = calculate_extension(moves[i], num_extensions);
 
-        int eval =
-            -alpha_beta(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
+        int eval = -alpha_beta<false>(depth - 1 + extension, ply + 1, -beta, -alpha,
+                                      num_extensions + extension);
         this->undo_move();
-        if (time_manager->get_should_stop() && one_depth_complete)
+        if (time_manager->get_should_stop()) {
+            if (is_root) {
+                if (atleast_one_move_searched) {
+                    trans_table->store(zob_hash, best_curr_move, bestscore, transposition_entry::lb,
+                                       depth);
+                }
+            }
             return 0;
+        }
         if (eval > bestscore) {
             bestscore = eval;
             best_curr_move = moves[i];
-            if (eval >= beta) {  // FAIL HIGH.
-                trans_table->store(zob_hash, best_curr_move, beta, transposition_entry::lb,
-                                   depth);  // Can update hash to curr depth.
-                return beta;  // This move is too good. The minimising player (beta) will never
-                              // allow the board to go here. we can return.
-            }
+            atleast_one_move_searched = true;
+        }
+        if (eval >= beta) {  // FAIL HIGH.
+            trans_table->store(zob_hash, best_curr_move, beta, transposition_entry::lb,
+                               depth);  // Can update hash to curr depth.
+            return beta;  // This move is too good. The minimising player (beta) will never
+                          // allow the board to go here. we can return.
         }
         if (eval > alpha) {  // if alpha is raised, then we have found an exact node.
             alpha = eval;    // if alpha is never raised, the value returned will be an upper bound.
