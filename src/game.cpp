@@ -48,7 +48,7 @@ void Game::think_loop(const time_control rem_time) {
     time_manager->start_time_management();
     int max_depth = 256;
     uint64_t hash = ZobroistHasher::get().hash_board(board);
-    for (int depth; depth < max_depth; depth++) {
+    for (int depth = 1; depth < max_depth; depth++) {
         if (!time_manager->get_should_start_new_iteration())
             break;
         int alpha = -INF;
