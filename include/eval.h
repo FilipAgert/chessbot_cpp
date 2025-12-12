@@ -71,6 +71,14 @@ class EvalState {
     constexpr static float eval_game_phase(const int num_pieces) {
         return 1. - (num_pieces - 1.) / 15.;
     }
+
+    /**
+     * @brief Score for pawn structure. Passed pawns, unprotected pawns, blocking pawns, etc.
+     *
+     * @param[in] board board to check.
+     * @return score for pawn structure, normalised by white winning is positive.
+     */
+    static int eval_pawn_structure(Board &board);
 };
 
 namespace PieceValue {
@@ -80,6 +88,7 @@ static constexpr int knight = 290;
 static constexpr int bishop = 300;
 static constexpr int rook = 500;
 static constexpr int queen = 900;
+static constexpr int bishop_double_bonus = 50;
 static constexpr std::array<int, 7> piecevals = {0, king, queen, rook, knight, bishop, pawn};
 
 static constexpr int inv_frac =

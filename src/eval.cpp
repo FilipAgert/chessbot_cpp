@@ -50,7 +50,16 @@ int EvalState::eval_material(Board &board) {
 }
 template <Piece_t p> int EvalState::eval_single_piece(Board &board) {
     int pvalue = PieceValue::piecevals[p];
-    return (board.get_piece_cnt<p, true>() - board.get_piece_cnt<p, false>()) * pvalue;
+    int wpiece_cnt = board.get_piece_cnt<p, true>();
+    int bpiece_cnt = board.get_piece_cnt<p, false>();
+    int eval = (wpiece_cnt - bpiece_cnt) * pvalue;
+    if (p == pieces::bishop) {
+        if (wpiece_cnt > 1)
+            eval += PieceValue::bishop_double_bonus;
+        if (bpiece_cnt > 1)
+            eval -= PieceValue::bishop_double_bonus;
+    }
+    return eval;
 }
 int EvalState::eval_king_dist2centre(Board &board) {
     uint8_t white_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, true>());
