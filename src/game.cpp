@@ -46,16 +46,11 @@ void Game::think_loop(const time_control rem_time) {
                                                  board.get_turn_color() == pieces::white);
 
     time_manager->start_time_management();
-
-    int depth = 1;
-    bool ponder = true;
-
+    int max_depth = 256;
     uint64_t hash = ZobroistHasher::get().hash_board(board);
-    one_depth_complete = false;
-    while (ponder) {
-        if (time_manager->get_should_stop()) {
+    for (int depth; depth < max_depth; depth++) {
+        if (!time_manager->get_should_start_new_iteration())
             break;
-        }
         int alpha = -INF;
         const int beta = INF;
         alpha_beta<true>(depth, 0, alpha, beta, 0);
@@ -80,12 +75,10 @@ void Game::think_loop(const time_control rem_time) {
         }
 
         info_queue.push(new_msg);
-        depth++;
         std::optional<int> moves_to_mate = EvalState::moves_to_mate(alpha);
         if (moves_to_mate) {
             break;
         }
-        one_depth_complete = true;
     }
 
     time_manager->stop_and_join();  // Join time manager thread to this one.
@@ -145,15 +138,13 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
             int eval =
                 -alpha_beta<false>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move();
+            if (time_manager->get_should_stop()) {
+                return 0;  // should not store into transposition table here since the search was
+                           // cancelled.
+            }
             bestscore = eval;
             best_curr_move = entry.bestmove;
-            if (time_manager->get_should_stop()) {
-                if (is_root) {
-                    trans_table->store(zob_hash, best_curr_move, eval, transposition_entry::lb,
-                                       depth);
-                }
-                return 0;
-            }
+            atleast_one_move_searched = true;
             if (eval >= beta) {  // FAIL HIGH: move is too good, will never get here.
                 trans_table->store(zob_hash, entry.bestmove, beta, transposition_entry::lb,
                                    depth);  // Can update hash to curr depth.
