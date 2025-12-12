@@ -104,6 +104,9 @@ static constexpr std::array<int, 7> movevals = {
     0, king_moveval, queen_moveval, rook_moveval, knight_moveval, bishop_moveval, pawn_moveval};
 
 static constexpr int king_dist2centre_value = 20;  // 20 per distance.
+//
+static constexpr int passed_pawn_eval = 50;
+static constexpr int doubled_pawn_punishment = -15;
 };  // namespace PieceValue
 
 #endif

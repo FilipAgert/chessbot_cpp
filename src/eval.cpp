@@ -82,10 +82,40 @@ std::optional<int> EvalState::moves_to_mate(int score) {
 }
 
 int EvalState::eval_pawn_structure(Board &board) {
+    constexpr int maxforward = 4;
+    constexpr BB AFILE = ~masks::left;
+    constexpr BB HFILE = ~masks::right;
+
+    int passed = 0;
     BB wpawns = board.get_piece_bb<pieces::pawn, true>();
     BB bpawns = board.get_piece_bb<pieces::pawn, false>();
-    int eval = eval_passed_pawns(wpawns, bpawns);
-    return eval;
-}
 
-int EvalState::eval_passed_pawns(BB wpawns, BB bpawns) { return 0; }
+    BB w_N_fill = wpawns << 8;
+    BB b_S_fill = bpawns >> 8;
+    for (int i = 0; i < maxforward; i++) {
+        w_N_fill |= w_N_fill << 8;
+        b_S_fill |= b_S_fill >> 8;
+    }
+
+    BB w_NE_fill = (HFILE & w_N_fill) << 1;
+    BB b_SE_fill = (HFILE & b_S_fill) << 1;
+
+    BB w_NW_fill = (AFILE & w_N_fill) >> 1;
+    BB b_SW_fill = (AFILE & b_S_fill) >> 1;
+
+    BB w_full_mask = w_NE_fill | w_NW_fill | w_N_fill;
+    BB b_full_mask = b_SE_fill | b_SW_fill | b_S_fill;
+
+    int bpassed =
+        BitBoard::bitcount(~w_full_mask & bpawns);  // Counts black pawns not in the white passed
+                                                    // mask. these are all passed black pawns.
+    int wpassed = BitBoard::bitcount(~b_full_mask &
+                                     wpawns);  // Counts white pawns not in the black passed mask
+    // END PASSED PAWNS
+    // CALCULATE DOUBLED PAWNS
+    int wdoubled = w_N_fill & wpawns;
+    int bdoubled = b_S_fill & bpawns;
+
+    return (wpassed - bpassed) * PieceValue::passed_pawn_eval +
+           (wdoubled - bdoubled) * PieceValue::doubled_pawn_punishment;
+}
