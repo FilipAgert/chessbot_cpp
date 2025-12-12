@@ -1,5 +1,6 @@
 // Copyright Filip Agert
 #include <algorithm>
+#include <cassert>
 #include <eval.h>
 #include <piece.h>
 #include <vector>
@@ -121,10 +122,14 @@ int EvalState::eval_pawn_structure(Board &board) {
                                                     // mask. these are all passed black pawns.
     int wpassed = BitBoard::bitcount(~b_full_mask &
                                      wpawns);  // Counts white pawns not in the black passed mask
+    assert(bpassed <= 8);
+    assert(wpassed <= 8);
+    assert(bpassed >= 0);
+    assert(wpassed >= 0);
     // END PASSED PAWNS
     // CALCULATE DOUBLED PAWNS
-    int wdoubled = w_N_fill & wpawns;
-    int bdoubled = b_S_fill & bpawns;
+    int wdoubled = BitBoard::bitcount(w_N_fill & wpawns);
+    int bdoubled = BitBoard::bitcount(b_S_fill & bpawns);
 
     // Calculate solo pawns (no friendly pawns on adjacent files)
     // BB w_fill = w_N_fill;
