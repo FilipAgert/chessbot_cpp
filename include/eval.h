@@ -79,7 +79,6 @@ class EvalState {
      * @return score for pawn structure, normalised by white winning is positive.
      */
     static int eval_pawn_structure(Board &board);
-    static int eval_passed_pawns(const BB wpawns, const BB bpawns);
 };
 
 namespace PieceValue {

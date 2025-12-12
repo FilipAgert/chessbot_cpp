@@ -11,6 +11,7 @@ int EvalState::eval(Board &board) {
     score += eval_material(board);
     score += eval_mobility(board);
     score += eval_king_dist2centre(board);
+    score += eval_pawn_structure(board);
 
     int color_fac = 1 - 2 * (board.get_turn_color() == pieces::black);
     return score * color_fac;
