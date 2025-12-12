@@ -88,7 +88,7 @@ static constexpr int knight = 290;
 static constexpr int bishop = 300;
 static constexpr int rook = 500;
 static constexpr int queen = 900;
-static constexpr int bishop_double_bonus = 50;
+static constexpr int bishop_double_bonus = 25;
 static constexpr std::array<int, 7> piecevals = {0, king, queen, rook, knight, bishop, pawn};
 
 static constexpr int inv_frac =
