@@ -132,12 +132,26 @@ int EvalState::eval_pawn_structure(Board &board) {
     int bdoubled = BitBoard::bitcount(b_S_fill & bpawns);
 
     // Calculate solo pawns (no friendly pawns on adjacent files)
-    // BB w_fill = w_N_fill;
-    // BB b_fill = b_S_fill;
-    // for (int i = 0; i < maxforward; i++){
-    //
-    // }
+    BB w_fill = w_N_fill;
+    BB b_fill = b_S_fill;
+    for (int i = 0; i < maxforward; i++) {
+        w_fill |= w_fill >> 8;
+        b_fill |= b_fill >> 8;
+    }
+    w_NE_fill = (HFILE & w_fill) << 1;
+    b_SE_fill = (HFILE & b_fill) << 1;
+
+    w_NW_fill = (AFILE & w_fill) >> 1;
+    b_SW_fill = (AFILE & b_fill) >> 1;
+
+    BB w_sides = w_NE_fill | w_NW_fill;
+    BB b_sides = w_NE_fill | w_NW_fill;
+
+    // Number of alone pawns (no pawns on adjacent files.)
+    int nsolow = BitBoard::bitcount(wpawns) - BitBoard::bitcount(w_sides & wpawns);
+    int nsolob = BitBoard::bitcount(bpawns) - BitBoard::bitcount(b_sides & bpawns);
 
     return (wpassed - bpassed) * PieceValue::passed_pawn_eval +
-           (wdoubled - bdoubled) * PieceValue::doubled_pawn_punishment;
+           (wdoubled - bdoubled) * PieceValue::doubled_pawn_punishment +
+           (nsolow - nsolob) * PieceValue::solo_pawn_punishment;
 }
