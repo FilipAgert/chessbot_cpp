@@ -80,3 +80,12 @@ std::optional<int> EvalState::moves_to_mate(int score) {
         return {};
     }
 }
+
+int EvalState::eval_pawn_structure(Board &board) {
+    BB wpawns = board.get_piece_bb<pieces::pawn, true>();
+    BB bpawns = board.get_piece_bb<pieces::pawn, false>();
+    int eval = eval_passed_pawns(wpawns, bpawns);
+    return eval;
+}
+
+int EvalState::eval_passed_pawns(BB wpawns, BB bpawns) { return 0; }
