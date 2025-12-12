@@ -126,6 +126,13 @@ int EvalState::eval_pawn_structure(Board &board) {
     int wdoubled = w_N_fill & wpawns;
     int bdoubled = b_S_fill & bpawns;
 
+    // Calculate solo pawns (no friendly pawns on adjacent files)
+    // BB w_fill = w_N_fill;
+    // BB b_fill = b_S_fill;
+    // for (int i = 0; i < maxforward; i++){
+    //
+    // }
+
     return (wpassed - bpassed) * PieceValue::passed_pawn_eval +
            (wdoubled - bdoubled) * PieceValue::doubled_pawn_punishment;
 }

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <bitboard.h>
 #include <board.h>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -206,10 +207,8 @@ struct transposition_table {
         arr[key] = entry;
     }
     inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
-        if (bestmove.source == bestmove.target) {
-            std::cout << "ERROR: Trying to set invalid move" << std::endl;
-            exit(0);
-        }
+        assert(bestmove.source != bestmove.target);
+        assert(bestmove.source != err_val8);
         set({hash, bestmove, eval, nodetype, depth});
     }
     /**
