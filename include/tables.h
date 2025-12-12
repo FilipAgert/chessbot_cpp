@@ -225,6 +225,8 @@ struct transposition_table {
     void clear() {
         std::fill(arr.begin(), arr.end(),
                   transposition_entry{0, Move(), 0, transposition_entry::invalid, 0});
+        writes = 0;
+        overwrites = 0;
     }
 
     /**
