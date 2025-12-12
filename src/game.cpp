@@ -67,15 +67,16 @@ void Game::think_loop(const time_control rem_time) {
         }
 
         std::optional<transposition_entry> entry = trans_table->get(hash);
+        std::optional<int> eval = {};
         if (entry) {
             new_msg.score = entry.value().eval;
+            info_queue.push(new_msg);
+            eval = std::make_optional(new_msg.score);
         } else {
             std::cout << "Err: could not get entry for hash" << std::endl;
-            new_msg.score = 0;
         }
 
-        info_queue.push(new_msg);
-        std::optional<int> moves_to_mate = EvalState::moves_to_mate(alpha);
+        std::optional<int> moves_to_mate = eval ? EvalState::moves_to_mate(eval.value()) : 0;
         if (moves_to_mate) {
             break;
         }
