@@ -10,7 +10,8 @@ struct time_control {
 };
 class TimeManager {
  private:
-    std::atomic<bool> should_stop;  // Shared variable between threads.
+    std::atomic<bool> should_stop;                  // Shared variable between threads.
+    std::atomic<bool> should_start_next_iteration;  // Shared variable between threads.
     std::thread timer_thread;
     int remtime, inc, enemy_remtime, enemy_inc, buffer, remtime_frac;
     bool infinite;
@@ -18,6 +19,7 @@ class TimeManager {
     int calculate_time_elapsed_ms() const;
     void time_loop_function(int64_t target_move_time_ms);
     int64_t calculate_target_move_time_ms();
+    void set_should_start_next_iteration(bool start_flag);
 
  public:
     /**
@@ -26,6 +28,14 @@ class TimeManager {
      * @return True if calculation should stop.
      */
     bool get_should_stop() const;
+
+    /**
+     * @brief Gets if we should start a new iteration. For this to be true, we need that >1/2 of
+     * alloted time is remaining.
+     *
+     * @return True if we can start a new iteration, else false.
+     */
+    bool get_should_start_new_iteration() const;
 
     /**
      * @brief Gets time elapsed at latest update of time clock.
