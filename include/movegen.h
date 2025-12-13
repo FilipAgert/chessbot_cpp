@@ -114,7 +114,7 @@ constexpr std::array<size_t, 64> bishop_magic_sizes = [] {
  * @brief the shift values used for each rook square. 64-#bits
  *
  */
-constexpr std::array<uint8_t, 64> rook_magic_shifts =  [] {  // the shift value. saves a subtraction.
+constexpr std::array<uint8_t, 64> rook_magic_shifts = [] {  // the shift value. saves a subtraction.
     std::array<uint8_t, 64> rook_magic_shifts;
     for (int i = 0; i < 64; i++) {
         rook_magic_shifts[i] = 64 - rook_magic_sizes_bits[i];
@@ -566,11 +566,18 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
                            const uint8_t pawn_col);
 
+template <bool is_white>
 constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb, const uint8_t pawn_col) {
-    int dir =
-        (pawn_col == pieces::white) * N + (pawn_col == pieces::black) * S;  // branchless assignment
-    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
-                     BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
+    BB moves;
+    if constexpr (is_white) {
+        constexpr int dir = N;
+        moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
+                BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
+    } else {
+        constexpr int dir = S;
+        moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
+                BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
+    }
     return moves;
 }
 /**

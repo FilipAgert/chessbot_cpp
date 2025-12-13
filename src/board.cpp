@@ -7,28 +7,75 @@
 #include <sstream>
 #include <vector>
 using namespace movegen;
+using namespace pieces;
 
-void Board::bb_move(const uint8_t from, const uint8_t to, const Piece p) {
-    bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
-    uint64_t bb = BitBoard::one_high(from);
-    bit_boards[p.get_value()] &= ~bb;
-    bb = BitBoard::one_high(to);
-    bit_boards[p.get_value()] |= bb;
-    bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
+template <Piece_t piece, bool is_white> void Board::bb_move(const uint8_t from, const uint8_t to) {
+    bb_remove<piece, is_white>(from);
+    bb_add<piece, is_white>(to);
 }
-void Board::bb_remove(const uint8_t sq, const Piece p) {
-    bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
-    uint64_t bb = BitBoard::one_high(sq);
-    bit_boards[p.get_value()] &= ~bb;
-    bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
+template <Piece_t piece, bool is_white> void Board::bb_remove(const uint8_t sq) {
+    BB bb = BitBoard::one_high(sq);
+    if constexpr (is_white) {
+        white_pieces &= ~bb;
+        if constexpr (piece == pawn)
+            white_pawns &= ~bb;
+        else if constexpr (piece == bishop)
+            white_bishops &= ~bb;
+        else if constexpr (piece == rook)
+            white_rooks &= ~bb;
+        else if constexpr (piece == knight)
+            white_knights &= ~bb;
+        else if constexpr (piece == queen)
+            white_queen &= ~bb;
+        else if constexpr (piece == king)
+            white_king &= ~bb;
+    } else {
+        black_pieces &= ~bb;
+        if constexpr (piece == pawn)
+            black_pawns &= ~bb;
+        else if constexpr (piece == bishop)
+            black_bishops &= ~bb;
+        else if constexpr (piece == rook)
+            black_rooks &= ~bb;
+        else if constexpr (piece == knight)
+            black_knights &= ~bb;
+        else if constexpr (piece == queen)
+            black_queen &= ~bb;
+        else if constexpr (piece == king)
+            black_king &= ~bb;
+    }
 }
-void Board::bb_add(const uint8_t sq, const Piece p) {
-    bit_boards[p.get_color()] &= ~bit_boards[p.get_value()];  // Clear color bitboard from piece
-
-    uint64_t bb = BitBoard::one_high(sq);
-    bit_boards[p.get_value()] |= bb;
-
-    bit_boards[p.get_color()] |= bit_boards[p.get_value()];  // Set color bit board for this piece
+template <Piece_t piece, bool is_white> void Board::bb_add(const uint8_t sq) {
+    BB bb = BitBoard::one_high(sq);
+    if constexpr (is_white) {
+        white_pieces |= bb;
+        if constexpr (piece == pawn)
+            white_pawns |= bb;
+        else if constexpr (piece == bishop)
+            white_bishops |= bb;
+        else if constexpr (piece == rook)
+            white_rooks |= bb;
+        else if constexpr (piece == knight)
+            white_knights |= bb;
+        else if constexpr (piece == queen)
+            white_queen |= bb;
+        else if constexpr (piece == king)
+            white_king |= bb;
+    } else {
+        black_pieces |= bb;
+        if constexpr (piece == pawn)
+            black_pawns |= bb;
+        else if constexpr (piece == bishop)
+            black_bishops |= bb;
+        else if constexpr (piece == rook)
+            black_rooks |= bb;
+        else if constexpr (piece == knight)
+            black_knights |= bb;
+        else if constexpr (piece == queen)
+            black_queen |= bb;
+        else if constexpr (piece == king)
+            black_king |= bb;
+    }
 }
 
 bool Board::is_square_empty(uint8_t square) const {
@@ -102,43 +149,6 @@ std::vector<Piece> Board::get_pieces() {
     return pieces;
 }
 
-/**
- * @brief Adds moves to movelist
- *
- * @param[inout] moves move array
- * @param[inout] num_moves number of moves. will be updated
- * @param[in] to_bb to squares in moves. is destroyed
- * @param[in] from from square
- */
-void Board::add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb,
-                      const uint8_t from) const {
-    BitLoop(to_bb) {
-        uint8_t lsb = BitBoard::lsb(to_bb);
-        moves[num_moves++] = Move(from, lsb);
-    }
-}
-
-uint64_t Board::get_atk_bb(const uint8_t color) const {
-    uint8_t enemy_color = color ^ pieces::color_mask;
-
-    uint64_t friendly_pieces = bit_boards[color];
-    uint64_t enemy_pieces = bit_boards[enemy_color];
-    uint64_t occ = friendly_pieces | enemy_pieces;
-    uint64_t queen_bb = bit_boards[color | pieces::queen];
-    uint64_t bishop_bb = bit_boards[color | pieces::bishop] |
-                         queen_bb;  // queen is taken care of through bishop call
-    uint64_t rook_bb = bit_boards[color | pieces::rook] | queen_bb;  // and through rook call.
-    uint64_t pawn_bb = bit_boards[color | pieces::pawn];
-    uint64_t knight_bb = bit_boards[color | pieces::knight];
-    uint64_t king_bb = bit_boards[color | pieces::king];
-    bishop_bb = movegen::bishop_atk_bb(bishop_bb, occ);
-    rook_bb = movegen::rook_atk_bb(rook_bb, occ);
-    knight_bb = movegen::knight_atk_bb(knight_bb);
-    pawn_bb = movegen::pawn_atk_bb(pawn_bb, color);
-    king_bb = movegen::king_atk_bb(king_bb);
-    return bishop_bb | rook_bb | knight_bb | pawn_bb | king_bb;
-}
-
 bool does_move_check(const Move candidate, const uint8_t king_color) {
     NotImplemented();
     // Can do a bitboard only implementation. Need to: Remove captured piece. Handle en passant.
@@ -175,12 +185,12 @@ Board::Board() {
 
 Board::~Board() {}
 using namespace pieces;
-void Board::do_move(Move &move) {
+template <bool white_to_move> void Board::do_move(Move &move) {
     move.castling_rights = this->castleinfo;
     move.en_passant_square = this->en_passant ? this->en_passant_square : err_val8;
     move.ply = ply_moves;
     ply_moves += 1;
-    if (this->turn_color == black)
+    if constexpr (!white_to_move)
         full_moves += 1;
     change_turn();  // Changes turn color from white <-> black.
     Piece moved = get_piece_at(move.source);
@@ -260,7 +270,7 @@ void Board::do_move(Move &move) {
     }
 }
 
-void Board::undo_move(const Move move) {
+template <bool white_moved> void Board::undo_move(const Move move) {
     castleinfo = move.castling_rights;
     en_passant_square = move.en_passant_square;
     en_passant = en_passant_square < 64;
@@ -300,7 +310,7 @@ void Board::undo_move(const Move move) {
         }
     }
 
-    if (this->turn_color == white)
+    if (!white_moved == white)
         full_moves -= 1;
     change_turn();  // Changes turn color from white <-> black.
 }

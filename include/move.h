@@ -42,12 +42,14 @@ struct Move {
     explicit Move(std::string move_str) {
         if (move_str.length() < 4 || move_str.length() > 5)
             throw new std::invalid_argument("Move string invalid: " + move_str);
-        this->source = NotationInterface::idx_from_string(move_str.substr(0, 2));
-        this->target = NotationInterface::idx_from_string(move_str.substr(2, 2));
+        int source = NotationInterface::idx_from_string(move_str.substr(0, 2));
+        int target = NotationInterface::idx_from_string(move_str.substr(2, 2));
         if (move_str.length() == 5) {
             uint8_t color = NotationInterface::row(target) == 0 ? pieces::black : pieces::white;
             Piece p = Piece(Piece::piece_type_from_char(move_str[4]) | color);
-            this->promotion = p;
+            Move(source, target, p);
+        } else {
+            Move(source, target);
         }
     }
     constexpr Move(uint8_t from, uint8_t to) {
@@ -56,6 +58,15 @@ struct Move {
         promotion = Piece();
         castling_rights = 0;
         flag = 0;
+        ply = 0;
+        check = false;
+    }
+    constexpr Move(uint8_t from, uint8_t to, Flag_t moveflag) {
+        source = from;
+        target = to;
+        promotion = Piece();
+        castling_rights = 0;
+        flag = moveflag;
         ply = 0;
         check = false;
     }
