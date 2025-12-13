@@ -22,6 +22,7 @@ class movegen_benchmark {
     static int gen_num_moves(Board board, int depth, int print_depth = -1);
 
  private:
+    template <bool is_white>
     static int recurse_moves(Board board, int print_depth, int curr_depth, int to_depth);
 };
 #endif
