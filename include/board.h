@@ -51,38 +51,58 @@ struct Board {
         Piece_t moved = game_board[move.source].get_type();
         switch (moved) {
         case pieces::pawn:
+            switch (move.flag) {
+            case moveflag::MOVEFLAG_pawn_double_push:
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_pawn_double_push>(
+                    move);
+            case moveflag::MOVEFLAG_pawn_ep_capture:
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_pawn_ep_capture>(
+                    move);
+            case moveflag::MOVEFLAG_promote_queen:
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_queen>(move);
+            case moveflag::MOVEFLAG_promote_bishop:
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_bishop>(
+                    move);
+            case moveflag::MOVEFLAG_promote_rook:
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_rook>(move);
+            case moveflag::MOVEFLAG_promote_knight:
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_knight>(
+                    move);
+            }
             return do_move<white_to_move, pieces::pawn>(move);
-            break;
+
+        case pieces::rook:
+            switch (move.flag) {
+            case moveflag::MOVEFLAG_remove_long_castle:
+                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_long_castle>(
+                    move);
+            case moveflag::MOVEFLAG_remove_short_castle:
+                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_short_castle>(
+                    move);
+            }
+            return do_move<white_to_move, pieces::rook>(move);
         case pieces::bishop:
             return do_move<white_to_move, pieces::bishop>(move);
-            break;
         case pieces::knight:
             return do_move<white_to_move, pieces::knight>(move);
-            break;
-        case pieces::rook:
-            return do_move<white_to_move, pieces::rook>(move);
-            break;
         case pieces::queen:
             return do_move<white_to_move, pieces::queen>(move);
-            break;
         case pieces::king:
+            switch (move.flag) {
+            case moveflag::MOVEFLAG_remove_all_castle:
+                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_remove_all_castle>(
+                    move);
+            case moveflag::MOVEFLAG_long_castling:
+                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_long_castling>(move);
+            case moveflag::MOVEFLAG_short_castling:
+                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_short_castling>(
+                    move);
+            }
             return do_move<white_to_move, pieces::king>(move);
-            break;
         }
     }
-    template <bool white_to_move, Piece_t moved> restore_move_info do_move(Move &move) {
-        // Find out move flag:
+    template <bool white_to_move, Piece_t moved, Flag_t flag> restore_move_info do_move(Move &move);
 
-        if constexpr (moved == pieces::pawn) {
-        } else if constexpr (moved == pieces::bishop) {
-        } else if constexpr (moved == pieces::knight) {
-        } else if constexpr (moved == pieces::rook) {
-        } else if constexpr (moved == pieces::queen) {
-        } else if constexpr (moved == pieces::king) {
-        }
-    }
-    template <bool white_to_move, Piece_t moved, Flag_t flag> void do_move(Move &move);
-    template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured>
     void do_move(Move &move);
     template <bool white_moved> void undo_move(const Move move);
     /**
@@ -452,122 +472,117 @@ struct Board {
                 else if (from == friendly_shortsq)
                     flag = moveflag::MOVEFLAG_remove_short_castle;
             }
-            if (lsb == enemy_longsq)
-                flag = moveflag::MOVEFLAG_remove_long_castle;
-            else if (lsb == enemy_shortsq)
-                flag = moveflag::MOVEFLAG_remove_short_castle;
             moves[num_moves++] = Move(from, lsb, flag);
         }
     }
-}
 
-/**
- * @brief For a bitboard with locations of pieces, generate all possible
- * moves and add to move vector
- *
- * @tparam[in] ptype type of piece.
- * @tparam[in] stype type of search.
- * @param[inout] moves array containing moves generated so far. will be
- * filled with new moves
- * @param[inout] num_moves number of moves generated before this
- * subroutine on in, increased by number of moves this routine generated
- * on oute
- * @param[in] piece_bb bitboard with piece locations. destroyed by this
- * method
- * @param[in] friendly_bb bb with all friendly pieces
- * @param[in] enemy_bb bb with all enemy pieces
- * @param[in] ep_bb bitboard with en passant square
- * @param[in] castleinfo int containing info about a castle
- * @param[in] turn_color color of player
- */
-template <Piece_t ptype, search_type stype, bool is_white>
-void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
-                       uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                       const uint64_t ep_bb, const uint8_t castleinfo) const {
-    BitLoop(piece_bb) {
-        uint8_t sq = BitBoard::lsb(piece_bb);
-        uint64_t to_sqs =
-            to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
-        add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
+    /**
+     * @brief For a bitboard with locations of pieces, generate all possible
+     * moves and add to move vector
+     *
+     * @tparam[in] ptype type of piece.
+     * @tparam[in] stype type of search.
+     * @param[inout] moves array containing moves generated so far. will be
+     * filled with new moves
+     * @param[inout] num_moves number of moves generated before this
+     * subroutine on in, increased by number of moves this routine generated
+     * on oute
+     * @param[in] piece_bb bitboard with piece locations. destroyed by this
+     * method
+     * @param[in] friendly_bb bb with all friendly pieces
+     * @param[in] enemy_bb bb with all enemy pieces
+     * @param[in] ep_bb bitboard with en passant square
+     * @param[in] castleinfo int containing info about a castle
+     * @param[in] turn_color color of player
+     */
+    template <Piece_t ptype, search_type stype, bool is_white>
+    void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
+                           uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
+                           const uint64_t ep_bb, const uint8_t castleinfo) const {
+        BitLoop(piece_bb) {
+            uint8_t sq = BitBoard::lsb(piece_bb);
+            uint64_t to_sqs =
+                to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
+            add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
+        }
     }
-}
-}
 
-std::array<Piece, 64> game_board;
-// Color                 W          B
-// Bitboards: Pieces: [9-14]   [17-22].
-//            Attack: 15         23
-//            All p : 8          16
+    std::array<Piece, 64> game_board;
+    // Color                 W          B
+    // Bitboards: Pieces: [9-14]   [17-22].
+    //            Attack: 15         23
+    //            All p : 8          16
 
-std::array<uint64_t, 32> bit_boards{};
-BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king, white_pieces;
-BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king, black_pieces;
+    std::array<uint64_t, 32> bit_boards{};
+    BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king,
+        white_pieces;
+    BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king,
+        black_pieces;
 
-uint8_t num_pieces = 0;
+    uint8_t num_pieces = 0;
 
-/**
- * @brief For a given piece type, generate all possible to squares.
- *
- * @tparam[in] ptype Piece type
- * @tparam[in] s_type type of search to be conducted.
- * @param[in] sq Square of piece
- * @param[in] friendly_bb Bit board of all friendly pieces
- * @param[in] enemy_bb Bit board of all enemy pieces
- * @param[in] ep_bb En passant bit board
- * @param[in] castleinfo Integer containing castle information
- * @param[in] turn_color Color of player to eval
- * @return bitboard containing ones in the squares where this piece (or
- * pieces) can move to.
- */
-template <Piece_t ptype, search_type s_type, bool is_white>
-BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo) const {
-    BB piece_bb = BitBoard::one_high(sq);
-    constexpr uint8_t color = is_white ? pieces::white : pieces::black;
-    BB to_squares;
-    if constexpr (ptype == pieces::pawn) {
-        to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, color);
-    } else if constexpr (ptype == pieces::bishop) {
-        to_squares = movegen::bishop_moves_sq(sq, friendly_bb, enemy_bb);
-    } else if constexpr (ptype == pieces::knight) {
-        to_squares = movegen::knight_moves(sq, friendly_bb);
-    } else if constexpr (ptype == pieces::rook) {
-        to_squares = movegen::rook_moves_sq(sq, friendly_bb, enemy_bb);
-    } else if constexpr (ptype == pieces::queen) {
-        to_squares = movegen::queen_moves_sq(sq, friendly_bb, enemy_bb);
-    } else if constexpr (ptype == pieces::king) {
-        to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
-                                         get_atk_bb<!is_white>(), castleinfo, color);
+    /**
+     * @brief For a given piece type, generate all possible to squares.
+     *
+     * @tparam[in] ptype Piece type
+     * @tparam[in] s_type type of search to be conducted.
+     * @param[in] sq Square of piece
+     * @param[in] friendly_bb Bit board of all friendly pieces
+     * @param[in] enemy_bb Bit board of all enemy pieces
+     * @param[in] ep_bb En passant bit board
+     * @param[in] castleinfo Integer containing castle information
+     * @param[in] turn_color Color of player to eval
+     * @return bitboard containing ones in the squares where this piece (or
+     * pieces) can move to.
+     */
+    template <Piece_t ptype, search_type s_type, bool is_white>
+    BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo) const {
+        BB piece_bb = BitBoard::one_high(sq);
+        constexpr uint8_t color = is_white ? pieces::white : pieces::black;
+        BB to_squares;
+        if constexpr (ptype == pieces::pawn) {
+            to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, color);
+        } else if constexpr (ptype == pieces::bishop) {
+            to_squares = movegen::bishop_moves_sq(sq, friendly_bb, enemy_bb);
+        } else if constexpr (ptype == pieces::knight) {
+            to_squares = movegen::knight_moves(sq, friendly_bb);
+        } else if constexpr (ptype == pieces::rook) {
+            to_squares = movegen::rook_moves_sq(sq, friendly_bb, enemy_bb);
+        } else if constexpr (ptype == pieces::queen) {
+            to_squares = movegen::queen_moves_sq(sq, friendly_bb, enemy_bb);
+        } else if constexpr (ptype == pieces::king) {
+            to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
+                                             get_atk_bb<!is_white>(), castleinfo, color);
+        }
+        if constexpr (s_type.quiesence_search) {  // Only search for captures
+                                                  // in Quiesence.
+            to_squares &= enemy_bb;
+        }
+        return to_squares;
     }
-    if constexpr (s_type.quiesence_search) {  // Only search for captures
-                                              // in Quiesence.
-        to_squares &= enemy_bb;
-    }
-    return to_squares;
-}
-/**
- * @brief Handles moving piece on bitboard.
- * board.
- *
- * @param[in] from index of from square
- * @param[in] to index of to square
- */
-template <Piece_t piece, bool is_white> void bb_move(const uint8_t from, const uint8_t to);
-/**
- * @brief Handles removing piece on bitboard. WARNING: Must be called
- * before removing piece on board.
- *
- * @param[in] sq index of square to remove piece from
- * @param[in] piece to add
- */
-template <Piece_t piece, bool is_white> void bb_remove(const uint8_t sq);
-/**
- * @brief Handles moving piece on bitboard.
- * board.
- *
- * @param[in] from index of from square
- * @param[in] piece to add
- */
-template <Piece_t piece, bool is_white> void bb_add(const uint8_t sq);
-}
-;
+    /**
+     * @brief Handles moving piece on bitboard.
+     * board.
+     *
+     * @param[in] from index of from square
+     * @param[in] to index of to square
+     */
+    template <Piece_t piece, bool is_white> void bb_move(const uint8_t from, const uint8_t to);
+    /**
+     * @brief Handles removing piece on bitboard. WARNING: Must be called
+     * before removing piece on board.
+     *
+     * @param[in] sq index of square to remove piece from
+     * @param[in] piece to add
+     */
+    template <Piece_t piece, bool is_white> void bb_remove(const uint8_t sq);
+    /**
+     * @brief Handles moving piece on bitboard.
+     * board.
+     *
+     * @param[in] from index of from square
+     * @param[in] piece to add
+     */
+    template <Piece_t piece, bool is_white> void bb_add(const uint8_t sq);
+};
 #endif
