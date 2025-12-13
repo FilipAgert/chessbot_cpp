@@ -23,7 +23,11 @@ bool Game::set_fen(std::string FEN) {
 }
 void Game::start_thinking(const time_control rem_time) {
     reset_infos();
-    think_loop(rem_time);
+    bool is_white = board.get_turn_color() == pieces::white;
+    if (is_white)
+        think_loop<true>(rem_time);
+    else
+        think_loop<false>(rem_time);
 }
 
 void Game::reset_infos() {
@@ -38,12 +42,11 @@ void Game::reset_state_stack() {
     state_stack.push(board_hash);
 }
 
-void Game::think_loop(const time_control rem_time) {
+template <bool is_white> void Game::think_loop(const time_control rem_time) {
     int buffer = STANDARD_TIME_BUFFER;  // ms
     int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
 
-    time_manager = std::make_shared<TimeManager>(rem_time, buffer, fraction,
-                                                 board.get_turn_color() == pieces::white);
+    time_manager = std::make_shared<TimeManager>(rem_time, buffer, fraction, is_white);
 
     time_manager->start_time_management();
     int max_depth = 256;
@@ -54,7 +57,7 @@ void Game::think_loop(const time_control rem_time) {
             break;
         int alpha = -INF;
         const int beta = INF;
-        alpha_beta<true>(depth, 0, alpha, beta, 0);
+        alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         InfoMsg new_msg;
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
@@ -88,7 +91,7 @@ void Game::think_loop(const time_control rem_time) {
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
-template <bool is_root>
+template <bool is_root, bool is_white>
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
@@ -137,10 +140,10 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         // cutoff, we save plenty of time.
         if (entry.is_valid_move()) {  // need ot check if its a valid move or not, since it might be
                                       // e.g. no moves available on this state.
-            int extension = calculate_extension(entry.bestmove, num_extensions);
             make_move(entry.bestmove);
-            int eval =
-                -alpha_beta<false>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
+            int extension = calculate_extension<!is_white>(entry.bestmove, num_extensions);
+            int eval = -alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha,
+                                                     num_extensions + extension);
             undo_move();
             if (time_manager->get_should_stop()) {
                 return 0;  // should not store into transposition table here since the search was
@@ -182,10 +185,10 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     //
     for (int i = movelb; i < num_moves; i++) {
         this->make_move(moves[i]);
-        int extension = calculate_extension(moves[i], num_extensions);
+        int extension = calculate_extension<!is_white>(moves[i], num_extensions);
 
-        int eval = -alpha_beta<false>(depth - 1 + extension, ply + 1, -beta, -alpha,
-                                      num_extensions + extension);
+        int eval = -alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha,
+                                                 num_extensions + extension);
         this->undo_move();
         if (time_manager->get_should_stop()) {
             if (is_root) {
@@ -216,7 +219,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     return alpha;
 }
 
-int Game::quiesence(int ply, int alpha, int beta) {
+template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
@@ -240,7 +243,7 @@ int Game::quiesence(int ply, int alpha, int beta) {
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
         this->make_move(moves[i]);
-        eval = -quiesence(ply + 1, -beta, -alpha);
+        eval = -quiesence<!is_white>(ply + 1, -beta, -alpha);
         this->undo_move();
         if (eval >= beta)
             return beta;
@@ -250,12 +253,13 @@ int Game::quiesence(int ply, int alpha, int beta) {
     return alpha;
 }
 
-int Game::calculate_extension(const Move &move, int num_extensions) const {
+template <bool is_white> int Game::calculate_extension(const Move &move, int num_extensions) const {
     constexpr int max_num_extensions = 16;
+    constexpr bool color = is_white ? pieces::white : pieces::black;
 
     int extension = 0;
     if (num_extensions < max_num_extensions) {
-        if (board.king_checked(board.get_turn_color()))
+        if (board.king_checked(color))
             extension = 1;
     }
     return extension;

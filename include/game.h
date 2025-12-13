@@ -64,7 +64,7 @@ class Game {
      * @param[in] num_extensions - number of move extensions performed so far
      * @return Score of current state.
      */
-    template <bool is_root>
+    template <bool is_root, bool is_white>
     int alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
     /**
      * @brief Quiesence search. Only evaluates captures
@@ -73,7 +73,7 @@ class Game {
      * @param[in] beta Minimum guaranteeds core of minimising player
      * @return Score of current state.
      */
-    int quiesence(int ply, int alpha, int beta);
+    template <bool is_white> int quiesence(int ply, int alpha, int beta);
 
     /**
      * @brief Computes the extension for this move
@@ -83,7 +83,7 @@ class Game {
      * @param[in] num_extensions number of extensions previously performed
      * @return move extensions
      */
-    int calculate_extension(const Move &move, int num_extensions) const;
+    template <bool is_white> int calculate_extension(const Move &move, int num_extensions) const;
 
     /**
      * @brief Gets the current best known move to send to GUI.
@@ -140,5 +140,5 @@ class Game {
      *
      */
     bool one_depth_complete;
-    void think_loop(const time_control rem_time);
+    template <bool is_white> void think_loop(const time_control rem_time);
 };
