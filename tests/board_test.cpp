@@ -20,7 +20,8 @@ TEST(BoardTest, AddPiece) {
     b.add_piece(8, p);
     ASSERT_EQ(b.get_piece_at(8), p);
     uint64_t bb = BitBoard::one_high(8);
-    ASSERT_EQ(b.get_bb(p.get_value()), bb);
+    BB actual = b.get_piece_bb<rook, true>();
+    ASSERT_EQ(actual, bb);
 }
 
 TEST(BoardTest, MovePiece) {
@@ -41,34 +42,34 @@ TEST(BoardTest, bb_validation) {
     board.read_fen(fen);
 
     uint64_t expected = masks::row(0) | masks::row(1);
-    uint64_t actual = board.get_bb(white);
+    uint64_t actual = board.occupancy<true>();
     ASSERT_EQ(actual, expected);
     expected = masks::row(6) | masks::row(7);
-    actual = board.get_bb(black);
+    actual = board.occupancy<false>();
     ASSERT_EQ(actual, expected);
 
     // Test pawns
     expected = masks::row(1);
-    actual = board.get_bb(pawn | white);
+    actual = board.get_piece_bb<pawn, true>();
     ASSERT_EQ(actual, expected);
     expected = masks::row(6);
-    actual = board.get_bb(pawn | black);
+    actual = board.get_piece_bb<pawn, false>();
     ASSERT_EQ(actual, expected);
 
     // Test kings
     expected = BitBoard::one_high(4);
-    actual = board.get_bb(king | white);
+    actual = board.get_piece_bb<king, true>();
     ASSERT_EQ(actual, expected);
     expected = BitBoard::one_high(60);
-    actual = board.get_bb(king | black);
+    actual = board.get_piece_bb<king, false>();
     ASSERT_EQ(actual, expected);
 
     // Test queen
     expected = BitBoard::one_high(3);
-    actual = board.get_bb(queen | white);
+    actual = board.get_piece_bb<queen, true>();
     ASSERT_EQ(actual, expected);
     expected = BitBoard::one_high(59);
-    actual = board.get_bb(queen | black);
+    actual = board.get_piece_bb<queen, false>();
     ASSERT_EQ(actual, expected);
 }
 
@@ -79,8 +80,10 @@ TEST(BoardTest, RemovePiece) {
     b.remove_piece(8);
     ASSERT_EQ(b.get_piece_at(8).get_type(), none);
     uint64_t bb = 0;
-    ASSERT_EQ(b.get_bb(p.get_value()), bb);
-    ASSERT_EQ(b.get_bb(p.get_color()), bb);
+    BB actual = b.get_piece_bb<rook, true>();
+    ASSERT_EQ(actual, bb);
+    actual = b.get_piece_bb<rook, false>();
+    ASSERT_EQ(actual, bb);
 
     b.remove_piece(9);
     ASSERT_EQ(b.get_piece_at(9), Piece());
@@ -235,7 +238,7 @@ TEST(BoardTest, king_check) {
     std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     board.read_fen(fen);
     uint8_t king_color = pieces::white;
-    bool king_checked = board.king_checked(king_color);
+    bool king_checked = board.king_checked<true>();
     bool expected = false;
     ASSERT_EQ(king_checked, expected) << ": King should NOT be in check for FEN: " << fen << "\n";
 
@@ -243,14 +246,14 @@ TEST(BoardTest, king_check) {
     fen = "rnb1kbnr/pppp1ppp/4p3/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2";
     board.read_fen(fen);
     king_color = pieces::black;
-    king_checked = board.king_checked(king_color);
+    king_checked = board.king_checked<true>();
     expected = false;
     ASSERT_EQ(king_checked, expected) << ": King should NOT be in check for FEN: " << fen << "\n";
     // 3. King IS checked by a Queen
     fen = "8/8/8/8/8/8/4q3/4K3 w - - 0 1";
     board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = board.king_checked(king_color);
+    king_checked = board.king_checked<true>();
     expected = true;
     ASSERT_EQ(king_checked, expected)
         << ": King should be in check by Queen for FEN: " << fen << "\n";
@@ -259,7 +262,7 @@ TEST(BoardTest, king_check) {
     fen = "8/8/8/8/8/3n4/8/4K3 w - - 0 1";
     board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = board.king_checked(king_color);
+    king_checked = board.king_checked<true>();
     expected = true;
     ASSERT_EQ(king_checked, expected)
         << ": King should be in check by Knight for FEN: " << fen << "\n";
@@ -268,7 +271,7 @@ TEST(BoardTest, king_check) {
     fen = "8/8/8/8/7b/8/8/4K3 w - - 0 1";
     board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = board.king_checked(king_color);
+    king_checked = board.king_checked<true>();
     expected = true;
     ASSERT_EQ(king_checked, expected)
         << ": King should be in check by Bishop for FEN: " << fen << "\n";
@@ -277,7 +280,7 @@ TEST(BoardTest, king_check) {
     fen = "8/8/4q3/4P3/8/8/8/4K3 w - - 0 1";
     board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = board.king_checked(king_color);
+    king_checked = board.king_checked<true>();
     expected = false;
     ASSERT_EQ(king_checked, expected)
         << ": King should NOT be checked (blocked by Pawn) for FEN: " << fen << "\n";
@@ -286,7 +289,7 @@ TEST(BoardTest, king_check) {
     fen = "8/8/8/8/1b6/2N5/8/4K3 w - - 0 1";
     board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = board.king_checked(king_color);
+    king_checked = board.king_checked<true>();
     expected = false;
     ASSERT_EQ(king_checked, expected)
         << ": King should NOT be checked (blocked by Knight) for FEN: " << fen << "\n";
@@ -295,7 +298,7 @@ TEST(BoardTest, king_check) {
     fen = "8/8/8/4r3/4B3/8/8/4K3 w - - 0 1";
     board.read_fen(fen);
     king_color = pieces::white;
-    king_checked = board.king_checked(king_color);
+    king_checked = board.king_checked<true>();
     expected = false;
     ASSERT_EQ(king_checked, expected)
         << ": King should NOT be checked (blocked by Bishop) for FEN: " << fen << "\n";

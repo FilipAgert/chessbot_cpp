@@ -93,7 +93,6 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
 
 template <bool is_root, bool is_white>
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
-    constexpr uint8_t color = is_white ? pieces::white : pieces::black;
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
@@ -173,7 +172,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     moves_generated += num_moves;
     if (num_moves == 0) {
         const int MATE_SCORE = 30000;
-        if (board.king_checked(color)) {
+        if (board.king_checked<is_white>()) {
             return (-MATE_SCORE + ply);
         } else {
             return 0;
@@ -256,11 +255,10 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
 
 template <bool is_white> int Game::calculate_extension(const Move &move, int num_extensions) const {
     constexpr int max_num_extensions = 16;
-    constexpr uint8_t color = is_white ? pieces::white : pieces::black;
 
     int extension = 0;
     if (num_extensions < max_num_extensions) {
-        if (board.king_checked(color))
+        if (board.king_checked<is_white>())
             extension = 1;
     }
     return extension;

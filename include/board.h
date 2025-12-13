@@ -44,6 +44,31 @@ struct Board {
     void do_move(Move &move);
     void undo_move(const Move move);
     /**
+     * @brief Calculates if king is in check.
+     *
+     * @param[in] turn_color Color of the king to be check if in check
+     * @return True if checked, false if not in check
+     */
+    template <bool is_white> bool king_checked() const {
+        BB king_bb = get_piece_bb<pieces::king, is_white>();
+        uint8_t kingsq = BitBoard::lsb(king_bb);
+        BB occ = occupancy();
+        if ((movegen::knight_atk(kingsq) & get_piece_bb<pieces::knight, !is_white>()) > 0)
+            return true;
+        if ((movegen::bishop_atk(kingsq, occ) & (get_piece_bb<pieces::bishop, !is_white>() |
+                                                 get_piece_bb<pieces::queen, !is_white>())) > 0)
+            return true;
+        if ((movegen::rook_atk(kingsq, occ) & (get_piece_bb<pieces::rook, !is_white>() |
+                                               get_piece_bb<pieces::queen, !is_white>())) > 0)
+            return true;
+        if ((movegen::pawn_atk_bb(king_bb, turn_color) & get_piece_bb<pieces::pawn, !is_white>()) >
+            0)
+            return true;
+        if ((movegen::king_atk(kingsq) & get_piece_bb<pieces::king, !is_white>()) > 0)
+            return true;
+        return false;
+    }
+    /**
      * @brief Get the all the possible legal moves and sets into provided array
      *
      * @tparam stype of move to generate.
@@ -53,7 +78,6 @@ struct Board {
     template <search_type stype, bool is_white>
     size_t get_moves(std::array<Move, max_legal_moves> &moves) {
         std::array<Move, max_legal_moves> pseudolegal_moves;
-        constexpr uint8_t color = is_white ? pieces::white : pieces::black;
         size_t num_pseudolegal_moves = get_pseudolegal_moves<stype, is_white>(pseudolegal_moves);
         //  uint8_t opposite_color = turn_color ^ color_mask;
 
@@ -65,7 +89,7 @@ struct Board {
                      // PERF: Implement method in Board that only does/undoes moves in the bitboards
                      // for performance.
             do_move(pseudolegal_moves[m]);
-            if (!king_checked(color)) {
+            if (!king_checked<is_white>()) {
                 // PERF: Check how expensive this king_checked thing is. Is it worth the move
                 // ordering benefit?
                 // bool opponent_checked = board.king_checked(opposite_color);
@@ -89,17 +113,15 @@ struct Board {
      */
     template <search_type stype, bool is_white>
     size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves) const {
-        constexpr uint8_t color = is_white ? pieces::white : pieces::black;
         size_t num_moves = 0;
-        uint8_t enemy_color = color ^ pieces::color_mask;
-        BB friendly_bb = bit_boards[color];
-        BB enemy_bb = bit_boards[enemy_color];
-        BB queen_bb = get_piece_bb<pieces::queen>(color);
-        BB bishop_bb = get_piece_bb<pieces::bishop>(color);
-        BB rook_bb = get_piece_bb<pieces::rook>(color);
-        BB pawn_bb = get_piece_bb<pieces::pawn>(color);
-        BB king_bb = get_piece_bb<pieces::king>(color);
-        BB knight_bb = get_piece_bb<pieces::knight>(color);
+        BB friendly_bb = occupancy<is_white>();
+        BB enemy_bb = occupancy<!is_white>();
+        BB queen_bb = get_piece_bb<pieces::queen, is_white>();
+        BB bishop_bb = get_piece_bb<pieces::bishop, is_white>();
+        BB rook_bb = get_piece_bb<pieces::rook, is_white>();
+        BB pawn_bb = get_piece_bb<pieces::pawn, is_white>();
+        BB king_bb = get_piece_bb<pieces::king, is_white>();
+        BB knight_bb = get_piece_bb<pieces::knight, is_white>();
         uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_square) : 0;
         gen_add_all_moves<pieces::queen, stype, is_white>(moves, num_moves, queen_bb, friendly_bb,
                                                           enemy_bb, ep_bb, castleinfo);
@@ -179,14 +201,6 @@ struct Board {
     void clear_board();
 
     /**
-     * @brief Calculates if king is in check.
-     *
-     * @param[in] turn_color Color of the king to be check if in check
-     * @return True if checked, false if not in check
-     */
-    bool king_checked(const uint8_t turn_color) const;
-
-    /**
      * @brief Computes if a move acting on this board state would leave the king of a certain color
      * in check.
      *
@@ -203,10 +217,9 @@ struct Board {
      * @return number of pieces for selected player
      */
     template <bool is_white> inline constexpr uint8_t get_num_pieces() {
-        return BitBoard::bitcount(is_white ? bit_boards[pieces::white] : bit_boards[pieces::black]);
+        return BitBoard::bitcount(occupancy<is_white>());
     }
     void print_piece_loc() const;
-    inline const uint64_t get_bb(const uint8_t bb_idx) { return bit_boards[bb_idx]; }
 
     /**
      * @brief Gets the attack bitboard for a given color. These are squares that are threatened by
@@ -225,14 +238,34 @@ struct Board {
      * @return Bitboard of piece
      */
     template <Piece_t pval, bool is_white> BB get_piece_bb() const {
-        uint8_t col;
-        if constexpr (is_white)
-            col = pieces::white;
-        else
-            col = pieces::black;
         constexpr uint8_t type = pval & pieces::piece_mask;
-
-        return bit_boards[col | type];
+        if constexpr (is_white) {
+            if constexpr (type == pieces::pawn)
+                return white_pawns;
+            else if constexpr (type == pieces::knight)
+                return white_knights;
+            else if constexpr (type == pieces::rook)
+                return white_rooks;
+            else if constexpr (type == pieces::bishop)
+                return white_bishops;
+            else if constexpr (type == pieces::queen)
+                return white_queen;
+            else if constexpr (type == pieces::king)
+                return white_king;
+        } else {
+            if constexpr (type == pieces::pawn)
+                return black_pawns;
+            else if constexpr (type == pieces::knight)
+                return black_knights;
+            else if constexpr (type == pieces::rook)
+                return black_rooks;
+            else if constexpr (type == pieces::bishop)
+                return black_bishops;
+            else if constexpr (type == pieces::queen)
+                return black_queen;
+            else if constexpr (type == pieces::king)
+                return black_king;
+        }
     }
     /**
      * @brief Gets piece bitboard compile time.
@@ -240,8 +273,10 @@ struct Board {
      * @return Bitboard of piece
      */
     template <Piece_t pval> BB get_piece_bb(uint8_t col) const {
-        constexpr uint8_t type = pval & pieces::piece_mask;
-        return bit_boards[col | type];
+        if (col == pieces::white)
+            return get_piece_bb<pval, true>();
+        else
+            return get_piece_bb<pval, false>();
     }
     /**
      * @brief Gets number of pieces of a type and color on the board.
@@ -260,10 +295,12 @@ struct Board {
      */
     std::vector<Piece> get_pieces();
 
-    BB occupancy() const { return bit_boards[pieces::white] | bit_boards[pieces::black]; }
+    BB occupancy() const { return occupancy<true>() | occupancy<false>(); }
     template <bool is_white> BB occupancy() const {
-        constexpr uint8_t idx = is_white ? pieces::white : pieces::black;
-        return bit_boards[idx];
+        if constexpr (is_white)
+            return white_pieces;
+        else
+            return black_pieces;
     }
     /**
      * @brief Gets piece mobility for a given piece type
@@ -379,14 +416,16 @@ struct Board {
     }
 
     std::array<Piece, 64> game_board;
-    std::array<uint8_t, 32> piece_locations{};  // Array containing the indices for pieces in the
-                                                // board array.
     // Color                 W          B
     // Bitboards: Pieces: [9-14]   [17-22].
     //            Attack: 15         23
     //            All p : 8          16
 
     std::array<uint64_t, 32> bit_boards{};
+    BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king,
+        white_pieces;
+    BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king,
+        black_pieces;
 
     uint8_t num_pieces = 0;
 
@@ -407,10 +446,11 @@ struct Board {
     template <Piece_t ptype, search_type s_type, bool is_white>
     BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo) const {
         BB piece_bb = BitBoard::one_high(sq);
-        uint8_t enemy_col = turn_color ^ pieces::color_mask;
+        constexpr uint8_t color = is_white ? pieces::white : pieces::black;
+        constexpr uint8_t enemy_col = is_white ? pieces::black : pieces::white;
         BB to_squares;
         if constexpr (ptype == pieces::pawn) {
-            to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, turn_color);
+            to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, color);
         } else if constexpr (ptype == pieces::bishop) {
             to_squares = movegen::bishop_moves_sq(sq, friendly_bb, enemy_bb);
         } else if constexpr (ptype == pieces::knight) {
@@ -421,7 +461,7 @@ struct Board {
             to_squares = movegen::queen_moves_sq(sq, friendly_bb, enemy_bb);
         } else if constexpr (ptype == pieces::king) {
             to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
-                                             get_atk_bb(enemy_col), castleinfo, turn_color);
+                                             get_atk_bb(enemy_col), castleinfo, color);
         }
         if constexpr (s_type.quiesence_search) {  // Only search for captures
                                                   // in Quiesence.

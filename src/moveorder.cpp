@@ -38,7 +38,7 @@ int MoveOrder::move_heuristics(Move &move, Board &board) {
     }
 
     uint8_t col = pieces::color_mask ^ board.get_turn_color();  // gets enemy color
-    BB pawn_atk_bb = movegen::pawn_atk_bb(board.get_bb(pieces::pawn | col), col);
+    BB pawn_atk_bb = movegen::pawn_atk_bb(board.get_piece_bb<pieces::pawn>(col), col);
     if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
         heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
                                                 .get_type()];  // penalize if target square is on a
