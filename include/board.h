@@ -101,18 +101,18 @@ struct Board {
         BB king_bb = get_piece_bb<pieces::king>(color);
         BB knight_bb = get_piece_bb<pieces::knight>(color);
         uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_square) : 0;
-        gen_add_all_moves<pieces::queen, stype>(moves, num_moves, queen_bb, friendly_bb, enemy_bb,
-                                                ep_bb, castleinfo, color);
-        gen_add_all_moves<pieces::bishop, stype>(moves, num_moves, bishop_bb, friendly_bb, enemy_bb,
-                                                 ep_bb, castleinfo, color);
-        gen_add_all_moves<pieces::rook, stype>(moves, num_moves, rook_bb, friendly_bb, enemy_bb,
-                                               ep_bb, castleinfo, color);
-        gen_add_all_moves<pieces::king, stype>(moves, num_moves, king_bb, friendly_bb, enemy_bb,
-                                               ep_bb, castleinfo, color);
-        gen_add_all_moves<pieces::knight, stype>(moves, num_moves, knight_bb, friendly_bb, enemy_bb,
-                                                 ep_bb, castleinfo, color);
-        gen_add_all_moves<pieces::pawn, stype>(moves, num_moves, pawn_bb, friendly_bb, enemy_bb,
-                                               ep_bb, castleinfo, color);
+        gen_add_all_moves<pieces::queen, stype, is_white>(moves, num_moves, queen_bb, friendly_bb,
+                                                          enemy_bb, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::bishop, stype, is_white>(moves, num_moves, bishop_bb, friendly_bb,
+                                                           enemy_bb, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::rook, stype, is_white>(moves, num_moves, rook_bb, friendly_bb,
+                                                         enemy_bb, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::king, stype, is_white>(moves, num_moves, king_bb, friendly_bb,
+                                                         enemy_bb, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::knight, stype, is_white>(moves, num_moves, knight_bb, friendly_bb,
+                                                           enemy_bb, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::pawn, stype, is_white>(moves, num_moves, pawn_bb, friendly_bb,
+                                                         enemy_bb, ep_bb, castleinfo);
         return num_moves;
     }
     /**
@@ -325,36 +325,53 @@ struct Board {
      * @param[in] from from square.
      * @param[in] color of pawn.
      */
+    template <bool is_white>
     void add_moves_pawn(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
-                        uint64_t &to_bb, const uint8_t from, const uint8_t color) const;
+                        uint64_t &to_bb, const uint8_t from) const {
+        constexpr uint8_t color = is_white ? pieces::white : pieces::black;
+        constexpr int promorow = is_white ? 7 : 0;
+
+        BitLoop(to_bb) {
+            uint8_t lsb = BitBoard::lsb(to_bb);
+            if (NotationInterface::row(lsb) == promorow) {
+                for (uint8_t ptype : pieces::promote_types) {
+                    moves[num_moves++] = Move(from, lsb, Piece(ptype | color));
+                }
+            } else {
+                moves[num_moves++] = Move(from, lsb);
+            }
+        }
+    }
 
     /**
-     * @brief For a bitboard with locations of pieces, generate all possible moves and add to move
-     * vector
+     * @brief For a bitboard with locations of pieces, generate all possible
+     * moves and add to move vector
      *
      * @tparam[in] ptype type of piece.
      * @tparam[in] stype type of search.
-     * @param[inout] moves array containing moves generated so far. will be filled with new moves
-     * @param[inout] num_moves number of moves generated before this subroutine on in, increased by
-     * number of moves this routine generated on oute
-     * @param[in] piece_bb bitboard with piece locations. destroyed by this method
+     * @param[inout] moves array containing moves generated so far. will be
+     * filled with new moves
+     * @param[inout] num_moves number of moves generated before this
+     * subroutine on in, increased by number of moves this routine generated
+     * on oute
+     * @param[in] piece_bb bitboard with piece locations. destroyed by this
+     * method
      * @param[in] friendly_bb bb with all friendly pieces
      * @param[in] enemy_bb bb with all enemy pieces
      * @param[in] ep_bb bitboard with en passant square
      * @param[in] castleinfo int containing info about a castle
      * @param[in] turn_color color of player
      */
-    template <Piece_t ptype, search_type stype>
+    template <Piece_t ptype, search_type stype, bool is_white>
     void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
                            uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                           const uint64_t ep_bb, const uint8_t castleinfo,
-                           const uint8_t turn_color) const {
+                           const uint64_t ep_bb, const uint8_t castleinfo) const {
         BitLoop(piece_bb) {
             uint8_t sq = BitBoard::lsb(piece_bb);
             uint64_t to_sqs =
-                to_squares<ptype, stype>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo, turn_color);
+                to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
             if constexpr (ptype == pieces::pawn) {
-                add_moves_pawn(moves, num_moves, to_sqs, sq, turn_color);
+                add_moves_pawn<is_white>(moves, num_moves, to_sqs, sq);
             } else {
                 add_moves(moves, num_moves, to_sqs, sq);
             }
@@ -362,8 +379,8 @@ struct Board {
     }
 
     std::array<Piece, 64> game_board;
-    std::array<uint8_t, 32>
-        piece_locations{};  // Array containing the indices for pieces in the board array.
+    std::array<uint8_t, 32> piece_locations{};  // Array containing the indices for pieces in the
+                                                // board array.
     // Color                 W          B
     // Bitboards: Pieces: [9-14]   [17-22].
     //            Attack: 15         23
@@ -384,11 +401,11 @@ struct Board {
      * @param[in] ep_bb En passant bit board
      * @param[in] castleinfo Integer containing castle information
      * @param[in] turn_color Color of player to eval
-     * @return bitboard containing ones in the squares where this piece (or pieces) can move to.
+     * @return bitboard containing ones in the squares where this piece (or
+     * pieces) can move to.
      */
-    template <Piece_t ptype, search_type s_type>
-    BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo,
-                  uint8_t turn_color) const {
+    template <Piece_t ptype, search_type s_type, bool is_white>
+    BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo) const {
         BB piece_bb = BitBoard::one_high(sq);
         uint8_t enemy_col = turn_color ^ pieces::color_mask;
         BB to_squares;
@@ -406,7 +423,8 @@ struct Board {
             to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb,
                                              get_atk_bb(enemy_col), castleinfo, turn_color);
         }
-        if constexpr (s_type.quiesence_search) {  // Only search for captures in Quiesence.
+        if constexpr (s_type.quiesence_search) {  // Only search for captures
+                                                  // in Quiesence.
             to_squares &= enemy_bb;
         }
         return to_squares;
@@ -420,8 +438,8 @@ struct Board {
      */
     void bb_move(const uint8_t from, const uint8_t to, const Piece p);
     /**
-     * @brief Handles removing piece on bitboard. WARNING: Must be called before removing piece
-     * on board.
+     * @brief Handles removing piece on bitboard. WARNING: Must be called
+     * before removing piece on board.
      *
      * @param[in] sq index of square to remove piece from
      * @param[in] piece to add

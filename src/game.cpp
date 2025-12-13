@@ -256,7 +256,7 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
 
 template <bool is_white> int Game::calculate_extension(const Move &move, int num_extensions) const {
     constexpr int max_num_extensions = 16;
-    constexpr bool color = is_white ? pieces::white : pieces::black;
+    constexpr uint8_t color = is_white ? pieces::white : pieces::black;
 
     int extension = 0;
     if (num_extensions < max_num_extensions) {

@@ -117,21 +117,6 @@ void Board::add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_move
         moves[num_moves++] = Move(from, lsb);
     }
 }
-void Board::add_moves_pawn(std::array<Move, max_legal_moves> &moves, size_t &num_moves,
-                           uint64_t &to_bb, const uint8_t from, const uint8_t color) const {
-    int promorow = (color == pieces::white) * 7;  // Row for pawn promotions.
-
-    BitLoop(to_bb) {
-        uint8_t lsb = BitBoard::lsb(to_bb);
-        if (NotationInterface::row(lsb) == promorow) {
-            for (uint8_t ptype : pieces::promote_types) {
-                moves[num_moves++] = Move(from, lsb, Piece(ptype | color));
-            }
-        } else {
-            moves[num_moves++] = Move(from, lsb);
-        }
-    }
-}
 
 uint64_t Board::get_atk_bb(const uint8_t color) const {
     uint8_t enemy_color = color ^ pieces::color_mask;
