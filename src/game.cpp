@@ -93,6 +93,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
 
 template <bool is_root, bool is_white>
 int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+    constexpr uint8_t color = is_white ? pieces::white : pieces::black;
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
@@ -101,7 +102,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
 
     if (depth <= 0) {
         nodes_evaluated++;
-        return quiesence(ply, alpha, beta);
+        return quiesence<is_white>(ply, alpha, beta);
     }
 
     uint64_t zob_hash = ZobroistHasher::get().hash_board(board);
@@ -168,11 +169,11 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
 
     // Handle if king is checked or no moves can be made.
     std::array<Move, max_legal_moves> moves;
-    int num_moves = board.get_moves<normal_search>(moves);
+    int num_moves = board.get_moves<normal_search, is_white>(moves);
     moves_generated += num_moves;
     if (num_moves == 0) {
         const int MATE_SCORE = 30000;
-        if (board.king_checked(board.get_turn_color())) {
+        if (board.king_checked(color)) {
             return (-MATE_SCORE + ply);
         } else {
             return 0;
@@ -236,7 +237,7 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
 
     // Handle if king is checked or no moves can be made.
     std::array<Move, max_legal_moves> moves;
-    int num_moves = board.get_moves<quiesence_search>(moves);
+    int num_moves = board.get_moves<quiesence_search, is_white>(moves);
     moves_generated += num_moves;
 
     MoveOrder::apply_move_sort(moves, num_moves, board);

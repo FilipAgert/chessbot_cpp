@@ -50,10 +50,11 @@ struct Board {
      * @param moves array containing moves
      * @return * size_t: number of legal moves in array.
      */
-    template <search_type stype> size_t get_moves(std::array<Move, max_legal_moves> &moves) {
+    template <search_type stype, bool is_white>
+    size_t get_moves(std::array<Move, max_legal_moves> &moves) {
         std::array<Move, max_legal_moves> pseudolegal_moves;
-        size_t num_pseudolegal_moves = get_pseudolegal_moves<stype>(pseudolegal_moves, turn_color);
-        uint8_t king_color = turn_color;
+        constexpr uint8_t color = is_white ? pieces::white : pieces::black;
+        size_t num_pseudolegal_moves = get_pseudolegal_moves<stype, is_white>(pseudolegal_moves);
         //  uint8_t opposite_color = turn_color ^ color_mask;
 
         size_t num_moves = 0;
@@ -64,7 +65,7 @@ struct Board {
                      // PERF: Implement method in Board that only does/undoes moves in the bitboards
                      // for performance.
             do_move(pseudolegal_moves[m]);
-            if (!king_checked(king_color)) {
+            if (!king_checked(color)) {
                 // PERF: Check how expensive this king_checked thing is. Is it worth the move
                 // ordering benefit?
                 // bool opponent_checked = board.king_checked(opposite_color);
@@ -86,9 +87,9 @@ struct Board {
      * @param[in] castle_info integer containing information for castling.
      * @return size_t Number of legal moves found.
      */
-    template <search_type stype>
-    size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves,
-                                 const uint8_t color) const {
+    template <search_type stype, bool is_white>
+    size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves) const {
+        constexpr uint8_t color = is_white ? pieces::white : pieces::black;
         size_t num_moves = 0;
         uint8_t enemy_color = color ^ pieces::color_mask;
         BB friendly_bb = bit_boards[color];
