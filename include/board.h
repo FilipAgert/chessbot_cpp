@@ -1108,9 +1108,9 @@ struct Board {
         } else if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
             move_piece<white_moved, piece>(move.target, move.source);
             if constexpr (white_moved) {  // if white to move, the enemy pawn was on square - 8
-                add_piece<white_moved, pieces::pawn>(move.target - 8);
+                add_piece<!white_moved, pieces::pawn>(move.target - 8);
             } else {
-                add_piece<white_moved, pieces::pawn>(move.target + 8);
+                add_piece<!white_moved, pieces::pawn>(move.target + 8);
             }
         } else if constexpr (flag == moveflag::MOVEFLAG_long_castling) {
             move_piece<white_moved, pieces::king>(move.target, move.source);
