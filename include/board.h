@@ -348,10 +348,14 @@ struct Board {
             else
                 castleinfo &= ~castling::cast_black_mask;
 
-            move_piece<white_to_move, moved>(move.source, move.target);  // move the king...
-            move_piece<white_to_move, pieces::rook>(
-                get_castle_from_sq<white_to_move, pieces::rook, flag>(),
-                get_castle_to_sq<white_to_move, pieces::rook, flag>());
+            move_piece<white_to_move, moved>(move.source, move.target);
+            if constexpr (flag == moveflag::MOVEFLAG_long_castling ||
+                          flag == moveflag::MOVEFLAG_short_castling) {
+                move_piece<white_to_move, pieces::rook>(
+                    get_castle_from_sq<white_to_move, pieces::rook, flag>(),
+                    get_castle_to_sq<white_to_move, pieces::rook, flag>());
+            }
+
             return info;
 
             // SPECIAL MOVES BELOW:
