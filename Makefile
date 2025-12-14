@@ -16,8 +16,10 @@ MAKEFLAGS+= -j$(NPROCS)
 type?=dev
 ifeq ($(type), release)
 	FLAGS = -Wall -std=c++23 -O3 -DNDEBUG
-else
+else ifeq ($(type), dev)
 	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast
+else ifeq ($(type), perf)
+	FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG
 endif
 
 
