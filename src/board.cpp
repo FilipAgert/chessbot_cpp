@@ -86,14 +86,6 @@ uint8_t Board::get_square_color(uint8_t square) const {
     return this->get_piece_at(square).get_color();
 }
 
-void Board::capture_piece(const uint8_t source, const uint8_t target) {
-    bb_remove(target, game_board[target]);
-    bb_move(source, target, game_board[source]);
-    game_board[target] = game_board[source];
-    game_board[source] = none_piece;
-    num_pieces--;
-}
-
 template <bool is_white, Piece_t type>
 void Board::move_piece(const uint8_t source, const uint8_t target) {
     bb_move<is_white, type>(source, target);
@@ -101,9 +93,9 @@ void Board::move_piece(const uint8_t source, const uint8_t target) {
     game_board[source] = none_piece;
 }
 
-template <bool is_white, Piece_t type>
-void Board::add_piece(const uint8_t square, const Piece piece) {
-    game_board[square] = piece;
+template <bool is_white, Piece_t type> void Board::add_piece(const uint8_t square) {
+    uint8_t color = is_white ? pieces::white : pieces::black;
+    game_board[square] = Piece(color | type);
     bb_add<is_white, type>(square);
     num_pieces++;
 }
@@ -118,9 +110,20 @@ void Board::clear_board() {
     for (size_t i = 0; i < 64; i++) {
         this->game_board[i] = Piece();
     }
-    for (size_t i = 0; i < bit_boards.size(); i++) {
-        this->bit_boards[i] = 0;
-    }
+    white_pieces = 0;
+    white_queen = 0;
+    white_king = 0;
+    white_bishops = 0;
+    white_knights = 0;
+    white_rooks = 0;
+    white_pawns = 0;
+    black_pieces = 0;
+    black_queen = 0;
+    black_king = 0;
+    black_bishops = 0;
+    black_knights = 0;
+    black_rooks = 0;
+    black_pawns = 0;
     num_pieces = 0;
 }
 std::vector<Piece> Board::get_pieces() {
@@ -173,135 +176,6 @@ Board::Board() {
 
 Board::~Board() {}
 using namespace pieces;
-template <bool white_to_move> void Board::do_move(Move &move) {
-    move.castling_rights = this->castleinfo;
-    move.en_passant_square = this->en_passant ? this->en_passant_square : err_val8;
-    move.ply = ply_moves;
-    ply_moves += 1;
-    if constexpr (!white_to_move)
-        full_moves += 1;
-    change_turn();  // Changes turn color from white <-> black.
-    Piece moved = get_piece_at(move.source);
-
-    // Exception: en_passant.
-    if (en_passant && moved.get_type() == pawn && move.target == en_passant_square) {
-        move.captured = Piece(pawn | turn_color);  // Can only capture pawns in en_passant.
-    } else {
-        move.captured = get_piece_at(move.target);
-    }
-
-    // Exception: castle
-    if (moved.get_type() == king &&
-        abs(NotationInterface::col(move.target) - NotationInterface::col(move.source)) > 1) {
-        // If kingside: (diff is positive)
-        int diff = NotationInterface::col(move.target) - NotationInterface::col(move.source);
-
-        uint8_t rook_from;
-        uint8_t rook_to;
-        if (diff > 0) {  // kingside
-            rook_from = move.source + 3;
-            rook_to = move.source + 1;
-        } else {
-            rook_from = move.source - 4;
-            rook_to = move.source - 1;
-        }
-        move_piece(rook_from, rook_to);
-    }
-    // Set castling rights. If one of king squares moved -> remove castling right for that color.
-    // If one of rooks moved or captured -> remove that sides castling rights.
-    uint64_t from_to = BitBoard::one_high(move.source) | BitBoard::one_high(move.target);
-    uint8_t castlemask =
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e1"))) != 0) *
-            0b0011 |  // king w
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("a1"))) != 0) *
-            0b0010 |  // queenside w
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("h1"))) != 0) *
-            0b0001 |  // kingside w
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("e8"))) != 0) *
-            0b1100 |  // king b
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("a8"))) != 0) *
-            0b1000 |  // queenside b
-        ((from_to & BitBoard::one_high(NotationInterface::idx_from_string("h8"))) != 0) *
-            0b0100;  // kingside b
-    this->castleinfo &= ~castlemask;
-
-    if (move.captured.get_value() || moved.get_type() == pawn)
-        ply_moves = 0;  // reset ply on move pawn or capture piece.
-
-    if (move.captured.get_value()) {
-        if (en_passant && moved.get_type() == pawn && move.target == en_passant_square) {
-            uint8_t captured_pawn_loc = (turn_color == black) ? move.target - 8 : move.target + 8;
-            // Depends on turn color. If black, we captured a black piece. This means that the
-            // location of the pawn is target_square-8,else +8
-            capture_piece_ep(move.source, move.target, captured_pawn_loc);
-        } else {
-            capture_piece(move.source, move.target);
-        }
-    } else {
-        move_piece(move.source, move.target);
-    }
-    if (move.promotion.get_value()) {
-        promote_piece(move.target, move.promotion);
-        if (move.promotion.get_color() == none) {
-            std::cerr << "Invalid argument: Promoted piece must have a color. Piece value: "
-                      << move.promotion.get_value() << "\n";
-            std::abort();
-        }
-    }
-    // Set the en_passant flags
-    if (moved.get_type() == pawn && abs(move.target - move.source) == 16) {
-        en_passant = true;
-        en_passant_square = (move.source + move.target) / 2;
-    } else {
-        en_passant = false;
-        en_passant_square = err_val8;
-    }
-}
-
-template <bool white_moved> void Board::undo_move(const Move move) {
-    castleinfo = move.castling_rights;
-    en_passant_square = move.en_passant_square;
-    en_passant = en_passant_square < 64;
-    ply_moves = move.ply;
-    move_piece(move.target, move.source);
-    if (move.promotion.get_value()) {
-        promote_piece(move.source,
-                      Piece(move.promotion.get_color() | pawn));  // Replace with pawn.
-    }
-
-    Piece moved = get_piece_at(move.source);
-    // Exception2: Castle.
-    if (moved.get_type() == king &&
-        abs(NotationInterface::col(move.target) - NotationInterface::col(move.source)) > 1) {
-        // If kingside: (diff is positive)
-        int diff = NotationInterface::col(move.target) - NotationInterface::col(move.source);
-
-        uint8_t rook_from;
-        uint8_t rook_to;
-        if (diff > 0) {  // kingside
-            rook_from = move.source + 3;
-            rook_to = move.source + 1;
-        } else {
-            rook_from = move.source - 4;
-            rook_to = move.source - 1;
-        }
-        move_piece(rook_to, rook_from);
-    }
-
-    if (move.captured.get_value()) {
-        if (en_passant && get_piece_at(move.source).get_type() == pawn &&
-            move.target == en_passant_square) {
-            uint8_t captured_pawn_loc = (turn_color == black) ? move.target - 8 : move.target + 8;
-            add_piece(captured_pawn_loc, move.captured);
-        } else {
-            add_piece(move.target, move.captured);
-        }
-    }
-
-    if (!white_moved == white)
-        full_moves -= 1;
-    change_turn();  // Changes turn color from white <-> black.
-}
 
 void Board::Display_board() {
     const char *files = "A B C D E F G H";
@@ -389,7 +263,11 @@ bool Board::read_fen(const std::string FEN) {
             }
 
             int idx = NotationInterface::idx(row, col);
-            add_piece(idx, p);
+            if (p.get_color() == pieces::white)
+                add_piece<true>(idx, p);
+            else
+                add_piece<false>(idx, p);
+
             col++;
         }
 

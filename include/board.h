@@ -50,6 +50,7 @@ struct Board {
     template <bool white_to_move> restore_move_info do_move(Move &move) {
         Piece_t moved = game_board[move.source].get_type();
         Piece_t captured = game_board[move.target].get_type();
+        move.captured = Piece(captured | (white_to_move ? pieces::black : pieces::white));
         switch (moved) {
         case pieces::pawn:
             switch (move.flag) {
@@ -164,8 +165,7 @@ struct Board {
             else
                 castleinfo &= ~castling::cast_black_mask;
 
-            move_piece<white_to_move, moved>(get_castle_from_sq<white_to_move, moved, flag>(),
-                                             get_castle_to_sq<white_to_move, moved, flag>());
+            move_piece<white_to_move, moved>(move.source, move.target);  // move the king...
             move_piece<white_to_move, pieces::rook>(
                 get_castle_from_sq<white_to_move, pieces::rook, flag>(),
                 get_castle_to_sq<white_to_move, pieces::rook, flag>());
@@ -198,7 +198,11 @@ struct Board {
                 en_passant_square = (move.source + move.target) >> 1;
             } else if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
                 move_piece<white_to_move, moved>(move.source, move.target);
-                remove_piece<!white_to_move, pieces::pawn>(en_passant_square);
+                if constexpr (white_to_move) {  // if white to move, the enemy pawn is on square - 8
+                    remove_piece<!white_to_move, pieces::pawn>(en_passant_square - 8);
+                } else {
+                    remove_piece<!white_to_move, pieces::pawn>(en_passant_square + 8);
+                }
             } else {
                 if constexpr (captured != pieces::none) {
                     remove_piece<!white_to_move, captured>(move.target);
@@ -298,8 +302,98 @@ struct Board {
         return info;
     }
 
-    void do_move(Move &move);
-    template <bool white_moved> void undo_move(const Move move);
+    template <bool white_moved> void undo_move(restore_move_info info, const Move move) {
+        ply_moves = info.ply_moves;
+        castleinfo = info.castleinfo;
+        if (info.ep_square != err_val8) {
+            en_passant_square = info.ep_square;
+            en_passant = true;
+        }
+        if (move.flag == moveflag::MOVEFLAG_silent) {
+            // Quiet moves. These are just captures or moves with no special effects.
+            Piece_t captured = info.captured.get_type();
+            switch (get_piece_at(move.target).get_type()) {
+            case (pieces::pawn):
+                undo_move<white_moved, pieces::pawn, captured>(move);
+                break;
+            case (pieces::bishop):
+                undo_move<white_moved, pieces::bishop, captured>(move);
+                break;
+            case (pieces::knight):
+                undo_move<white_moved, pieces::knight, captured>(move);
+                break;
+            case (pieces::queen):
+                undo_move<white_moved, pieces::queen, captured>(move);
+                break;
+            case (pieces::rook):
+                undo_move<white_moved, pieces::rook, captured>(move);
+                break;
+            case (pieces::king):
+                undo_move<white_moved, pieces::king, captured>(move);
+                break;
+            default:
+                throw new std::runtime_error("Undefined piece");
+                break;
+            }
+        } else {
+            // Can be rook, king or pawn.
+            Piece_t dest = get_piece_at(move.target).get_type();
+            if (dest == pieces::pawn) {
+                // EP capture, double pawn push.
+                if (move.flag == moveflag::MOVEFLAG_pawn_ep_capture) {
+                    undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_pawn_ep_capture,
+                              pieces::pawn>(move);
+                } else if (move.flag == moveflag::MOVEFLAG_pawn_double_push) {
+                    undo_move<white_moved, pieces::pawn, pieces::none>(move);
+                } else {
+                    throw new std::runtime_error(
+                        "Moveflag did not have one of the accepted values");
+                }
+            } else if (dest == pieces::king) {
+                if (move.flag == moveflag::MOVEFLAG_short_castling) {
+                    undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling,
+                              pieces::none>();
+                } else if (move.flag == moveflag::MOVEFLAG_long_castling) {
+                    undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling,
+                              pieces::none>();
+                } else if (move.flag == moveflag::MOVEFLAG_remove_all_castle) {
+                    Piece_t captured = info.captured.get_type();
+                    undo_move<white_moved, pieces::king, captured>(move);
+                } else {
+                    throw new std::runtime_error(
+                        "Moveflag did not have one of the accepted values");
+                }
+
+                // castling / just move and set kingsq low.
+            } else {  // here we can have rook and promotion of pawn.
+                // Would like to avoid as many if statements as possible.
+                // Either: Check for if rook AND not promotion rook flag: do rook moves. Then we
+                // know its a pawn promotion.
+                Piece_t captured = info.captured.get_type();
+                if (dest == pieces::rook && (move.flag != moveflag::MOVEFLAG_promote_rook)) {
+                    undo_move<white_moved, pieces::rook, captured>(move);
+                } else {  // promotion.
+                    if (move.flag == moveflag::MOVEFLAG_promote_queen) {
+                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_queen,
+                                  captured>(move);
+                    } else if (move.flag == moveflag::MOVEFLAG_promote_knight) {
+                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_knight,
+                                  captured>(move);
+                    } else if (move.flag == moveflag::MOVEFLAG_promote_bishop) {
+                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_bishop,
+                                  captured>(move);
+                    } else if (move.flag == moveflag::MOVEFLAG_promote_rook) {
+                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_rook,
+                                  captured>(move);
+                    } else {
+                        throw new std::runtime_error(
+                            "Moveflag entered promoton branch but no promotion was set.");
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * @brief Calculates if king is in check.
      *
@@ -344,7 +438,7 @@ struct Board {
                      // E.g. board could have a bitboard version only.
                      // PERF: Implement method in Board that only does/undoes moves in the
                      // bitboards for performance.
-            do_move(pseudolegal_moves[m]);
+            restore_move_info info = do_move<is_white>(pseudolegal_moves[m]);
             if (!king_checked<is_white>()) {
                 // PERF: Check how expensive this king_checked thing is. Is it worth the move
                 // ordering benefit?
@@ -352,7 +446,7 @@ struct Board {
                 // pseudolegal_moves[m].check = opponent_checked;
                 moves[num_moves++] = pseudolegal_moves[m];
             }
-            undo_move(pseudolegal_moves[m]);
+            undo_move<is_white>(pseudolegal_moves[m]);
         }
         return num_moves;
     }
@@ -394,8 +488,8 @@ struct Board {
         return num_moves;
     }
     /**
-     * @brief Changes whose turn it is: white <-> black. Only the turn_color parameter is
-     * changed.
+     * @brief Changes whose turn it is: white <-> black. Only the turn_color parameter
+     * is changed.
      *
      */
     void change_turn() {
@@ -442,12 +536,34 @@ struct Board {
     template <bool is_white, Piece_t type>
     void move_piece(const uint8_t source, const uint8_t target);
 
-    template <bool is_white, Piece_t type> void add_piece(const uint8_t square, const Piece Piece);
+    template <bool is_white, Piece_t type> void add_piece(const uint8_t square);
+    template <bool is_white> void add_piece(const uint8_t square, Piece p) {
+        switch (p.get_type()) {
+        case (pieces::pawn):
+            add_piece<is_white, pieces::pawn>(square);
+            break;
+        case (pieces::knight):
+            add_piece<is_white, pieces::knight>(square);
+            break;
+        case (pieces::rook):
+            add_piece<is_white, pieces::rook>(square);
+            break;
+        case (pieces::queen):
+            add_piece<is_white, pieces::queen>(square);
+            break;
+        case (pieces::king):
+            add_piece<is_white, pieces::king>(square);
+            break;
+        case (pieces::bishop):
+            add_piece<is_white, pieces::bishop>(square);
+            break;
+        default:
+            throw new std::runtime_error("Error, trying to add invalid piece");
+            break;
+        }
+    }
 
     template <bool is_white, Piece_t piece> void remove_piece(const uint8_t square);
-
-    template <bool is_white, Piece_t captured>
-    void capture_piece(const uint8_t source, const uint8_t target);
 
     bool is_square_empty(uint8_t square) const;
 
@@ -456,8 +572,8 @@ struct Board {
     void clear_board();
 
     /**
-     * @brief Computes if a move acting on this board state would leave the king of a certain
-     * color in check.
+     * @brief Computes if a move acting on this board state would leave the king of a
+     * certain color in check.
      *
      * @param[in] candidate candidate move to check if it leaves the king in check
      * @param[in] king_color color of king to check if is in check
@@ -477,8 +593,8 @@ struct Board {
     void print_piece_loc() const;
 
     /**
-     * @brief Gets the attack bitboard for a given color. These are squares that are threatened
-     * by this player.
+     * @brief Gets the attack bitboard for a given color. These are squares that are
+     * threatened by this player.
      *
      * @param[in] color Color of player you want to get atk bitboard for
      * @return [ALl squares under attack by given player.]
@@ -578,8 +694,8 @@ struct Board {
      * @brief Gets piece mobility for a given piece type
      *
      * @tparam Piece_t piece type
-     * @tparam omit_pawn_controlled flag if we should omit squares controlled by enemy pawns
-     * from the mobility count
+     * @tparam omit_pawn_controlled flag if we should omit squares controlled by enemy
+     * pawns from the mobility count
      * @tparam is_white flag if piece to check is white or not
      * @return number of squares piece of this type and color can move to.
      */
@@ -620,10 +736,10 @@ struct Board {
      * @brief From a bitboard of attacked squares, generate all moves and add to array
      *
      * @param[inout] moves array of moves to be added to
-     * @param[inout] num_moves number of moves before routine on in, number of moves after
-     * routine on out
-     * @param[in] to_bb bitboard containing attacking squares. will be destroyed by calling this
-     * routine
+     * @param[inout] num_moves number of moves before routine on in, number of moves
+     * after routine on out
+     * @param[in] to_bb bitboard containing attacking squares. will be destroyed by
+     * calling this routine
      * @param[in] from from square.
      */
     template <bool is_white, Piece_t type>
@@ -778,5 +894,73 @@ struct Board {
      * @param[in] piece to add
      */
     template <bool is_white, Piece_t piece> void bb_add(const uint8_t sq);
+    /**
+     * @brief Loud undo moves. These are: Promotion, castling or ep capture.
+     *
+     * @tparam white_moved true if white moved
+     * @tparam piece type of piece moved
+     * @tparam flag flag to determine type of move
+     * @tparam capture type of piece captured (during promotion)
+     * @param[in] move move to restore
+     */
+    template <bool white_moved, Piece_t piece, Flag_t flag, Piece_t captured>
+    void undo_move(const Move move) {
+        if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
+            move_piece<white_moved, piece>(move.target, move.source);
+            if constexpr (white_moved) {  // if white to move, the enemy pawn was on square - 8
+                add_piece<white_moved, pieces::pawn>(move.target - 8);
+            } else {
+                add_piece<white_moved, pieces::pawn>(move.target + 8);
+            }
+        } else if constexpr (flag == moveflag::MOVEFLAG_long_castling) {
+            move_piece<white_moved, pieces::king>(move.target, move.source);
+            // King moved
+            move_piece<white_moved, pieces::rook>(
+                get_castle_to_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_long_castling>(),
+                get_castle_from_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_long_castling>());
+            // rook moved.
+
+        } else if constexpr (flag == moveflag::MOVEFLAG_short_castling) {
+            move_piece<white_moved, pieces::king>(move.target, move.source);
+            // King moved
+            move_piece<white_moved, pieces::rook>(
+                get_castle_to_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_short_castling>(),
+                get_castle_from_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_short_castling>());
+        } else {  // Should only be promotions here. these could have captured.
+            static_assert(piece == pieces::pawn,
+                          "Moveflag entered promotion branch without moving a pawn");
+
+            add_piece<white_moved, pieces::pawn>(move.source);
+            if constexpr (flag == moveflag::MOVEFLAG_promote_queen) {
+                remove_piece<white_moved, pieces::queen>(move.target);
+            } else if constexpr (flag == moveflag::MOVEFLAG_promote_knight) {
+                remove_piece<white_moved, pieces::knight>(move.target);
+            } else if constexpr (flag == moveflag::MOVEFLAG_promote_rook) {
+                remove_piece<white_moved, pieces::rook>(move.target);
+            } else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) {
+                remove_piece<white_moved, pieces::bishop>(move.target);
+            } else {
+                throw new std::runtime_error(
+                    "Moveflag entered promoton branch but no promotion was set.");
+            }
+            if constexpr (captured != pieces::none)
+                add_piece<!white_moved, captured>(move.target);
+        }
+    }
+    /**
+     * @brief Silent undo moves. only normal captures or moves
+     *
+     * @tparam white_moved true if white moved.
+     * @tparam Piece - Piece that was moved
+     * @tparam Captured - Piece that was captured
+     * @param[in] move move to undo
+     */
+    template <bool white_moved, Piece_t piece, Piece_t captured> void undo_move(const Move move) {
+        move_piece<white_moved, piece>(move.source);
+        if constexpr (captured != pieces::none) {
+            // If capture: restore captured piece
+            add_piece<!white_moved, captured>(move.target);
+        }
+    }
 };
 #endif
