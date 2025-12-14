@@ -16,12 +16,12 @@ TEST(BoardTest, doUndoMove) {
     Move move;
     move.source = NotationInterface::idx_from_string("a2");
     move.target = NotationInterface::idx_from_string("a4");
-    restore_move_info info = board.do_move<true>(move);
+    ASSERT_EQ(board.get_turn_color(), white);
+    restore_move_info info = board.do_move_no_flag<true>(move);
     ASSERT_TRUE(board.is_square_empty(move.source));
     ASSERT_FALSE(board.is_square_empty(move.target));
     Piece p = Piece('P');
     ASSERT_EQ(board.get_piece_at(move.target), p);
-
     ASSERT_EQ(board.get_turn_color(), black);
     board.undo_move<true>(info, move);
     ASSERT_FALSE(board.is_square_empty(move.source));
@@ -35,12 +35,10 @@ TEST(BoardTest, doUndoMovePromotion) {
     std::string fen = "8/P7/8/8/8/8/8/8 w - - 0 1";
     board.read_fen(fen);
 
-    Move move;
-    move.source = NotationInterface::idx_from_string("a7");
-    move.target = NotationInterface::idx_from_string("a8");
-    move.promotion = Piece('Q');
+    Move move = Move(NotationInterface::idx_from_string("a7"),
+                     NotationInterface::idx_from_string("a8"), Piece('Q'));
 
-    restore_move_info info = board.do_move<true>(move);
+    restore_move_info info = board.do_move_no_flag<true>(move);
 
     ASSERT_TRUE(board.is_square_empty(move.source));
     ASSERT_EQ(board.get_piece_at(move.target), Piece('Q'));
@@ -66,7 +64,7 @@ TEST(BoardTest, doUndoMoveCapture) {
     move.target = NotationInterface::idx_from_string("d5");
 
     Piece captured = modified.get_piece_at(move.target);
-    restore_move_info info = modified.do_move<true>(move);
+    restore_move_info info = modified.do_move_no_flag<true>(move);
 
     ASSERT_EQ(modified.get_piece_at(move.target), Piece('P'));
     ASSERT_TRUE(modified.is_square_empty(move.source));
@@ -94,8 +92,8 @@ TEST(BoardTest, doUndoMoveEnPassant) {
 
     m1 = Move("e7e5");
     m2 = Move("d5e6");
-    restore_move_info info1 = modified.do_move<false>(m1);
-    restore_move_info info2 = modified.do_move<true>(m2);
+    restore_move_info info1 = modified.do_move_no_flag<false>(m1);
+    restore_move_info info2 = modified.do_move_no_flag<true>(m2);
     ASSERT_EQ(modified.get_num_pieces(), 3);
     modified.undo_move<true>(info2, m2);
     modified.undo_move<false>(info1, m1);
@@ -110,7 +108,7 @@ TEST(BoardTest, doUndoMoveEnPassantFEN) {
     ep_move.source = NotationInterface::idx_from_string("e5");
     ep_move.target = NotationInterface::idx_from_string("d6");
 
-    restore_move_info info = board.do_move<true>(ep_move);
+    restore_move_info info = board.do_move_no_flag<true>(ep_move);
 
     ASSERT_TRUE(board.is_square_empty(NotationInterface::idx_from_string("e5")));
     ASSERT_EQ(board.get_piece_at(NotationInterface::idx_from_string("d6")), Piece('P'));
@@ -144,9 +142,9 @@ TEST(BoardTest, chainedMovesUndoEquality) {
     m3.source = NotationInterface::idx_from_string("g1");
     m3.target = NotationInterface::idx_from_string("f3");
 
-    auto info1 = modified.do_move<true>(m1);
-    auto info2 = modified.do_move<false>(m2);
-    auto info3 = modified.do_move<true>(m3);
+    auto info1 = modified.do_move_no_flag<true>(m1);
+    auto info2 = modified.do_move_no_flag<false>(m2);
+    auto info3 = modified.do_move_no_flag<true>(m3);
 
     // Now undo in reverse order
     modified.undo_move<true>(info3, m3);
@@ -169,8 +167,8 @@ TEST(BoardTest, chainedMoveCapture) {
 
     m1 = Move("e7e6");
     m2 = Move("d5e6");
-    auto info1 = modified.do_move<false>(m1);
-    auto info2 = modified.do_move<true>(m2);
+    auto info1 = modified.do_move_no_flag<false>(m1);
+    auto info2 = modified.do_move_no_flag<true>(m2);
 
     // Undo moves in reverse
     modified.undo_move<true>(info2, m2);
@@ -198,12 +196,12 @@ TEST(BoardTest, chainedMovesCapturePromotionUndoEquality) {
     m5 = Move("f6f7");
     m6 = Move("e7e8Q");
 
-    auto info1 = modified.do_move<false>(m1);
-    auto info2 = modified.do_move<true>(m2);
-    auto info3 = modified.do_move<false>(m3);
-    auto info4 = modified.do_move<true>(m4);
-    auto info5 = modified.do_move<false>(m5);
-    auto info6 = modified.do_move<true>(m6);
+    auto info1 = modified.do_move_no_flag<false>(m1);
+    auto info2 = modified.do_move_no_flag<true>(m2);
+    auto info3 = modified.do_move_no_flag<false>(m3);
+    auto info4 = modified.do_move_no_flag<true>(m4);
+    auto info5 = modified.do_move_no_flag<false>(m5);
+    auto info6 = modified.do_move_no_flag<true>(m6);
 
     modified.undo_move<true>(info6, m6);
     modified.undo_move<false>(info5, m5);
@@ -224,17 +222,17 @@ TEST(BoardTest, enPassantSquare) {
     Move move;
     move.source = NotationInterface::idx_from_string("a2");
     move.target = NotationInterface::idx_from_string("a4");
-    auto info = board.do_move<true>(move);
+    auto info = board.do_move_no_flag<true>(move);
     ASSERT_EQ(board.get_en_passant_square(), NotationInterface::idx_from_string("a3"));
     ASSERT_TRUE(board.get_en_passant());
 
     move.source = NotationInterface::idx_from_string("a7");
     move.target = NotationInterface::idx_from_string("a5");
-    auto info2 = board.do_move<false>(move);
+    auto info2 = board.do_move_no_flag<false>(move);
     ASSERT_TRUE(board.get_en_passant());
     ASSERT_EQ(board.get_en_passant_square(), NotationInterface::idx_from_string("a6"));
 
     move = Move("b7b6");
-    auto info3 = board.do_move<true>(move);
+    auto info3 = board.do_move_no_flag<true>(move);
     ASSERT_FALSE(board.get_en_passant());
 }
