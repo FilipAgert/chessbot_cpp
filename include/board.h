@@ -536,7 +536,7 @@ struct Board {
                     undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling,
                               pieces::none>(move);
                 } else if (move.flag == moveflag::MOVEFLAG_long_castling) {
-                    undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling,
+                    undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_long_castling,
                               pieces::none>(move);
                 } else if (move.flag == moveflag::MOVEFLAG_remove_all_castle) {
                     Piece_t captured = info.captured.get_type();
@@ -627,11 +627,7 @@ struct Board {
                      // E.g. board could have a bitboard version only.
                      // PERF: Implement method in Board that only does/undoes moves in the
                      // bitboards for performance.
-            std::cout << "Doing move m = " << (int)m << " : " << pseudolegal_moves[m].toString()
-                      << std::endl;
-            Display_board();
             restore_move_info info = do_move<is_white>(pseudolegal_moves[m]);
-            Display_board();
             if (!king_checked<is_white>()) {
                 // PERF: Check how expensive this king_checked thing is. Is it worth the move
                 // ordering benefit?
@@ -639,11 +635,7 @@ struct Board {
                 // pseudolegal_moves[m].check = opponent_checked;
                 moves[num_moves++] = pseudolegal_moves[m];
             }
-
-            std::cout << "Undoing move: " << pseudolegal_moves[m].toString() << std::endl;
-            Display_board();
             undo_move<is_white>(info, pseudolegal_moves[m]);
-            Display_board();
         }
         return num_moves;
     }

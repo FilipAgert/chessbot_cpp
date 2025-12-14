@@ -53,7 +53,7 @@ $(DOBJ)/%.o: $(DTEST)/%.cpp Makefile
 	$(CC) -I$(DINC) -c $< -o $@
 
 
-DEPS := $(OBJECTS:.o=.d)
+DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d)
 -include $(DEPS)
 
 # Compile source object files (from ./src folder)
