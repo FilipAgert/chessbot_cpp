@@ -61,7 +61,7 @@ template <bool is_white> int move_heuristics(Move &move, Board &board) {
 template <bool is_white>
 void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves, Board &board) {
     std::array<int, max_legal_moves> move_scores;
-    for (int m = 0; m < num_moves; m++) {
+    for (size_t m = 0; m < num_moves; m++) {
         int move_score = move_heuristics<is_white>(moves[m], board);
         move_scores[m] = move_score;
     }
@@ -82,7 +82,7 @@ void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
         std::array<int, max_legal_moves> move_scores;
         int firstmoveidx = -1;
         Move first = firstmove.value();
-        for (int m = 0; m < num_moves; m++) {
+        for (size_t m = 0; m < num_moves; m++) {
             int move_score = move_heuristics<is_white>(moves[m], board);
             if (moves[m].source == first.source && moves[m].target == first.target)
                 firstmoveidx = m;

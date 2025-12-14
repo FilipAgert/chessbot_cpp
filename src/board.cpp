@@ -54,6 +54,7 @@ std::vector<Piece> Board::get_pieces() {
 bool does_move_check(const Move candidate, const uint8_t king_color) {
     NotImplemented();
     // Can do a bitboard only implementation. Need to: Remove captured piece. Handle en passant.
+    return false;
 }
 
 bool Board::operator==(const Board &other) const {

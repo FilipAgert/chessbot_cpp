@@ -293,21 +293,21 @@ std::vector<std::string> UCIInterface::split(std::string full, char del) {
 }
 std::string UCIInterface::trim(std::string full) {
     std::string out = "";
-    int i;
+    size_t i;
     for (i = 0; i < full.length() && full[i] == ' '; i++) {
     }
-    int start = i;
+    size_t start = i;
 
     for (i = full.length() - 1; i >= 0 && full[i] == ' '; i--) {
     }
-    int stop = i;
+    size_t stop = i;
     if (start <= stop)
         out = full.substr(start, stop - start + 1);
     return out;
 }
 std::string UCIInterface::join(std::vector<std::string> strings, char del) {
     std::string str = "";
-    for (int i = 0; i < strings.size(); i++) {
+    for (size_t i = 0; i < strings.size(); i++) {
         if (i != 0)
             str.push_back(del);
         str.append(strings[i]);

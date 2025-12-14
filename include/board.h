@@ -150,6 +150,8 @@ struct Board {
                                pieces::none>(move);
             }
             return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_silent>(move, captured);
+        default:
+            throw new std::runtime_error("Error: piece moved must not be none.");
         }
     }
     /**
