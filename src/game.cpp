@@ -277,7 +277,11 @@ Move Game::get_bestmove() const { return bestmove; }
 std::string Game::get_fen() const { return board.fen_from_state(); }
 
 template <bool is_white> void Game::make_move(Move move) {
+    std::cout << "GAME: making move: " << move.toString() << std::endl;
+    board.Display_board();
     restore_move_info info = board.do_move<is_white>(move);
+    board.Display_board();
+    std::cout << "------: " << std::endl;
     move_stack.push(move);
     restore_info_stack.push(info);
     uint64_t state_hash = ZobroistHasher::get().hash_board(board);
@@ -289,6 +293,10 @@ template <bool is_white> void Game::undo_move() {
     restore_move_info info = restore_info_stack.top();
     move_stack.pop();
     restore_info_stack.pop();
+    std::cout << "GAME: undo move: " << move.toString() << std::endl;
+    board.Display_board();
     board.undo_move<is_white>(info, move);
+    board.Display_board();
+    std::cout << "------: " << std::endl;
     state_stack.pop();
 }

@@ -115,6 +115,7 @@ struct Board {
     template <bool white_to_move> restore_move_info do_move_no_flag(Move &move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
+        assert(moved != pieces::none);
         move.flag = moveflag::MOVEFLAG_silent;
         switch (moved) {
         case pieces::pawn:
@@ -148,12 +149,11 @@ struct Board {
             }
             break;
         case pieces::king:
-            if (static_cast<int>(move.target) - static_cast<int>(move.source) > 1) {
-                if (move.target == get_castle_to_sq<white_to_move, pieces::king,
-                                                    moveflag::MOVEFLAG_long_castling>())
-                    move.flag = moveflag::MOVEFLAG_long_castling;
-                else
-                    move.flag = moveflag::MOVEFLAG_short_castling;
+            if (static_cast<int>(move.target) - static_cast<int>(move.source) == 2) {
+                // Positive two means queenside / long castle
+                move.flag = moveflag::MOVEFLAG_long_castling;
+            } else if (static_cast<int>(move.source) - static_cast<int>(move.target) == 2) {
+                move.flag = moveflag::MOVEFLAG_short_castling;
             } else if (move.source == get_castle_from_sq<white_to_move, pieces::king,
                                                          moveflag::MOVEFLAG_long_castling>())
                 move.flag = moveflag::MOVEFLAG_remove_all_castle;
@@ -222,12 +222,15 @@ struct Board {
             case moveflag::MOVEFLAG_remove_all_castle:
                 return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_remove_all_castle>(
                     move, captured);
+                break;
             case moveflag::MOVEFLAG_long_castling:
                 return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_long_castling,
                                pieces::none>(move);
+                break;
             case moveflag::MOVEFLAG_short_castling:
                 return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_short_castling,
                                pieces::none>(move);
+                break;
             }
             return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_silent>(move, captured);
         default:
@@ -340,7 +343,6 @@ struct Board {
                     remove_castle_flag_if_capture_rook<white_to_move>(move.target);
             }
             move_piece<white_to_move, moved>(move.source, move.target);
-            return info;
         } else if constexpr (moved == pieces::king) {
             // One of the two castlings
             if constexpr (white_to_move)
@@ -351,12 +353,11 @@ struct Board {
             move_piece<white_to_move, moved>(move.source, move.target);
             if constexpr (flag == moveflag::MOVEFLAG_long_castling ||
                           flag == moveflag::MOVEFLAG_short_castling) {
+                assert(abs(static_cast<int>(move.source) - static_cast<int>(move.target)) == 2);
                 move_piece<white_to_move, pieces::rook>(
                     get_castle_from_sq<white_to_move, pieces::rook, flag>(),
                     get_castle_to_sq<white_to_move, pieces::rook, flag>());
             }
-
-            return info;
 
             // SPECIAL MOVES BELOW:
         } else if constexpr (moved == pieces::rook) {
@@ -626,7 +627,11 @@ struct Board {
                      // E.g. board could have a bitboard version only.
                      // PERF: Implement method in Board that only does/undoes moves in the
                      // bitboards for performance.
+            std::cout << "Doing move m = " << (int)m << " : " << pseudolegal_moves[m].toString()
+                      << std::endl;
+            Display_board();
             restore_move_info info = do_move<is_white>(pseudolegal_moves[m]);
+            Display_board();
             if (!king_checked<is_white>()) {
                 // PERF: Check how expensive this king_checked thing is. Is it worth the move
                 // ordering benefit?
@@ -634,7 +639,11 @@ struct Board {
                 // pseudolegal_moves[m].check = opponent_checked;
                 moves[num_moves++] = pseudolegal_moves[m];
             }
+
+            std::cout << "Undoing move: " << pseudolegal_moves[m].toString() << std::endl;
+            Display_board();
             undo_move<is_white>(info, pseudolegal_moves[m]);
+            Display_board();
         }
         return num_moves;
     }
@@ -1156,6 +1165,7 @@ struct Board {
             if constexpr (captured != pieces::none)
                 add_piece<!white_moved, captured>(move.target);
         }
+        assert(get_piece_at(move.source).get_type() != pieces::none);
     }
     template <bool white_moved, Piece_t piece, Flag_t flag>
     void undo_move(const Move move, Piece_t captured) {
