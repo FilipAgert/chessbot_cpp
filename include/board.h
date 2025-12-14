@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cstdint>
+#include <iostream>
 #include <string>
 struct restore_move_info {
     uint8_t castleinfo;
@@ -410,7 +411,7 @@ struct Board {
     }
 
     template <bool white_to_move, Piece_t moved, Flag_t flag>
-    constexpr uint8_t get_castle_from_sq() {
+    constexpr uint8_t get_castle_from_sq() const {
         if constexpr (white_to_move) {
             if constexpr (moved == pieces::king) {
                 return 4;
@@ -506,6 +507,14 @@ struct Board {
         } else {
             // Can be rook, king or pawn.
             Piece_t dest = get_piece_at(move.target).get_type();
+#ifndef NDEBUG
+            if (dest == pieces::none) {
+                Display_board();
+                std::cout << move.toString() << std::endl;
+            }
+
+#endif
+            assert(dest != pieces::none);
             if (dest == pieces::pawn) {
                 // EP capture, double pawn push.
                 if (move.flag == moveflag::MOVEFLAG_pawn_ep_capture) {
@@ -539,6 +548,7 @@ struct Board {
                 // Would like to avoid as many if statements as possible.
                 // Either: Check for if rook AND not promotion rook flag: do rook moves. Then we
                 // know its a pawn promotion.
+
                 Piece_t captured = info.captured.get_type();
                 if (dest == pieces::rook && (move.flag != moveflag::MOVEFLAG_promote_rook)) {
                     undo_move<white_moved, pieces::rook, moveflag::MOVEFLAG_silent>(
@@ -558,8 +568,10 @@ struct Board {
                         undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_rook>(
                             move, captured);
                     } else {
-                        throw std::runtime_error(
-                            "Moveflag entered promoton branch but no promotion was set.");
+                        std::cout << "Moveflag: " << (int)move.flag << std::endl;
+                        std::cout << "Piece: " << (int)dest << std::endl;
+                        throw std::runtime_error("In undo_move first: Moveflag entered promoton "
+                                                 "branch but no promotion was set.");
                     }
                 }
             }
@@ -904,7 +916,8 @@ struct Board {
                     flag = moveflag::MOVEFLAG_short_castling;
                 } else if (from - flag == 2) {
                     flag = moveflag::MOVEFLAG_long_castling;
-                } else {
+                } else if (from == get_castle_from_sq<is_white, pieces::king,
+                                                      moveflag::MOVEFLAG_long_castling>()) {
                     flag = moveflag::MOVEFLAG_remove_all_castle;
                 }
             } else if constexpr (type == pieces::rook) {
@@ -1132,8 +1145,9 @@ struct Board {
             } else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) {
                 remove_piece<white_moved, pieces::bishop>(move.target);
             } else {
-                throw std::runtime_error(
-                    "Moveflag entered promoton branch but no promotion was set.");
+                std::cout << "moveflag: " << (int)move.flag << std::endl;
+                throw std::runtime_error("In undo_move final. Moveflag entered promoton branch but "
+                                         "no promotion was set.");
             }
             if constexpr (captured != pieces::none)
                 add_piece<!white_moved, captured>(move.target);
