@@ -17,6 +17,7 @@
 #include <utility>
 bool Game::set_fen(std::string FEN) {
     bool success = board.read_fen(FEN);
+    assert(board.board_BB_match());
     reset_state_stack();
     trans_table->clear();
     return success;
@@ -51,6 +52,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
     time_manager->start_time_management();
     int max_depth = 256;
     uint64_t hash = ZobroistHasher::get().hash_board(board);
+    assert(board.board_BB_match());
     for (int depth = 1; depth < max_depth; depth++) {
         seldepth = 0;
         if (!time_manager->get_should_start_new_iteration())

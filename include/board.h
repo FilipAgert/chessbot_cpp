@@ -460,6 +460,12 @@ struct Board {
         }
     }
 
+    inline constexpr void undo_move(restore_move_info info, const Move move) {
+        if (turn_color == pieces::white)
+            undo_move<false>(info, move);
+        else
+            undo_move<true>(info, move);
+    }
     template <bool white_moved>
     inline constexpr void undo_move(restore_move_info info, const Move move) {
         ply_moves = info.ply_moves;

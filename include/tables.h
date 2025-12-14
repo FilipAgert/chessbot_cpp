@@ -245,7 +245,11 @@ struct transposition_table {
             if (entry) {
                 if (entry.value().is_valid_move()) {
                     pv_line.push_back(entry.value().bestmove);
-                    restore_move_info info = board.do_move<is_white>(entry.value().bestmove);
+                    restore_move_info info;
+                    if (board.get_turn_color() == pieces::white)
+                        info = board.do_move<true>(entry.value().bestmove);
+                    else
+                        info = board.do_move<false>(entry.value().bestmove);
                     restore_stack.push(info);
                 }
             }
@@ -253,7 +257,7 @@ struct transposition_table {
         for (int i = pv_line.size() - 1; i >= 0; i--) {
             restore_move_info info = restore_stack.top();
             restore_stack.pop();
-            board.undo_move<is_white>(info, pv_line[i]);
+            board.undo_move(info, pv_line[i]);
         }
         return pv_line;
     }
