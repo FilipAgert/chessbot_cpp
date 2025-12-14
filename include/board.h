@@ -156,16 +156,18 @@ struct Board {
             } else if (static_cast<int>(move.source) - static_cast<int>(move.target) == 2) {
                 move.flag = moveflag::MOVEFLAG_short_castling;
             } else if (move.source == get_castle_from_sq<white_to_move, pieces::king,
-                                                         moveflag::MOVEFLAG_long_castling>())
+                                                         moveflag::MOVEFLAG_long_castling>()) {
                 move.flag = moveflag::MOVEFLAG_remove_all_castle;
+            }
             break;
         case pieces::rook:
-            if (move.source ==
-                get_castle_from_sq<white_to_move, pieces::rook, moveflag::MOVEFLAG_long_castling>())
+            if (move.source == get_castle_from_sq<white_to_move, pieces::rook,
+                                                  moveflag::MOVEFLAG_long_castling>()) {
                 move.flag = moveflag::MOVEFLAG_remove_long_castle;
-            else if (move.source == get_castle_from_sq<white_to_move, pieces::rook,
-                                                       moveflag::MOVEFLAG_short_castling>())
+            } else if (move.source == get_castle_from_sq<white_to_move, pieces::rook,
+                                                         moveflag::MOVEFLAG_short_castling>()) {
                 move.flag = moveflag::MOVEFLAG_remove_short_castle;
+            }
             break;
         }
 
@@ -366,16 +368,17 @@ struct Board {
 
             // SPECIAL MOVES BELOW:
         } else if constexpr (moved == pieces::rook) {
-            if constexpr (moveflag::MOVEFLAG_remove_long_castle) {
+            if constexpr (flag == moveflag::MOVEFLAG_remove_long_castle) {
                 if constexpr (white_to_move)
                     castleinfo &= ~castling::cast_white_queenside;
                 else
                     castleinfo &= ~castling::cast_black_queenside;
             } else {
-                if constexpr (white_to_move)
+                if constexpr (white_to_move) {
                     castleinfo &= ~castling::cast_white_kingside;
-                else
+                } else {
                     castleinfo &= ~castling::cast_black_kingside;
+                }
             }
             if constexpr (captured != pieces::none) {
                 remove_piece<!white_to_move, captured>(move.target);
