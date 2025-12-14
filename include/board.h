@@ -53,6 +53,7 @@ struct Board {
     uint8_t get_castling() const { return castleinfo; }
     int get_full_moves() const { return full_moves; }
     uint8_t get_check() const { return check; }
+    bool board_BB_match();
     /**
      * @brief Does a move. Required: From and to square. Promotion. Changes board state accordingly
      * and stores information into move.
@@ -174,7 +175,6 @@ struct Board {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         Piece_t captured = get_piece_at(move.target).get_type();
-        move.captured = Piece(captured | (white_to_move ? pieces::black : pieces::white));
         switch (moved) {
         case pieces::pawn:
             switch (move.flag) {
@@ -323,8 +323,11 @@ struct Board {
         uint8_t old_ep = en_passant_square;
         en_passant = false;
         en_passant_square = err_val8;
+        assert(turn_color == white_to_move ? pieces::white : pieces::black);
         change_turn();  // Changes turn color from white <-> black.
         //
+        assert(get_piece_at(move.source).get_color() == white_to_move ? pieces::white
+                                                                      : pieces::black);
         if constexpr (flag == moveflag::MOVEFLAG_silent) {
             // No flag set so no special moves like castling or whatever.
             if constexpr (moved == pieces::king) {
@@ -349,7 +352,9 @@ struct Board {
                 castleinfo &= ~castling::cast_white_mask;
             else
                 castleinfo &= ~castling::cast_black_mask;
-
+            if constexpr (captured != pieces::none) {
+                remove_piece<!white_to_move, captured>(move.target);
+            }
             move_piece<white_to_move, moved>(move.source, move.target);
             if constexpr (flag == moveflag::MOVEFLAG_long_castling ||
                           flag == moveflag::MOVEFLAG_short_castling) {
@@ -479,7 +484,10 @@ struct Board {
         }
         if constexpr (!white_moved)
             full_moves -= 1;
+        assert(get_piece_at(move.target).get_color() == white_moved ? pieces::white
+                                                                    : pieces::black);
 
+        assert(turn_color == white_moved ? pieces::black : pieces::white);
         change_turn();
         if (move.flag == moveflag::MOVEFLAG_silent) {
             // Quiet moves. These are just captures or moves with no special effects.
@@ -635,7 +643,9 @@ struct Board {
                 // pseudolegal_moves[m].check = opponent_checked;
                 moves[num_moves++] = pseudolegal_moves[m];
             }
+            assert(board_BB_match());
             undo_move<is_white>(info, pseudolegal_moves[m]);
+            assert(board_BB_match());
         }
         return num_moves;
     }
@@ -1179,6 +1189,9 @@ struct Board {
             break;
         case pieces::queen:
             undo_move<white_moved, piece, flag, pieces::queen>(move);
+            break;
+        case pieces::king:
+            undo_move<white_moved, piece, flag, pieces::king>(move);
             break;
         default:
             throw std::runtime_error("Should not be allowed to capture a king.");

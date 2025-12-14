@@ -9,6 +9,150 @@
 using namespace movegen;
 using namespace pieces;
 
+bool Board::board_BB_match() {
+    // --- White Pieces Check ---
+
+    // White Knights
+    BB test_knights_w = white_knights;
+    BitLoop(test_knights_w) {
+        uint8_t lsb = BitBoard::lsb(test_knights_w);
+        if (get_piece_at(lsb) != Piece(pieces::white | pieces::knight)) {
+            Display_board();
+            BitBoard::print_full(white_knights);
+            assert(false);  // Crash in debug build if mismatch found
+            return false;
+        }
+    }
+
+    // White Pawns
+    BB test_pawns_w = white_pawns;
+    BitLoop(test_pawns_w) {
+        uint8_t lsb = BitBoard::lsb(test_pawns_w);
+        if (get_piece_at(lsb) != Piece(pieces::white | pieces::pawn)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // White Rooks
+    BB test_rooks_w = white_rooks;
+    BitLoop(test_rooks_w) {
+        uint8_t lsb = BitBoard::lsb(test_rooks_w);
+        if (get_piece_at(lsb) != Piece(pieces::white | pieces::rook)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // White Bishops
+    BB test_bishops_w = white_bishops;
+    BitLoop(test_bishops_w) {
+        uint8_t lsb = BitBoard::lsb(test_bishops_w);
+        if (get_piece_at(lsb) != Piece(pieces::white | pieces::bishop)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // White Queen
+    BB test_queen_w = white_queen;
+    BitLoop(test_queen_w) {
+        uint8_t lsb = BitBoard::lsb(test_queen_w);
+        if (get_piece_at(lsb) != Piece(pieces::white | pieces::queen)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // White King
+    BB test_king_w = white_king;
+    BitLoop(test_king_w) {
+        uint8_t lsb = BitBoard::lsb(test_king_w);
+        if (get_piece_at(lsb) != Piece(pieces::white | pieces::king)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // --- Black Pieces Check ---
+
+    // Black Knights
+    BB test_knights_b = black_knights;
+    BitLoop(test_knights_b) {
+        uint8_t lsb = BitBoard::lsb(test_knights_b);
+        if (get_piece_at(lsb) != Piece(pieces::black | pieces::knight)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // Black Pawns
+    BB test_pawns_b = black_pawns;
+    BitLoop(test_pawns_b) {
+        uint8_t lsb = BitBoard::lsb(test_pawns_b);
+        if (get_piece_at(lsb) != Piece(pieces::black | pieces::pawn)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // Black Rooks
+    BB test_rooks_b = black_rooks;
+    BitLoop(test_rooks_b) {
+        uint8_t lsb = BitBoard::lsb(test_rooks_b);
+        if (get_piece_at(lsb) != Piece(pieces::black | pieces::rook)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // Black Bishops
+    BB test_bishops_b = black_bishops;
+    BitLoop(test_bishops_b) {
+        uint8_t lsb = BitBoard::lsb(test_bishops_b);
+        if (get_piece_at(lsb) != Piece(pieces::black | pieces::bishop)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // Black Queen
+    BB test_queen_b = black_queen;
+    BitLoop(test_queen_b) {
+        uint8_t lsb = BitBoard::lsb(test_queen_b);
+        if (get_piece_at(lsb) != Piece(pieces::black | pieces::queen)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // Black King
+    BB test_king_b = black_king;
+    BitLoop(test_king_b) {
+        uint8_t lsb = BitBoard::lsb(test_king_b);
+        if (get_piece_at(lsb) != Piece(pieces::black | pieces::king)) {
+            assert(false);
+            return false;
+        }
+    }
+
+    // --- General Color Bitboard Checks ---
+    BB white_sum =
+        white_pawns | white_knights | white_bishops | white_rooks | white_queen | white_king;
+    if (white_sum != white_pieces) {
+        assert(false);
+        return false;
+    }
+
+    BB black_sum =
+        black_pawns | black_knights | black_bishops | black_rooks | black_queen | black_king;
+    if (black_sum != black_pieces) {
+        assert(false);
+        return false;
+    }
+
+    return true;
+}
 bool Board::is_square_empty(uint8_t square) const {
     return this->get_piece_at(square) == none_piece;
 }
