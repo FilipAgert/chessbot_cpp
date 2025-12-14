@@ -116,8 +116,6 @@ TEST(BoardTest, doUndoMoveEnPassant) {
     ASSERT_EQ(modified.get_castling(), original.get_castling());
     ASSERT_EQ(modified.get_en_passant(), original.get_en_passant());
     ASSERT_EQ(modified.get_castling(), original.get_castling());
-    modified.Display_board();
-    original.Display_board();
     ASSERT_EQ(modified, original);
 }
 TEST(BoardTest, doUndoMoveEnPassantFEN) {

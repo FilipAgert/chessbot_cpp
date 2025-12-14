@@ -37,19 +37,6 @@ void Board::clear_board() {
     black_pawns = 0;
     num_pieces = 0;
 }
-std::vector<Piece> Board::get_pieces() {
-    std::vector<Piece> pieces;
-    for (uint8_t color : pieces::colors) {
-        for (uint8_t ptype : pieces::piece_types) {
-            uint8_t pval = ptype | color;
-            size_t count = BitBoard::bitcount(bit_boards[pval]);
-            for (uint8_t i = 0; i < count; i++) {
-                pieces.push_back(Piece(pval));
-            }
-        }
-    }
-    return pieces;
-}
 
 bool does_move_check(const Move candidate, const uint8_t king_color) {
     NotImplemented();
@@ -80,11 +67,7 @@ bool Board::operator==(const Board &other) const {
     return true;
 }
 
-Board::Board() {
-    for (int i = 0; i < 64; i++) {
-        game_board[i] = Piece();
-    }
-}
+Board::Board() { clear_board(); }
 
 Board::~Board() {}
 using namespace pieces;

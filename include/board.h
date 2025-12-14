@@ -31,6 +31,16 @@ struct Board {
 
     int ply_moves;
     int full_moves;
+    std::array<Piece, 64> game_board;
+    // Color                 W          B
+    // Bitboards: Pieces: [9-14]   [17-22].
+    //            Attack: 15         23
+    //            All p : 8          16
+
+    BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king,
+        white_pieces;
+    BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king,
+        black_pieces;
 
  public:
     Board();
@@ -807,12 +817,6 @@ struct Board {
         return BitBoard::bitcount(get_piece_bb<piece, is_white>());
     }
 
-    /**
-     * @brief Gets a vector of the pieces on the board.
-     *
-     */
-    std::vector<Piece> get_pieces();
-
     BB occupancy() const { return occupancy<true>() | occupancy<false>(); }
     template <bool is_white> BB occupancy() const {
         if constexpr (is_white)
@@ -943,18 +947,6 @@ struct Board {
             add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
         }
     }
-
-    std::array<Piece, 64> game_board;
-    // Color                 W          B
-    // Bitboards: Pieces: [9-14]   [17-22].
-    //            Attack: 15         23
-    //            All p : 8          16
-
-    std::array<uint64_t, 32> bit_boards{};
-    BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king,
-        white_pieces;
-    BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king,
-        black_pieces;
 
     uint8_t num_pieces = 0;
 
