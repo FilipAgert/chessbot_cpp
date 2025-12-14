@@ -78,6 +78,21 @@ TEST(BoardTest, doUndoMoveCapture) {
     ASSERT_EQ((int)modified.get_num_pieces(), (int)original.get_num_pieces());
     ASSERT_EQ(modified, original);
 }
+TEST(BoardTest, do_move_move_ctr) {
+    Board modified;
+
+    // Position engineered so white can capture and later promote
+    std::string fen = "8/4p1k1/8/3P4/8/8/8/5K2 b - - 0 1";
+
+    modified.read_fen(fen);
+    Move m1, m2, m3, m4, m5, m6;
+
+    m1 = Move("e7e5");
+    restore_move_info info1 = modified.do_move_no_flag<false>(m1);
+    ASSERT_EQ(modified.get_full_moves(), 2);
+    modified.undo_move<false>(info1, m1);
+    ASSERT_EQ(modified.get_full_moves(), 1);
+}
 TEST(BoardTest, doUndoMoveEnPassant) {
     Board original;
     Board modified;
@@ -97,6 +112,12 @@ TEST(BoardTest, doUndoMoveEnPassant) {
     ASSERT_EQ(modified.get_num_pieces(), 3);
     modified.undo_move<true>(info2, m2);
     modified.undo_move<false>(info1, m1);
+    ASSERT_EQ(modified.get_turn_color(), original.get_turn_color());
+    ASSERT_EQ(modified.get_castling(), original.get_castling());
+    ASSERT_EQ(modified.get_en_passant(), original.get_en_passant());
+    ASSERT_EQ(modified.get_castling(), original.get_castling());
+    modified.Display_board();
+    original.Display_board();
     ASSERT_EQ(modified, original);
 }
 TEST(BoardTest, doUndoMoveEnPassantFEN) {

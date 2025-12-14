@@ -457,7 +457,13 @@ struct Board {
         if (info.ep_square != err_val8) {
             en_passant_square = info.ep_square;
             en_passant = true;
+        } else {
+            en_passant = false;
+            en_passant_square = err_val8;
         }
+        if constexpr (!white_moved)
+            full_moves -= 1;
+
         change_turn();
         if (move.flag == moveflag::MOVEFLAG_silent) {
             // Quiet moves. These are just captures or moves with no special effects.
