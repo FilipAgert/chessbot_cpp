@@ -18,8 +18,10 @@ ifeq ($(type), release)
 	FLAGS = -Wall -std=c++23 -O3 -DNDEBUG
 else ifeq ($(type), dev)
 	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast
-else ifeq ($(type), perf)
+else ifeq ($(type), perft)
 	FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG
+else
+	$(error Invalid value for type: '$(type)'. Must be 'release', 'dev' or 'perft'.)
 endif
 
 
