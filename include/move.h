@@ -30,14 +30,9 @@ template <Flag_t flag> constexpr bool is_promotion() {
 }
 }  // namespace moveflag
 struct Move {
-    Piece captured = none_piece;   // captured.
-    Piece promotion = none_piece;  // Piece to be promoted into
-    uint8_t source = err_val8, target = err_val8;
-    Flag_t flag = 0;
-    uint8_t en_passant_square = err_val8;
-    uint8_t castling_rights;
-    uint8_t ply;
-    bool check = false;  // Flag if move leads to check or not. For use in move order selection.
+    Flag_t flag : 4 = 0;
+    uint8_t source : 6 = 0;
+    uint8_t target : 6 = 0;
 
     explicit Move(std::string move_str) {
         if (move_str.length() < 4 || move_str.length() > 5)
@@ -48,25 +43,31 @@ struct Move {
         this->target = target;
         if (move_str.length() == 5) {
             uint8_t color = NotationInterface::row(target) == 0 ? pieces::black : pieces::white;
-            Piece p = Piece(Piece::piece_type_from_char(move_str[4]) | color);
-            this->promotion = p;
+            switch (Piece::piece_type_from_char(move_str[4])) {
+            case pieces::queen:
+                this->flag = moveflag::MOVEFLAG_promote_queen;
+                break;
+            case pieces::knight:
+                this->flag = moveflag::MOVEFLAG_promote_knight;
+                break;
+            case pieces::rook:
+                this->flag = moveflag::MOVEFLAG_promote_rook;
+                break;
+            case pieces::bishop:
+                this->flag = moveflag::MOVEFLAG_promote_bishop;
+            }
         }
     }
     constexpr Move(uint8_t from, uint8_t to) {
         this->source = from;
         this->target = to;
-        this->promotion = Piece();
-        this->castling_rights = 0;
         this->flag = 0;
-        this->ply = 0;
-        this->check = false;
     }
     constexpr Move(uint8_t from, uint8_t to, Flag_t flagval) : Move(from, to) {
         this->flag = flagval;
     }
     constexpr Move(uint8_t from, uint8_t to, Piece promo) : Move(from, to) {
-        promotion = promo;
-        switch (promotion.get_type()) {
+        switch (promo.get_type()) {
         case (pieces::queen):
             flag = moveflag::MOVEFLAG_promote_queen;
             break;
@@ -82,18 +83,22 @@ struct Move {
         }
     }
     std::string toString() const {
-        if (source == err_val8)
+        if (source == target)
             return "0000";
 
         std::string out =
             NotationInterface::string_from_idx(source) + NotationInterface::string_from_idx(target);
-        if (!(promotion == none_piece))
-            out += promotion.get_char_lc();
+        if (flag == moveflag::MOVEFLAG_promote_rook)
+            out += 'r';
+        else if (flag == moveflag::MOVEFLAG_promote_bishop)
+            out += 'b';
+        else if (flag == moveflag::MOVEFLAG_promote_queen)
+            out += 'q';
+        else if (flag == moveflag::MOVEFLAG_promote_knight)
+            out += 'n';
         return out;
     }
-    constexpr inline bool is_valid() {
-        return (source != target) && (source != err_val8) && (target != err_val8);
-    }
+    constexpr inline bool is_valid() { return (source != target); }
     constexpr Move() {}
 };
 
