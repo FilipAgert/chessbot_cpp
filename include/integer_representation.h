@@ -9,6 +9,8 @@ static constexpr uint8_t cast_white_kingside = 0b1;
 static constexpr uint8_t cast_white_queenside = 0b10;
 static constexpr uint8_t cast_black_kingside = 0b100;
 static constexpr uint8_t cast_black_queenside = 0b1000;
+static constexpr uint8_t cast_white_mask = 0b0011;
+static constexpr uint8_t cast_black_mask = 0b1100;
 };  // namespace castling
 
 namespace pieces {

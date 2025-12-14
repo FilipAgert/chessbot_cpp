@@ -9,11 +9,11 @@
 using namespace movegen;
 using namespace pieces;
 
-template <Piece_t piece, bool is_white> void Board::bb_move(const uint8_t from, const uint8_t to) {
-    bb_remove<piece, is_white>(from);
-    bb_add<piece, is_white>(to);
+template <bool is_white, Piece_t piece> void Board::bb_move(const uint8_t from, const uint8_t to) {
+    bb_remove<is_white, piece>(from);
+    bb_add<is_white, piece>(to);
 }
-template <Piece_t piece, bool is_white> void Board::bb_remove(const uint8_t sq) {
+template <bool is_white, Piece_t piece> void Board::bb_remove(const uint8_t sq) {
     BB bb = BitBoard::one_high(sq);
     if constexpr (is_white) {
         white_pieces &= ~bb;
@@ -45,7 +45,7 @@ template <Piece_t piece, bool is_white> void Board::bb_remove(const uint8_t sq) 
             black_king &= ~bb;
     }
 }
-template <Piece_t piece, bool is_white> void Board::bb_add(const uint8_t sq) {
+template <bool is_white, Piece_t piece> void Board::bb_add(const uint8_t sq) {
     BB bb = BitBoard::one_high(sq);
     if constexpr (is_white) {
         white_pieces |= bb;
@@ -93,37 +93,25 @@ void Board::capture_piece(const uint8_t source, const uint8_t target) {
     game_board[source] = none_piece;
     num_pieces--;
 }
-void Board::capture_piece_ep(const uint8_t source, const uint8_t target,
-                             uint8_t captured_pawn_loc) {
-    bb_move(source, target, game_board[source]);                  // Move pawn
-    bb_remove(captured_pawn_loc, game_board[captured_pawn_loc]);  // Remove captured pawn
-    game_board[target] = game_board[source];
-    game_board[source] = none_piece;
-    game_board[captured_pawn_loc] = none_piece;
-    num_pieces--;
-}
 
+template <bool is_white, Piece_t type>
 void Board::move_piece(const uint8_t source, const uint8_t target) {
-    bb_move(source, target, game_board[source]);
+    bb_move<is_white, type>(source, target);
     game_board[target] = game_board[source];
     game_board[source] = none_piece;
 }
 
+template <bool is_white, Piece_t type>
 void Board::add_piece(const uint8_t square, const Piece piece) {
     game_board[square] = piece;
-    bb_add(square, piece);
+    bb_add<is_white, type>(square);
     num_pieces++;
 }
 
-void Board::remove_piece(const uint8_t square) {
-    bb_remove(square, game_board[square]);
+template <bool is_white, Piece_t type> void Board::remove_piece(const uint8_t square) {
+    bb_remove<is_white, type>(square);
     game_board[square] = none_piece;
     num_pieces--;
-}
-void Board::promote_piece(const uint8_t square, const Piece promotion) {
-    bb_remove(square, game_board[square]);  // Remove pawn
-    bb_add(square, promotion);
-    game_board[square] = promotion;
 }
 
 void Board::clear_board() {
