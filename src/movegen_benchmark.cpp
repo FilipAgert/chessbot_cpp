@@ -31,7 +31,7 @@ int movegen_benchmark::recurse_moves(Board state, int print_depth, int curr_dept
     int num_moves = state.get_moves<normal_search, is_white>(moves);
     int total_moves = 0;
     for (int i = 0; i < num_moves; i++) {
-        state.do_move(moves[i]);
+        restore_move_info info = state.do_move<is_white>(moves[i]);
         int this_move_nbr = recurse_moves<!is_white>(state, print_depth, curr_depth + 1, to_depth);
         if (curr_depth <= print_depth) {
             for (int j = 0; j < curr_depth; j++)
@@ -39,7 +39,7 @@ int movegen_benchmark::recurse_moves(Board state, int print_depth, int curr_dept
             std::cout << moves[i].toString() << ": " << this_move_nbr << "\n";
         }
         total_moves += this_move_nbr;
-        state.undo_move(moves[i]);
+        state.undo_move<is_white>(info, moves[i]);
     }
     return total_moves;
 }
