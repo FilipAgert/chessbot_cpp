@@ -36,7 +36,6 @@ template <bool is_white> int MoveOrder::move_heuristics(Move &move, Board &board
         heuristics += PieceValue::piecevals[move.promotion.get_type()];
     }
 
-    uint8_t col = pieces::color_mask ^ board.get_turn_color();  // gets enemy color
     BB pawn_atk_bb = movegen::pawn_atk_bb<is_white>(board.get_piece_bb<pieces::pawn, is_white>());
     if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
         heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
@@ -52,7 +51,7 @@ void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t
                                 Board &board) {
     std::array<int, max_legal_moves> move_scores;
     for (int m = 0; m < num_moves; m++) {
-        int move_score = move_heuristics(moves[m], board);
+        int move_score = move_heuristics<is_white>(moves[m], board);
         move_scores[m] = move_score;
     }
     partial_move_sort<is_white>(moves, move_scores, num_moves, false);
@@ -65,7 +64,7 @@ void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t
         int firstmoveidx = -1;
         Move first = firstmove.value();
         for (int m = 0; m < num_moves; m++) {
-            int move_score = move_heuristics(moves[m], board);
+            int move_score = move_heuristics<is_white>(moves[m], board);
             if (moves[m].source == first.source && moves[m].target == first.target)
                 firstmoveidx = m;
             move_scores[m] = move_score;
