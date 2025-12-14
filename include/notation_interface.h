@@ -4,7 +4,7 @@
 #include <constants.h>
 #include <integer_representation.h>
 #include <piece.h>
-
+#include <stdexcept>
 #include <string>
 
 class NotationInterface {
@@ -28,6 +28,7 @@ class NotationInterface {
         } else if (colchar >= 'a' && colchar <= 'h') {
             basecol = 'a';
         } else {
+            throw std::invalid_argument("Col must be between a-h inclusive");
             return err_val8;
         }
         colval = colchar - basecol;
@@ -35,6 +36,7 @@ class NotationInterface {
             baserow = '1';
             rowval = rowchar - baserow;
         } else {
+            throw std::invalid_argument("Row must be between 1-8 inclusive");
             return err_val8;
         }
 
