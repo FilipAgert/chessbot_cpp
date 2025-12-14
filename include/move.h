@@ -41,38 +41,30 @@ struct Move {
 
     explicit Move(std::string move_str) {
         if (move_str.length() < 4 || move_str.length() > 5)
-            throw new std::invalid_argument("Move string invalid: " + move_str);
+            throw std::invalid_argument("Move string invalid: " + move_str);
         int source = NotationInterface::idx_from_string(move_str.substr(0, 2));
         int target = NotationInterface::idx_from_string(move_str.substr(2, 2));
+        this->source = source;
+        this->target = target;
         if (move_str.length() == 5) {
             uint8_t color = NotationInterface::row(target) == 0 ? pieces::black : pieces::white;
             Piece p = Piece(Piece::piece_type_from_char(move_str[4]) | color);
-            Move(source, target, p);
-        } else {
-            Move(source, target);
+            this->promotion = p;
         }
     }
     constexpr Move(uint8_t from, uint8_t to) {
-        source = from;
-        target = to;
-        promotion = Piece();
-        castling_rights = 0;
-        flag = 0;
-        ply = 0;
-        check = false;
+        this->source = from;
+        this->target = to;
+        this->promotion = Piece();
+        this->castling_rights = 0;
+        this->flag = 0;
+        this->ply = 0;
+        this->check = false;
     }
-    constexpr Move(uint8_t from, uint8_t to, Flag_t moveflag) {
-        source = from;
-        target = to;
-        promotion = Piece();
-        castling_rights = 0;
-        flag = moveflag;
-        ply = 0;
-        check = false;
+    constexpr Move(uint8_t from, uint8_t to, Flag_t flagval) : Move(from, to) {
+        this->flag = flagval;
     }
-    constexpr Move(uint8_t from, uint8_t to, Piece promo) {
-        source = from;
-        target = to;
+    constexpr Move(uint8_t from, uint8_t to, Piece promo) : Move(from, to) {
         promotion = promo;
         switch (promotion.get_type()) {
         case (pieces::queen):
@@ -88,9 +80,6 @@ struct Move {
             flag = moveflag::MOVEFLAG_promote_bishop;
             break;
         }
-        castling_rights = 0;
-        ply = 0;
-        check = false;
     }
     std::string toString() const {
         if (source == err_val8)
@@ -101,6 +90,9 @@ struct Move {
         if (!(promotion == none_piece))
             out += promotion.get_char_lc();
         return out;
+    }
+    constexpr inline bool is_valid() {
+        return (source != target) && (source != err_val8) && (target != err_val8);
     }
     constexpr Move() {}
 };
