@@ -927,7 +927,7 @@ struct Board {
             } else if constexpr (type == pieces::king) {
                 if (lsb - from == 2) {
                     flag = moveflag::MOVEFLAG_short_castling;
-                } else if (from - flag == 2) {
+                } else if (from - lsb == 2) {
                     flag = moveflag::MOVEFLAG_long_castling;
                 } else if (from == get_castle_from_sq<is_white, pieces::king,
                                                       moveflag::MOVEFLAG_long_castling>()) {
