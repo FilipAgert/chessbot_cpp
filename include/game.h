@@ -90,18 +90,32 @@ class Game {
      *
      */
     Move get_bestmove() const;
-    void make_move(Move move) {
-        if (board.get_turn_color() == pieces::white)
-            make_move<true>(move);
-        else
-            make_move<false>(move);
-    }
     void unmake_move() {
         if (board.get_turn_color() == pieces::white)
             undo_move<true>();
         else
             undo_move<false>();
     }
+    template <bool is_white> void make_move_no_flag(Move move) {
+        restore_move_info info = board.do_move_no_flag<is_white>(move);
+        move_stack.push(move);
+        restore_info_stack.push(info);
+        uint64_t state_hash = ZobroistHasher::get().hash_board(board);
+        state_stack.push(state_hash);
+    }
+    void make_move(Move move) {
+        assert(move.is_valid());
+        if (board.get_turn_color() == pieces::white)
+            make_move_no_flag<true>(move);
+        else
+            make_move_no_flag<false>(move);
+    }
+    /**
+     * @brief Assumes move is flagged.
+     *
+     * @tparam is_white true if white
+     * @param[in] move move
+     */
     template <bool is_white> void make_move(Move move);
     template <bool is_white> void undo_move();
     /**
