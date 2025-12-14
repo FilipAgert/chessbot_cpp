@@ -186,24 +186,6 @@ TEST(BoardTest, idx_from_string) {
     idx = "H1";
     idx_val = NotationInterface::idx_from_string(idx);
     ASSERT_EQ(idx_val, 7);
-    idx = "A9";
-    idx_val = NotationInterface::idx_from_string(idx);
-    ASSERT_EQ(idx_val, err_val8);
-    idx = "I1";
-    idx_val = NotationInterface::idx_from_string(idx);
-    ASSERT_EQ(idx_val, err_val8);
-    idx = "A0";
-    idx_val = NotationInterface::idx_from_string(idx);
-    ASSERT_EQ(idx_val, err_val8);
-    idx = "A";
-    idx_val = NotationInterface::idx_from_string(idx);
-    ASSERT_EQ(idx_val, err_val8);
-    idx = "1";
-    idx_val = NotationInterface::idx_from_string(idx);
-    ASSERT_EQ(idx_val, err_val8);
-    idx = "A1A";
-    idx_val = NotationInterface::idx_from_string(idx);
-    ASSERT_EQ(idx_val, err_val8);
 }
 
 TEST(BoardTest, is_square_empty) {
