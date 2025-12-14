@@ -90,6 +90,18 @@ class Game {
      *
      */
     Move get_bestmove() const;
+    void make_move(Move move) {
+        if (board.get_turn_color() == pieces::white)
+            make_move<true>(move);
+        else
+            make_move<false>(move);
+    }
+    void unmake_move() {
+        if (board.get_turn_color() == pieces::white)
+            undo_move<true>();
+        else
+            undo_move<false>();
+    }
     template <bool is_white> void make_move(Move move);
     template <bool is_white> void undo_move();
     /**

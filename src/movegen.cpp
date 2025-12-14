@@ -42,30 +42,6 @@ const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards =
 }  // namespace magic
 namespace movegen {
 
-uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb, const uint8_t pawn_col) {
-    int dir =
-        (pawn_col == pieces::white) * N + (pawn_col == pieces::black) * S;  // branchless assignment
-    uint8_t rowi =
-        1 * (pawn_col == pieces::white) +
-        6 * (pawn_col ==
-             pieces::black);  // Branchless execution. Evaluates to 1 or 6 depending on color.
-    uint64_t blocker = BitBoard::shift_bb(all_bb, -dir);           // Blocking pieces are one up
-    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~blocker, dir);  // All one moves up
-    blocker = blocker | BitBoard::shift_bb(blocker, -dir);         // Pieces now block two moves...
-    moves |= BitBoard::shift_bb(pawn_bb & ~blocker & row(rowi), dir, 2);
-    return moves;
-}
-uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
-                           const uint8_t pawn_col) {
-    return pawn_atk_bb(pawn_bb, pawn_col) &
-           (enemy_bb | ep_bb);  // Require enemy or en passant there.
-}
-uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                    const uint64_t ep_bb, const uint8_t pawn_col) {
-    return pawn_forward_moves(pawn_bb, friendly_bb | enemy_bb, pawn_col) |
-           pawn_attack_moves(pawn_bb, enemy_bb, ep_bb, pawn_col);
-}
-
 uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb,
                     const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color) {
     uint64_t king_bb = BitBoard::one_high(king_loc);

@@ -561,11 +561,6 @@ constexpr uint64_t queen_moves_sq(const uint8_t sq, const uint64_t friendly_bb,
     uint64_t occ = friendly_bb | enemy_bb;
     return (rook_atk(sq, occ) | bishop_atk(sq, occ)) & ~friendly_bb;
 }
-uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                    const uint64_t ep_bb, const uint8_t pawn_color);
-uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
-                           const uint8_t pawn_col);
-
 template <bool is_white> constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb) {
     BB moves;
     if constexpr (is_white) {
@@ -579,6 +574,38 @@ template <bool is_white> constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb) 
     }
     return moves;
 }
+template <bool is_white>
+uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb) {
+    return pawn_atk_bb<is_white>(pawn_bb) & (enemy_bb | ep_bb);
+    // Require enemy or en passant there.
+}
+template <bool is_white>
+uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb) {
+    // TODO: Update the pawn movegen to not have to use shift_bb with negatives since this is a
+    // branching.
+    int dir;
+    uint8_t rowi;
+    if constexpr (is_white) {
+        dir = N;
+        rowi = 1;
+    } else {
+        dir = S;
+        rowi = 6;
+    }
+
+    uint64_t blocker = BitBoard::shift_bb(all_bb, -dir);           // Blocking pieces are one up
+    uint64_t moves = BitBoard::shift_bb(pawn_bb & ~blocker, dir);  // All one moves up
+    blocker = blocker | BitBoard::shift_bb(blocker, -dir);         // Pieces now block two moves...
+    moves |= BitBoard::shift_bb(pawn_bb & ~blocker & row(rowi), dir, 2);
+    return moves;
+}
+template <bool is_white>
+uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
+                    const uint64_t ep_bb, const uint8_t pawn_color) {
+    return pawn_forward_moves<is_white>(pawn_bb, friendly_bb | enemy_bb) |
+           pawn_attack_moves<is_white>(pawn_bb, enemy_bb, ep_bb);
+}
+
 /**
  * @brief Generate all squares that all rooks atk
  *
@@ -602,10 +629,9 @@ inline uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
 }
 template <Piece_t pval, bool is_white> BB get_atk_bb(uint8_t sq, uint64_t occ) {
     constexpr Piece_t ptype = pval & pieces::piece_mask;
-    constexpr Piece_t pcol = is_white ? pieces::white : pieces::black;
     if constexpr (ptype == pieces::pawn) {
         BB pawn_bb = BitBoard::one_high(sq);
-        return movegen::pawn_atk_bb(pawn_bb, pcol);
+        return movegen::pawn_atk_bb<is_white>(pawn_bb);
     } else if constexpr (ptype == pieces::bishop) {
         return movegen::bishop_atk(sq, occ);
     } else if constexpr (ptype == pieces::knight) {

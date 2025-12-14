@@ -26,6 +26,33 @@ inline void partial_move_sort(std::array<Move, max_legal_moves> &moves,
     partial_move_sort(moves, scores, 0, num_moves, ascending);
 }
 /**
+ * @brief Rate move by Heuristics
+ *
+ * @param[in] move move to be rated
+ * @param[in] board board
+ * @return score of move to sort by
+ */
+template <bool is_white> int move_heuristics(Move &move, Board &board) {
+    int heuristics = 0;
+    if (!board.is_square_empty(move.target)) {
+        heuristics += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10 -
+                      PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
+    }
+
+    if (move.promotion.get_type() > 0) {
+        heuristics += PieceValue::piecevals[move.promotion.get_type()];
+    }
+
+    BB pawn_atk_bb = movegen::pawn_atk_bb<is_white>(board.get_piece_bb<pieces::pawn, is_white>());
+    if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
+        heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
+                                                .get_type()];  // penalize if target square is on a
+                                                               // square defended by a pawn.
+    }
+
+    return heuristics;
+}
+/**
  * @brief Sorts moves by heuristics.
  *
  * @param[[TODO:direction]] moves [TODO:description]
@@ -38,7 +65,7 @@ void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
         int move_score = move_heuristics<is_white>(moves[m], board);
         move_scores[m] = move_score;
     }
-    partial_move_sort<is_white>(moves, move_scores, num_moves, false);
+    partial_move_sort(moves, move_scores, num_moves, false);
 }
 /**
  * @brief Sort moves, and set the firstmove first no matter the other metrics.
@@ -67,38 +94,11 @@ void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
         }
         std::swap(move_scores[0], move_scores[firstmoveidx]);
         std::swap(moves[0], moves[firstmoveidx]);
-        partial_move_sort<is_white>(moves, move_scores, 1, num_moves, false);
+        partial_move_sort(moves, move_scores, 1, num_moves, false);
     } else {
         apply_move_sort<is_white>(moves, num_moves, board);
     }
 }
 
-/**
- * @brief Rate move by Heuristics
- *
- * @param[in] move move to be rated
- * @param[in] board board
- * @return score of move to sort by
- */
-template <bool is_white> int move_heuristics(Move &move, Board &board) {
-    int heuristics = 0;
-    if (!board.is_square_empty(move.target)) {
-        heuristics += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10 -
-                      PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
-    }
-
-    if (move.promotion.get_type() > 0) {
-        heuristics += PieceValue::piecevals[move.promotion.get_type()];
-    }
-
-    BB pawn_atk_bb = movegen::pawn_atk_bb<is_white>(board.get_piece_bb<pieces::pawn, is_white>());
-    if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
-        heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
-                                                .get_type()];  // penalize if target square is on a
-                                                               // square defended by a pawn.
-    }
-
-    return heuristics;
-}
 };  // namespace MoveOrder
 #endif

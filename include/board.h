@@ -192,9 +192,8 @@ struct Board {
                 remove_piece<!white_to_move, captured>(move.target);
                 // Only need to check if a rook was captured SINCE if a piece wasnt captured and we
                 // hit a rook square, the castleflag is already removed.
-                if constexpr (captured == pieces::rook) {
-                    remove_castle_flag_if_capture_rook<white_to_move>();
-                }
+                if constexpr (captured == pieces::rook)
+                    remove_castle_flag_if_capture_rook<white_to_move>(move.target);
             }
             move_piece<white_to_move, moved>(move.source, move.target);
             return info;
@@ -228,7 +227,7 @@ struct Board {
             if constexpr (captured != pieces::none) {
                 remove_piece<!white_to_move, captured>(move.target);
                 if constexpr (captured == pieces::rook) {
-                    remove_castle_flag_if_capture_rook<white_to_move>();
+                    remove_castle_flag_if_capture_rook<white_to_move>(move.target);
                 }
             }
             move_piece<white_to_move, moved>(move.source, move.target);
@@ -249,7 +248,7 @@ struct Board {
                 if constexpr (captured != pieces::none) {
                     remove_piece<!white_to_move, captured>(move.target);
                     if constexpr (captured == pieces::rook) {
-                        remove_castle_flag_if_capture_rook<white_to_move>();
+                        remove_castle_flag_if_capture_rook<white_to_move>(move.target);
                     }
                 }
 
@@ -395,10 +394,10 @@ struct Board {
             } else if (dest == pieces::king) {
                 if (move.flag == moveflag::MOVEFLAG_short_castling) {
                     undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling,
-                              pieces::none>();
+                              pieces::none>(move);
                 } else if (move.flag == moveflag::MOVEFLAG_long_castling) {
                     undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling,
-                              pieces::none>();
+                              pieces::none>(move);
                 } else if (move.flag == moveflag::MOVEFLAG_remove_all_castle) {
                     Piece_t captured = info.captured.get_type();
                     undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_silent>(
@@ -494,7 +493,7 @@ struct Board {
                 // pseudolegal_moves[m].check = opponent_checked;
                 moves[num_moves++] = pseudolegal_moves[m];
             }
-            undo_move<is_white>(pseudolegal_moves[m]);
+            undo_move<is_white>(info, pseudolegal_moves[m]);
         }
         return num_moves;
     }
@@ -774,7 +773,7 @@ struct Board {
     }
 
  protected:
-    template <bool is_white> constexpr uint8_t get_pawn_promote_rank() {
+    template <bool is_white> int get_pawn_promote_rank() const {
         if constexpr (is_white)
             return 7;
         else
@@ -896,7 +895,8 @@ struct Board {
         constexpr uint8_t color = is_white ? pieces::white : pieces::black;
         BB to_squares;
         if constexpr (ptype == pieces::pawn) {
-            to_squares = movegen::pawn_moves(piece_bb, friendly_bb, enemy_bb, ep_bb, color);
+            to_squares =
+                movegen::pawn_moves<is_white>(piece_bb, friendly_bb, enemy_bb, ep_bb, color);
         } else if constexpr (ptype == pieces::bishop) {
             to_squares = movegen::bishop_moves_sq(sq, friendly_bb, enemy_bb);
         } else if constexpr (ptype == pieces::knight) {
@@ -952,7 +952,7 @@ struct Board {
     void undo_move(const Move move) {
         if constexpr (flag == moveflag::MOVEFLAG_silent) {
             // Just captures and normal moves.
-            move_piece<white_moved, piece>(move.source);
+            move_piece<white_moved, piece>(move.target, move.source);
             if constexpr (captured != pieces::none) {
                 // If capture: restore captured piece
                 add_piece<!white_moved, captured>(move.target);
