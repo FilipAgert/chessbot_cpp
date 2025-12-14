@@ -62,7 +62,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
-        new_msg.pv = trans_table->get_pv(board, depth);
+        new_msg.pv = trans_table->get_pv<is_white>(board, depth);
         new_msg.seldepth = seldepth;
         new_msg.hashfill = trans_table->load_factor();
         if (new_msg.pv.size() > 0) {

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <piece.h>
 #include <random>
+#include <stack>
 #include <vector>
 /**
  * @brief Class for storing the occured game states for checking 3 move repetion draws.
@@ -240,20 +241,24 @@ struct transposition_table {
      */
     int load_factor() const;
 
-    std::vector<Move> get_pv(Board &board, int depth) {
+    template <bool is_white> std::vector<Move> get_pv(Board &board, int depth) {
         std::vector<Move> pv_line;
+        std::stack<restore_move_info> restore_stack;
         for (int i = 0; i <= depth; i++) {
             uint64_t hash = ZobroistHasher::get().hash_board(board);
             std::optional<transposition_entry> entry = get(hash);
             if (entry) {
                 if (entry.value().is_valid_move()) {
                     pv_line.push_back(entry.value().bestmove);
-                    board.do_move(entry.value().bestmove);
+                    restore_move_info info = board.do_move<is_white>(entry.value().bestmove);
+                    restore_stack.push(info);
                 }
             }
         }
         for (int i = pv_line.size() - 1; i >= 0; i--) {
-            board.undo_move(pv_line[i]);
+            restore_move_info info = restore_stack.top();
+            restore_stack.pop();
+            board.undo_move<is_white>(info, pv_line[i]);
         }
         return pv_line;
     }
