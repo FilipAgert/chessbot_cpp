@@ -566,8 +566,7 @@ uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const ui
 uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb,
                            const uint8_t pawn_col);
 
-template <bool is_white>
-constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb, const uint8_t pawn_col) {
+template <bool is_white> constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb) {
     BB moves;
     if constexpr (is_white) {
         constexpr int dir = N;
