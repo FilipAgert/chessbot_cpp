@@ -47,6 +47,50 @@ struct Board {
      * @param move
      * @return * void
      */
+    template <bool is_white> void add_piece(const uint8_t square, Piece p) {
+        switch (p.get_type()) {
+        case (pieces::pawn):
+            add_piece<is_white, pieces::pawn>(square);
+            break;
+        case (pieces::knight):
+            add_piece<is_white, pieces::knight>(square);
+            break;
+        case (pieces::rook):
+            add_piece<is_white, pieces::rook>(square);
+            break;
+        case (pieces::queen):
+            add_piece<is_white, pieces::queen>(square);
+            break;
+        case (pieces::king):
+            add_piece<is_white, pieces::king>(square);
+            break;
+        case (pieces::bishop):
+            add_piece<is_white, pieces::bishop>(square);
+            break;
+        default:
+            throw new std::runtime_error("Error, trying to add invalid piece");
+            break;
+        }
+    }
+
+    template <bool is_white, Piece_t type> void remove_piece(const uint8_t square) {
+        bb_remove<is_white, type>(square);
+        game_board[square] = none_piece;
+        num_pieces--;
+    }
+    template <bool is_white, Piece_t type>
+    void move_piece(const uint8_t source, const uint8_t target) {
+        bb_move<is_white, type>(source, target);
+        game_board[target] = game_board[source];
+        game_board[source] = none_piece;
+    }
+
+    template <bool is_white, Piece_t type> void add_piece(const uint8_t square) {
+        uint8_t color = is_white ? pieces::white : pieces::black;
+        game_board[square] = Piece(color | type);
+        bb_add<is_white, type>(square);
+        num_pieces++;
+    }
     template <bool white_to_move> restore_move_info do_move(Move &move) {
         Piece_t moved = game_board[move.source].get_type();
         Piece_t captured = game_board[move.target].get_type();
@@ -580,38 +624,6 @@ struct Board {
 
     inline Piece get_piece_at(uint8_t square) const { return game_board[square]; }
 
-    template <bool is_white, Piece_t type>
-    void move_piece(const uint8_t source, const uint8_t target);
-
-    template <bool is_white, Piece_t type> void add_piece(const uint8_t square);
-    template <bool is_white> void add_piece(const uint8_t square, Piece p) {
-        switch (p.get_type()) {
-        case (pieces::pawn):
-            add_piece<is_white, pieces::pawn>(square);
-            break;
-        case (pieces::knight):
-            add_piece<is_white, pieces::knight>(square);
-            break;
-        case (pieces::rook):
-            add_piece<is_white, pieces::rook>(square);
-            break;
-        case (pieces::queen):
-            add_piece<is_white, pieces::queen>(square);
-            break;
-        case (pieces::king):
-            add_piece<is_white, pieces::king>(square);
-            break;
-        case (pieces::bishop):
-            add_piece<is_white, pieces::bishop>(square);
-            break;
-        default:
-            throw new std::runtime_error("Error, trying to add invalid piece");
-            break;
-        }
-    }
-
-    template <bool is_white, Piece_t piece> void remove_piece(const uint8_t square);
-
     bool is_square_empty(uint8_t square) const;
 
     uint8_t get_square_color(uint8_t square) const;
@@ -922,15 +934,49 @@ struct Board {
      * @param[in] from index of from square
      * @param[in] to index of to square
      */
-    template <bool is_white, Piece_t piece> void bb_move(const uint8_t from, const uint8_t to);
+    template <bool is_white, Piece_t piece> void bb_move(const uint8_t from, const uint8_t to) {
+        bb_remove<is_white, piece>(from);
+        bb_add<is_white, piece>(to);
+    }
     /**
-     * @brief Handles removing piece on bitboard. WARNING: Must be called
+     * @brief Handles removing piece on bitboard.
      * before removing piece on board.
      *
      * @param[in] sq index of square to remove piece from
      * @param[in] piece to add
      */
-    template <bool is_white, Piece_t piece> void bb_remove(const uint8_t sq);
+    template <bool is_white, Piece_t piece> void bb_remove(const uint8_t sq) {
+        BB bb = BitBoard::one_high(sq);
+        if constexpr (is_white) {
+            white_pieces &= ~bb;
+            if constexpr (piece == pieces::pawn)
+                white_pawns &= ~bb;
+            else if constexpr (piece == pieces::bishop)
+                white_bishops &= ~bb;
+            else if constexpr (piece == pieces::rook)
+                white_rooks &= ~bb;
+            else if constexpr (piece == pieces::knight)
+                white_knights &= ~bb;
+            else if constexpr (piece == pieces::queen)
+                white_queen &= ~bb;
+            else if constexpr (piece == pieces::king)
+                white_king &= ~bb;
+        } else {
+            black_pieces &= ~bb;
+            if constexpr (piece == pieces::pawn)
+                black_pawns &= ~bb;
+            else if constexpr (piece == pieces::bishop)
+                black_bishops &= ~bb;
+            else if constexpr (piece == pieces::rook)
+                black_rooks &= ~bb;
+            else if constexpr (piece == pieces::knight)
+                black_knights &= ~bb;
+            else if constexpr (piece == pieces::queen)
+                black_queen &= ~bb;
+            else if constexpr (piece == pieces::king)
+                black_king &= ~bb;
+        }
+    }
     /**
      * @brief Handles moving piece on bitboard.
      * board.
@@ -938,7 +984,38 @@ struct Board {
      * @param[in] from index of from square
      * @param[in] piece to add
      */
-    template <bool is_white, Piece_t piece> void bb_add(const uint8_t sq);
+    template <bool is_white, Piece_t piece> void bb_add(const uint8_t sq) {
+        BB bb = BitBoard::one_high(sq);
+        if constexpr (is_white) {
+            white_pieces |= bb;
+            if constexpr (piece == pieces::pawn)
+                white_pawns |= bb;
+            else if constexpr (piece == pieces::bishop)
+                white_bishops |= bb;
+            else if constexpr (piece == pieces::rook)
+                white_rooks |= bb;
+            else if constexpr (piece == pieces::knight)
+                white_knights |= bb;
+            else if constexpr (piece == pieces::queen)
+                white_queen |= bb;
+            else if constexpr (piece == pieces::king)
+                white_king |= bb;
+        } else {
+            black_pieces |= bb;
+            if constexpr (piece == pieces::pawn)
+                black_pawns |= bb;
+            else if constexpr (piece == pieces::bishop)
+                black_bishops |= bb;
+            else if constexpr (piece == pieces::rook)
+                black_rooks |= bb;
+            else if constexpr (piece == pieces::knight)
+                black_knights |= bb;
+            else if constexpr (piece == pieces::queen)
+                black_queen |= bb;
+            else if constexpr (piece == pieces::king)
+                black_king |= bb;
+        }
+    }
     /**
      * @brief Loud undo moves. These are: Promotion, castling or ep capture.
      *

@@ -9,101 +9,12 @@
 using namespace movegen;
 using namespace pieces;
 
-template <bool is_white, Piece_t piece> void Board::bb_move(const uint8_t from, const uint8_t to) {
-    bb_remove<is_white, piece>(from);
-    bb_add<is_white, piece>(to);
-}
-template <bool is_white, Piece_t piece> void Board::bb_remove(const uint8_t sq) {
-    BB bb = BitBoard::one_high(sq);
-    if constexpr (is_white) {
-        white_pieces &= ~bb;
-        if constexpr (piece == pawn)
-            white_pawns &= ~bb;
-        else if constexpr (piece == bishop)
-            white_bishops &= ~bb;
-        else if constexpr (piece == rook)
-            white_rooks &= ~bb;
-        else if constexpr (piece == knight)
-            white_knights &= ~bb;
-        else if constexpr (piece == queen)
-            white_queen &= ~bb;
-        else if constexpr (piece == king)
-            white_king &= ~bb;
-    } else {
-        black_pieces &= ~bb;
-        if constexpr (piece == pawn)
-            black_pawns &= ~bb;
-        else if constexpr (piece == bishop)
-            black_bishops &= ~bb;
-        else if constexpr (piece == rook)
-            black_rooks &= ~bb;
-        else if constexpr (piece == knight)
-            black_knights &= ~bb;
-        else if constexpr (piece == queen)
-            black_queen &= ~bb;
-        else if constexpr (piece == king)
-            black_king &= ~bb;
-    }
-}
-template <bool is_white, Piece_t piece> void Board::bb_add(const uint8_t sq) {
-    BB bb = BitBoard::one_high(sq);
-    if constexpr (is_white) {
-        white_pieces |= bb;
-        if constexpr (piece == pawn)
-            white_pawns |= bb;
-        else if constexpr (piece == bishop)
-            white_bishops |= bb;
-        else if constexpr (piece == rook)
-            white_rooks |= bb;
-        else if constexpr (piece == knight)
-            white_knights |= bb;
-        else if constexpr (piece == queen)
-            white_queen |= bb;
-        else if constexpr (piece == king)
-            white_king |= bb;
-    } else {
-        black_pieces |= bb;
-        if constexpr (piece == pawn)
-            black_pawns |= bb;
-        else if constexpr (piece == bishop)
-            black_bishops |= bb;
-        else if constexpr (piece == rook)
-            black_rooks |= bb;
-        else if constexpr (piece == knight)
-            black_knights |= bb;
-        else if constexpr (piece == queen)
-            black_queen |= bb;
-        else if constexpr (piece == king)
-            black_king |= bb;
-    }
-}
-
 bool Board::is_square_empty(uint8_t square) const {
     return this->get_piece_at(square) == none_piece;
 }
 
 uint8_t Board::get_square_color(uint8_t square) const {
     return this->get_piece_at(square).get_color();
-}
-
-template <bool is_white, Piece_t type>
-void Board::move_piece(const uint8_t source, const uint8_t target) {
-    bb_move<is_white, type>(source, target);
-    game_board[target] = game_board[source];
-    game_board[source] = none_piece;
-}
-
-template <bool is_white, Piece_t type> void Board::add_piece(const uint8_t square) {
-    uint8_t color = is_white ? pieces::white : pieces::black;
-    game_board[square] = Piece(color | type);
-    bb_add<is_white, type>(square);
-    num_pieces++;
-}
-
-template <bool is_white, Piece_t type> void Board::remove_piece(const uint8_t square) {
-    bb_remove<is_white, type>(square);
-    game_board[square] = none_piece;
-    num_pieces--;
 }
 
 void Board::clear_board() {
