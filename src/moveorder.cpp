@@ -25,8 +25,7 @@ void MoveOrder::partial_move_sort(std::array<Move, max_legal_moves> &moves,
     std::copy(sorted_moves.begin() + start, sorted_moves.begin() + num_moves,
               moves.begin() + start);
 }
-
-int MoveOrder::move_heuristics(Move &move, Board &board) {
+template <bool is_white> int MoveOrder::move_heuristics(Move &move, Board &board) {
     int heuristics = 0;
     if (!board.is_square_empty(move.target)) {
         heuristics += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10 -
@@ -38,7 +37,7 @@ int MoveOrder::move_heuristics(Move &move, Board &board) {
     }
 
     uint8_t col = pieces::color_mask ^ board.get_turn_color();  // gets enemy color
-    BB pawn_atk_bb = movegen::pawn_atk_bb(board.get_piece_bb<pieces::pawn>(col), col);
+    BB pawn_atk_bb = movegen::pawn_atk_bb<is_white>(board.get_piece_bb<pieces::pawn, is_white>());
     if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
         heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
                                                 .get_type()];  // penalize if target square is on a
@@ -48,6 +47,7 @@ int MoveOrder::move_heuristics(Move &move, Board &board) {
     return heuristics;
 }
 
+template <bool is_white>
 void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
                                 Board &board) {
     std::array<int, max_legal_moves> move_scores;
@@ -55,8 +55,9 @@ void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t
         int move_score = move_heuristics(moves[m], board);
         move_scores[m] = move_score;
     }
-    partial_move_sort(moves, move_scores, num_moves, false);
+    partial_move_sort<is_white>(moves, move_scores, num_moves, false);
 }
+template <bool is_white>
 void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
                                 std::optional<Move> firstmove, Board &board) {
     if (firstmove) {
@@ -75,8 +76,8 @@ void MoveOrder::apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t
         }
         std::swap(move_scores[0], move_scores[firstmoveidx]);
         std::swap(moves[0], moves[firstmoveidx]);
-        partial_move_sort(moves, move_scores, 1, num_moves, false);
+        partial_move_sort<is_white>(moves, move_scores, 1, num_moves, false);
     } else {
-        apply_move_sort(moves, num_moves, board);
+        apply_move_sort<is_white>(moves, num_moves, board);
     }
 }

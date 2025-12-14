@@ -29,6 +29,7 @@ inline void partial_move_sort(std::array<Move, max_legal_moves> &moves,
  * @param[[TODO:direction]] moves [TODO:description]
  * @param[[TODO:direction]] board [TODO:description]
  */
+template <bool is_white>
 void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves, Board &board);
 /**
  * @brief Sort moves, and set the firstmove first no matter the other metrics.
@@ -38,6 +39,7 @@ void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
  * @param[in] firstmove optional first move. will be first in array
  * @param[in] board board
  */
+template <bool is_white>
 void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
                      std::optional<Move> firstmove, Board &board);
 
@@ -48,6 +50,6 @@ void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
  * @param[in] board board
  * @return score of move to sort by
  */
-int move_heuristics(Move &move, Board &board);
+template <bool is_white> int move_heuristics(Move &move, Board &board);
 };  // namespace MoveOrder
 #endif

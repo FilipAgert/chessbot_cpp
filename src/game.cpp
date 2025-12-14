@@ -180,7 +180,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     }
     // End mate and draws.
 
-    MoveOrder::apply_move_sort(moves, num_moves, first_move, board);
+    MoveOrder::apply_move_sort<is_white>(moves, num_moves, first_move, board);
     // Normal move generation.
     //
     for (int i = movelb; i < num_moves; i++) {
@@ -239,7 +239,7 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     int num_moves = board.get_moves<quiesence_search, is_white>(moves);
     moves_generated += num_moves;
 
-    MoveOrder::apply_move_sort(moves, num_moves, board);
+    MoveOrder::apply_move_sort<is_white>(moves, num_moves, board);
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
         this->make_move(moves[i]);
