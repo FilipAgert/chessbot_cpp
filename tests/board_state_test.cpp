@@ -38,6 +38,8 @@ TEST(BoardTest, doUndoMovePromotion) {
     Move move = Move(NotationInterface::idx_from_string("a7"),
                      NotationInterface::idx_from_string("a8"), Piece('Q'));
 
+    ASSERT_EQ(move.flag, moveflag::MOVEFLAG_promote_queen);
+
     restore_move_info info = board.do_move_no_flag<true>(move);
 
     ASSERT_TRUE(board.is_square_empty(move.source));
@@ -69,13 +71,17 @@ TEST(BoardTest, doUndoMoveCapture) {
     ASSERT_EQ(modified.get_piece_at(move.target), Piece('P'));
     ASSERT_TRUE(modified.is_square_empty(move.source));
     ASSERT_EQ(modified.get_turn_color(), black);
+    ASSERT_FALSE(modified.get_en_passant());
 
     modified.undo_move<true>(info, move);
+    ASSERT_FALSE(modified.get_en_passant());
 
     ASSERT_EQ(modified.get_piece_at(move.source), Piece('P'));
     ASSERT_EQ(modified.get_piece_at(move.target), captured);
     ASSERT_EQ(modified.get_turn_color(), white);
     ASSERT_EQ((int)modified.get_num_pieces(), (int)original.get_num_pieces());
+    ASSERT_EQ(modified.get_en_passant(), original.get_en_passant());
+    ASSERT_EQ(modified.get_en_passant_square(), original.get_en_passant_square());
     ASSERT_EQ(modified, original);
 }
 TEST(BoardTest, do_move_move_ctr) {

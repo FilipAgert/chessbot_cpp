@@ -21,18 +21,35 @@ const Flag_t MOVEFLAG_promote_rook = 8;
 const Flag_t MOVEFLAG_promote_knight = 9;
 const Flag_t MOVEFLAG_short_castling = 10;
 const Flag_t MOVEFLAG_long_castling = 11;
-template <Flag_t flag> constexpr bool is_promotion() {
+template <Flag_t flag> static constexpr bool is_promotion() {
     if constexpr ((flag == MOVEFLAG_promote_queen) || (flag == MOVEFLAG_promote_bishop) ||
                   (flag == MOVEFLAG_promote_knight) || (flag == MOVEFLAG_promote_rook))
         return true;
     else
         return false;
 }
+inline constexpr bool is_promotion(Flag_t flag) {
+    return ((flag == MOVEFLAG_promote_queen) || (flag == MOVEFLAG_promote_bishop) ||
+            (flag == MOVEFLAG_promote_knight) || (flag == MOVEFLAG_promote_rook));
+}
 }  // namespace moveflag
 struct Move {
     Flag_t flag : 4 = 0;
     uint8_t source : 6 = 0;
     uint8_t target : 6 = 0;
+
+    inline constexpr bool is_promotion() { return moveflag::is_promotion(flag); }
+    inline constexpr Piece_t get_promotion() {
+        if (flag == moveflag::MOVEFLAG_promote_queen)
+            return pieces::queen;
+        else if (flag == moveflag::MOVEFLAG_promote_knight)
+            return pieces::knight;
+        else if (flag == moveflag::MOVEFLAG_promote_rook)
+            return pieces::rook;
+        else if (flag == moveflag::MOVEFLAG_promote_bishop)
+            return pieces::bishop;
+        return pieces::none;
+    }
 
     explicit Move(std::string move_str) {
         if (move_str.length() < 4 || move_str.length() > 5)
@@ -55,6 +72,7 @@ struct Move {
                 break;
             case pieces::bishop:
                 this->flag = moveflag::MOVEFLAG_promote_bishop;
+                break;
             }
         }
     }
@@ -69,16 +87,16 @@ struct Move {
     constexpr Move(uint8_t from, uint8_t to, Piece promo) : Move(from, to) {
         switch (promo.get_type()) {
         case (pieces::queen):
-            flag = moveflag::MOVEFLAG_promote_queen;
+            this->flag = moveflag::MOVEFLAG_promote_queen;
             break;
         case (pieces::knight):
-            flag = moveflag::MOVEFLAG_promote_knight;
+            this->flag = moveflag::MOVEFLAG_promote_knight;
             break;
         case (pieces::rook):
-            flag = moveflag::MOVEFLAG_promote_rook;
+            this->flag = moveflag::MOVEFLAG_promote_rook;
             break;
         case (pieces::bishop):
-            flag = moveflag::MOVEFLAG_promote_bishop;
+            this->flag = moveflag::MOVEFLAG_promote_bishop;
             break;
         }
     }

@@ -17,20 +17,20 @@
 #include <iostream>
 #include <string>
 struct restore_move_info {
-    uint8_t castleinfo;
-    uint8_t ep_square;
-    int ply_moves;
-    Piece captured;
+    uint8_t castleinfo : 4;
+    Piece_t captured : 3;
+    uint8_t ep_square : 6;
+    uint8_t ply_moves;
 };
 struct Board {
  private:
     uint8_t castleinfo = err_val8;
     uint8_t turn_color = err_val8;  // 0b01000 for white 0b10000 for black
     bool en_passant = false;
-    uint8_t en_passant_square = err_val8;
+    uint8_t en_passant_square = 0;
     uint8_t check = 0;  // 0 For no check, white for white checked, black for black checked.
 
-    int ply_moves;
+    uint8_t ply_moves;
     int full_moves;
     std::array<Piece, 64> game_board;
     // Color                 W          B
@@ -47,7 +47,7 @@ struct Board {
     Board();
     ~Board();
     uint8_t get_turn_color() const { return turn_color; }
-    int get_ply_moves() const { return ply_moves; }
+    uint8_t get_ply_moves() const { return ply_moves; }
     bool get_en_passant() const { return en_passant; }
     uint8_t get_en_passant_square() const { return en_passant_square; }
     uint8_t get_castling() const { return castleinfo; }
@@ -117,36 +117,18 @@ struct Board {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         assert(moved != pieces::none);
-        move.flag = moveflag::MOVEFLAG_silent;
         switch (moved) {
         case pieces::pawn:
-            if (move.promotion.get_type() > 0) {
-                switch (move.promotion.get_type()) {
-                case (pieces::queen):
-                    move.flag = moveflag::MOVEFLAG_promote_queen;
-                    break;
-                case (pieces::rook):
-                    move.flag = moveflag::MOVEFLAG_promote_rook;
-                    break;
-                case (pieces::knight):
-                    move.flag = moveflag::MOVEFLAG_promote_knight;
-                    break;
-                case (pieces::bishop):
-                    move.flag = moveflag::MOVEFLAG_promote_bishop;
-                    break;
-                }
-            } else {
-                // Check for ep...
-                if (move.target == en_passant_square)
-                    move.flag = moveflag::MOVEFLAG_pawn_ep_capture;
+            // Check for ep...
+            if (move.target == en_passant_square)
+                move.flag = moveflag::MOVEFLAG_pawn_ep_capture;
 
-                if constexpr (white_to_move) {
-                    if (move.target - move.source == 16)
-                        move.flag = moveflag::MOVEFLAG_pawn_double_push;
-                } else {
-                    if (move.source - move.target == 16)
-                        move.flag = moveflag::MOVEFLAG_pawn_double_push;
-                }
+            if constexpr (white_to_move) {
+                if (move.target - move.source == 16)
+                    move.flag = moveflag::MOVEFLAG_pawn_double_push;
+            } else {
+                if (move.source - move.target == 16)
+                    move.flag = moveflag::MOVEFLAG_pawn_double_push;
             }
             break;
         case pieces::king:
@@ -269,6 +251,7 @@ struct Board {
         case pieces::queen:
             return do_move<white_to_move, moved, flag, pieces::queen>(move);
         default:
+            std::cout << "pieceval: " << (int)captured << std::endl;
             throw std::runtime_error("Should not be allowed to capture a king.");
             break;
         }
@@ -319,12 +302,11 @@ struct Board {
             ply_moves = 0;
         if constexpr (!white_to_move)
             full_moves += 1;
-        restore_move_info info = {
-            castleinfo, en_passant ? en_passant_square : err_val8, ply_moves,
-            Piece(captured | (white_to_move ? pieces::black : pieces::white))};
+        restore_move_info info = {castleinfo, captured, en_passant_square, ply_moves};
+
         uint8_t old_ep = en_passant_square;
         en_passant = false;
-        en_passant_square = err_val8;
+        en_passant_square = 0;
         assert(turn_color == white_to_move ? pieces::white : pieces::black);
         change_turn();  // Changes turn color from white <-> black.
         //
@@ -478,12 +460,12 @@ struct Board {
     template <bool white_moved> void undo_move(restore_move_info info, const Move move) {
         ply_moves = info.ply_moves;
         castleinfo = info.castleinfo;
-        if (info.ep_square != err_val8) {
+        if (info.ep_square != 0) {
             en_passant_square = info.ep_square;
             en_passant = true;
         } else {
             en_passant = false;
-            en_passant_square = err_val8;
+            en_passant_square = 0;
         }
         if constexpr (!white_moved)
             full_moves -= 1;
@@ -494,7 +476,8 @@ struct Board {
         change_turn();
         if (move.flag == moveflag::MOVEFLAG_silent) {
             // Quiet moves. These are just captures or moves with no special effects.
-            Piece_t captured = info.captured.get_type();
+            Piece_t captured = info.captured;
+            assert(captured != 0b111);
             switch (get_piece_at(move.target).get_type()) {
             case (pieces::pawn):
                 undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_silent>(move, captured);
@@ -550,7 +533,8 @@ struct Board {
                     undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_long_castling,
                               pieces::none>(move);
                 } else if (move.flag == moveflag::MOVEFLAG_remove_all_castle) {
-                    Piece_t captured = info.captured.get_type();
+                    Piece_t captured = info.captured;
+                    assert(captured != 0b111);
                     undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_silent>(
                         move,
                         captured);  // INFO:This is fine since the restoring castle is restored
@@ -565,7 +549,8 @@ struct Board {
                 // Either: Check for if rook AND not promotion rook flag: do rook moves. Then we
                 // know its a pawn promotion.
 
-                Piece_t captured = info.captured.get_type();
+                Piece_t captured = info.captured;
+                assert(captured != 0b111);
                 if (dest == pieces::rook && (move.flag != moveflag::MOVEFLAG_promote_rook)) {
                     undo_move<white_moved, pieces::rook, moveflag::MOVEFLAG_silent>(
                         move, captured);  // INFO: This is fine. The rook moved from its castle
@@ -703,7 +688,7 @@ struct Board {
         castleinfo = err_val8;
         turn_color = err_val8;
         en_passant = false;
-        en_passant_square = err_val8;
+        en_passant_square = 0;
         check = 0;
         ply_moves = err_val8;
         full_moves = err_val8;
@@ -1197,6 +1182,7 @@ struct Board {
             undo_move<white_moved, piece, flag, pieces::king>(move);
             break;
         default:
+            std::cout << "pieceval: " << (int)captured << std::endl;
             throw std::runtime_error("Should not be allowed to capture a king.");
             break;
         }

@@ -80,18 +80,21 @@ void UCIInterface::process_go_command(std::string command) {
             }
 
             std::string int_token = parts[1];
+            int depth;
+            int print_depth;
             try {
-                int depth = std::stoi(int_token);
-                int print_depth = std::stoi(parts[2]);
-                int nodes = movegen_benchmark::gen_num_moves(Game::instance().get_board(), depth,
-                                                             print_depth);
-                std::string nodes_searched = std::to_string(nodes);
-                UCIInterface::uci_response("\nNodes searched: " + nodes_searched);
+                depth = std::stoi(int_token);
+                print_depth = std::stoi(parts[2]);
             } catch (const ::std::exception &e) {
                 UCIInterface::uci_response(
                     "Error: \"perft\" command should be followed by an integer but found: " +
                     int_token);
+                return;
             }
+            int nodes =
+                movegen_benchmark::gen_num_moves(Game::instance().get_board(), depth, print_depth);
+            std::string nodes_searched = std::to_string(nodes);
+            UCIInterface::uci_response("\nNodes searched: " + nodes_searched);
             return;
         } else {
 

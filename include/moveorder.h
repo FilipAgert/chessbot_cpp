@@ -39,8 +39,8 @@ template <bool is_white> int move_heuristics(Move &move, Board &board) {
                       PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
     }
 
-    if (move.promotion.get_type() > 0) {
-        heuristics += PieceValue::piecevals[move.promotion.get_type()];
+    if (move.is_promotion()) {
+        heuristics += PieceValue::piecevals[move.get_promotion()];
     }
 
     BB pawn_atk_bb = movegen::pawn_atk_bb<is_white>(board.get_piece_bb<pieces::pawn, is_white>());

@@ -70,8 +70,7 @@ TEST(TransTest, moveOrderTest) {
     MoveOrder::apply_move_sort<true>(moves, nummoves, bestmove, state);
     ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
     for (int i = nummoves; i < max_legal_moves; i++) {
-        ASSERT_EQ(moves[i].source, err_val8);
-        ASSERT_EQ(moves[i].target, err_val8);
+        ASSERT_EQ(moves[i].source, moves[i].target);
     }
 }
 TEST(ZobroistTest, TranspositionIdentity) {

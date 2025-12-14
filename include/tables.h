@@ -78,10 +78,7 @@ struct transposition_entry {
     uint8_t nodetype = invalid;
     uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
                         // same or shallower.
-    inline bool is_valid_move() {
-        return (bestmove.source != bestmove.target) && (bestmove.source != err_val8) &&
-               (bestmove.target != err_val8);
-    }
+    inline bool is_valid_move() { return (bestmove.source != bestmove.target); }
 
     bool is_exact() { return nodetype == exact; }
     bool is_lb() { return nodetype == lb; }
@@ -212,8 +209,6 @@ struct transposition_table {
     }
     inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
         assert(bestmove.source != bestmove.target);
-        assert(bestmove.source != err_val8);
-        assert(bestmove.target != err_val8);
         set({hash, bestmove, eval, nodetype, depth});
     }
     /**
