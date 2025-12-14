@@ -311,7 +311,7 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on d2 failed 1/2 square move.";
 
     // --- SCENARIO 2: white PAWN - NORMAL 1-SQUARE MOVE ---
@@ -321,7 +321,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     attack_map[NotationInterface::idx_from_string("d4")] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on d3 failed 1 square move.";
 
     // --- SCENARIO 2: white PAWN - NORMAL 1-SQUARE BLOCKED ---
@@ -332,7 +332,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     attack_map[NotationInterface::idx_from_string("d4")] = 1;
 
     expected = 0;
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on d3 failed to be blocked.";
 
     // --- SCENARIO 3: white PAWN - CAPTURES (Normal) ---
@@ -347,7 +347,7 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on e4 failed capture and blocking."
                                 << BitBoard::bb_str(expected) << " " << BitBoard::bb_str(actual);
 
@@ -364,7 +364,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     attack_map[NotationInterface::idx_from_string("f6")] = 1;  // En passant move
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<false>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on e5 failed En Passant move to f6."
                                 << BitBoard::bb_str(actual);
 
@@ -378,7 +378,7 @@ TEST(BitBoardTest, test_pawn_moves) {
 
     // No expected moves, as a3 is blocked by friendly piece.
     expected = 0;
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on a2 failed when blocked by friendly on a3.";
 
     // Pawn on a2. Blocked on a3 by enemy.
@@ -387,7 +387,7 @@ TEST(BitBoardTest, test_pawn_moves) {
 
     // No expected moves, as a3 is blocked by enemy piece.
     expected = 0;
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on a2 failed when blocked by enemy on a3.";
 
     // --- SCENARIO 6: white PAWN - NO WRAPAROUND (A and H files) ---
@@ -401,7 +401,7 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on a3 failed A-file edge case/wraparound.";
 
     // Pawn on h3. Enemy on g4. No wrap to a4.
@@ -414,7 +414,7 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, white);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "White pawn on h3 failed H-file edge case/wraparound.";
 
     // =================================================================
@@ -433,7 +433,7 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    actual = pawn_moves<false>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "Black pawn on d7 failed 1/2 square move."
                                 << BitBoard::bb_str(actual);
 
@@ -451,7 +451,7 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    actual = pawn_moves<false>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "Black pawn on e4 failed mixed captures.";
 
     // --- SCENARIO 8: black PAWN - CAPTUREST ---
@@ -468,7 +468,7 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    actual = pawn_moves<false>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "Black pawn on e4 failed mixed captures.";
     // --- SCENARIO 9: black PAWN - NO WRAPAROUND (H file) ---
     // Pawn on h6. Enemy on g5. No wrap to a5.
@@ -481,6 +481,6 @@ TEST(BitBoardTest, test_pawn_moves) {
         attack_map[NotationInterface::idx_from_string(sq)] = 1;
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves(pawn, friendly, enemy, ep, black);
+    actual = pawn_moves<false>(pawn, friendly, enemy, ep);
     ASSERT_EQ(actual, expected) << "Black pawn on h6 failed H-file edge case/wraparound.";
 }

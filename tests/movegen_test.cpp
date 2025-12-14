@@ -197,7 +197,7 @@ TEST(bbgentest, white_pawns) {
     uint64_t w_pawn_bb = BitBoard::one_high(idx_from_string("a2"));
     uint64_t expected =
         BitBoard::one_high(idx_from_string("a3")) | BitBoard::one_high(idx_from_string("a4"));
-    uint64_t actual = movegen::pawn_moves(w_pawn_bb, w_pawn_bb, 0, 0, white);
+    uint64_t actual = movegen::pawn_moves<true>(w_pawn_bb, w_pawn_bb, 0, 0);
 
     ASSERT_EQ(expected, actual) << BitBoard::to_string_bb(actual) << " "
                                 << BitBoard::to_string_bb(expected) << "\n";
@@ -207,7 +207,7 @@ TEST(bbgentest, black_pawns) {
     uint64_t expected =
         BitBoard::one_high(idx_from_string("a6")) | BitBoard::one_high(idx_from_string("a5"));
 
-    uint64_t actual = movegen::pawn_moves(b_pawn_bb, b_pawn_bb, 0, 0, black);
+    uint64_t actual = movegen::pawn_moves<false>(b_pawn_bb, b_pawn_bb, 0, 0);
     ASSERT_EQ(expected, actual) << BitBoard::to_string_bb(actual) << " "
                                 << BitBoard::to_string_bb(expected) << "\n";
 }

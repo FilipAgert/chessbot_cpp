@@ -601,7 +601,7 @@ uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb) {
 }
 template <bool is_white>
 uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                    const uint64_t ep_bb, const uint8_t pawn_color) {
+                    const uint64_t ep_bb) {
     return pawn_forward_moves<is_white>(pawn_bb, friendly_bb | enemy_bb) |
            pawn_attack_moves<is_white>(pawn_bb, enemy_bb, ep_bb);
 }

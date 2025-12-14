@@ -17,7 +17,7 @@ TEST(BoardTest, Initialization) {
 TEST(BoardTest, AddPiece) {
     Board b = Board();
     Piece p = Piece(white | rook);
-    b.add_piece(8, p);
+    b.add_piece<true, rook>(8);
     ASSERT_EQ(b.get_piece_at(8), p);
     uint64_t bb = BitBoard::one_high(8);
     BB actual = b.get_piece_bb<rook, true>();
@@ -28,9 +28,10 @@ TEST(BoardTest, MovePiece) {
     Board b = Board();
     Piece p1 = Piece(white | rook);
     Piece p2 = Piece(black | knight);
-    b.add_piece(8, p1);
-    b.add_piece(16, p2);
-    b.move_piece(8, 16);
+    b.add_piece<true, rook>(8);
+    b.add_piece<false, knight>(16);
+    b.remove_piece<false, knight>(16);
+    b.move_piece<true, rook>(8, 16);
     ASSERT_EQ(b.get_piece_at(16), p1);
     ASSERT_EQ(b.get_piece_at(8).get_type(), none);
 }
@@ -76,8 +77,8 @@ TEST(BoardTest, bb_validation) {
 TEST(BoardTest, RemovePiece) {
     Board b = Board();
     Piece p = Piece(white | rook);
-    b.add_piece(8, p);
-    b.remove_piece(8);
+    b.add_piece<true, rook>(8);
+    b.remove_piece<true, rook>(8);
     ASSERT_EQ(b.get_piece_at(8).get_type(), none);
     uint64_t bb = 0;
     BB actual = b.get_piece_bb<rook, true>();
@@ -85,7 +86,7 @@ TEST(BoardTest, RemovePiece) {
     actual = b.get_piece_bb<rook, false>();
     ASSERT_EQ(actual, bb);
 
-    b.remove_piece(9);
+    b.remove_piece<true, rook>(9);
     ASSERT_EQ(b.get_piece_at(9), Piece());
 }
 
@@ -208,7 +209,7 @@ TEST(BoardTest, idx_from_string) {
 TEST(BoardTest, is_square_empty) {
     Board b = Board();
     Piece p = Piece(white | rook);
-    b.add_piece(8, p);
+    b.add_piece<true, rook>(8);
     ASSERT_FALSE(b.is_square_empty(8));
     ASSERT_TRUE(b.is_square_empty(9));
 }
@@ -217,8 +218,8 @@ TEST(BoardTest, get_square_color) {
     Board b = Board();
     Piece p1 = Piece(white | rook);
     Piece p2 = Piece(black | knight);
-    b.add_piece(8, p1);
-    b.add_piece(16, p2);
+    b.add_piece<true, rook>(8);
+    b.add_piece<false, knight>(16);
     ASSERT_EQ(b.get_square_color(8), white);
     ASSERT_EQ(b.get_square_color(16), black);
 }
@@ -226,7 +227,7 @@ TEST(BoardTest, get_square_color) {
 TEST(BoardTest, clear_board) {
     Board b = Board();
     Piece p = Piece(white | rook);
-    b.add_piece(8, p);
+    b.add_piece<true, rook>(8);
     b.clear_board();
     ASSERT_EQ(b.get_piece_at(8).get_type(), none);
 }

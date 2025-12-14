@@ -909,8 +909,7 @@ struct Board {
         constexpr uint8_t color = is_white ? pieces::white : pieces::black;
         BB to_squares;
         if constexpr (ptype == pieces::pawn) {
-            to_squares =
-                movegen::pawn_moves<is_white>(piece_bb, friendly_bb, enemy_bb, ep_bb, color);
+            to_squares = movegen::pawn_moves<is_white>(piece_bb, friendly_bb, enemy_bb, ep_bb);
         } else if constexpr (ptype == pieces::bishop) {
             to_squares = movegen::bishop_moves_sq(sq, friendly_bb, enemy_bb);
         } else if constexpr (ptype == pieces::knight) {

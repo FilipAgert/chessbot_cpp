@@ -64,10 +64,10 @@ TEST(TransTest, moveOrderTest) {
     Move bestmove = Move("a2a4");
     std::array<Move, max_legal_moves> moves;
     size_t nummoves = state.get_moves<normal_search, true>(moves);
-    MoveOrder::apply_move_sort(moves, nummoves, bestmove, state);
+    MoveOrder::apply_move_sort<true>(moves, nummoves, bestmove, state);
     ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
     bestmove = Move("b2b4");
-    MoveOrder::apply_move_sort(moves, nummoves, bestmove, state);
+    MoveOrder::apply_move_sort<true>(moves, nummoves, bestmove, state);
     ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
     for (int i = nummoves; i < max_legal_moves; i++) {
         ASSERT_EQ(moves[i].source, err_val8);
@@ -97,9 +97,12 @@ TEST(ZobroistTest, TranspositionIdentity) {
         Move{62, 45}   // 3... Nf6
     };
 
-    for (auto &move : moves_A) {
-        board_A.do_move(move);
-    }
+    board_A.do_move<false>(moves_A[0]);  // 1. e4
+    board_A.do_move<true>(moves_A[1]);   // 1... e5
+    board_A.do_move<false>(moves_A[2]);  // 2. Nf3
+    board_A.do_move<true>(moves_A[3]);   // 2... Nc6
+    board_A.do_move<false>(moves_A[4]);  // 3. Nc3
+    board_A.do_move<true>(moves_A[5]);   // 3... Nf6
 
     uint64_t hash_A = ZobroistHasher::get().hash_board(board_A);
 
@@ -116,10 +119,13 @@ TEST(ZobroistTest, TranspositionIdentity) {
         Move{57, 42}   // 3... Nc6
     };
 
-    for (auto &move : moves_B) {
-        board_B.do_move(move);
-    }
-
+    // Apply moves_B with alternating template parameter: false, true, false, true, false, true
+    board_B.do_move<false>(moves_B[0]);  // 1. e4
+    board_B.do_move<true>(moves_B[1]);   // 1... e5
+    board_B.do_move<false>(moves_B[2]);  // 2. Nc3
+    board_B.do_move<true>(moves_B[3]);   // 2... Nf6
+    board_B.do_move<false>(moves_B[4]);  // 3. Nf3
+    board_B.do_move<true>(moves_B[5]);   // 3... Nc6
     uint64_t hash_B = ZobroistHasher::get().hash_board(board_B);
 
     // --- ASSERTION ---
@@ -140,10 +146,21 @@ TEST(ZobristTest, TranspositionIdentity) {
     // 1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6
     std::vector<std::string> moves_A = {"e2e4", "e7e5", "g1f3", "b8c6", "b1c3", "g8f6"};
     Move m;
-    for (const auto &uci : moves_A) {
-        m = Move(uci);
-        board_A.do_move(m);
-    }
+
+    // Apply moves_A with alternating template parameter: true, false, true, false, true, false
+    m = Move(moves_A[0]);
+    board_A.do_move<true>(m);  // 1. e4 (White)
+    m = Move(moves_A[1]);
+    board_A.do_move<false>(m);  // 1... e5 (Black)
+    m = Move(moves_A[2]);
+    board_A.do_move<true>(m);  // 2. Nf3 (White)
+    m = Move(moves_A[3]);
+    board_A.do_move<false>(m);  // 2... Nc6 (Black)
+    m = Move(moves_A[4]);
+    board_A.do_move<true>(m);  // 3. Nc3 (White)
+    m = Move(moves_A[5]);
+    board_A.do_move<false>(m);  // 3... Nf6 (Black)
+
     uint64_t hash_A = ZobroistHasher::get().hash_board(board_A);
 
     // --- SETUP: Swapped Move Order (B) ---
@@ -152,10 +169,21 @@ TEST(ZobristTest, TranspositionIdentity) {
 
     // 1. e4 e5 2. Nc3 Nf6 3. Nf3 Nc6
     std::vector<std::string> moves_B = {"e2e4", "e7e5", "b1c3", "g8f6", "g1f3", "b8c6"};
-    for (const auto &uci : moves_B) {
-        m = Move(uci);
-        board_B.do_move(m);
-    }
+
+    // Apply moves_B with alternating template parameter: true, false, true, false, true, false
+    m = Move(moves_B[0]);
+    board_B.do_move<true>(m);  // 1. e4 (White)
+    m = Move(moves_B[1]);
+    board_B.do_move<false>(m);  // 1... e5 (Black)
+    m = Move(moves_B[2]);
+    board_B.do_move<true>(m);  // 2. Nc3 (White)
+    m = Move(moves_B[3]);
+    board_B.do_move<false>(m);  // 2... Nf6 (Black)
+    m = Move(moves_B[4]);
+    board_B.do_move<true>(m);  // 3. Nf3 (White)
+    m = Move(moves_B[5]);
+    board_B.do_move<false>(m);  // 3... Nc6 (Black)
+
     uint64_t hash_B = ZobroistHasher::get().hash_board(board_B);
 
     // ASSERTION: The hashes MUST be the same
@@ -174,13 +202,13 @@ TEST(ZobristTest, MoveUndoIntegrity) {
 
     // Create and perform the move
     Move move_object = Move(move_uci_string);
-    board.do_move(move_object);
+    auto info = board.do_move<true>(move_object);
     uint64_t hash_B = ZobroistHasher::get().hash_board(board);
 
     ASSERT_NE(hash_A, hash_B) << "Hash did not change after move " << move_uci_string;
 
     // Undo the move
-    board.undo_move(move_object);
+    board.undo_move<true>(info, move_object);
     uint64_t hash_C = ZobroistHasher::get().hash_board(board);
 
     // ASSERTION 2: Hash must return to the original value
