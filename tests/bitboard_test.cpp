@@ -364,9 +364,10 @@ TEST(BitBoardTest, test_pawn_moves) {
     attack_map[NotationInterface::idx_from_string("f6")] = 1;  // En passant move
 
     expected = BitBoard::bb_from_array(attack_map);
-    actual = pawn_moves<false>(pawn, friendly, enemy, ep);
-    ASSERT_EQ(actual, expected) << "White pawn on e5 failed En Passant move to f6."
-                                << BitBoard::bb_str(actual);
+    actual = pawn_moves<true>(pawn, friendly, enemy, ep);
+    ASSERT_EQ(actual, expected) << "White pawn on e5 failed En Passant move to f6\n"
+                                << BitBoard::bb_str(actual) << "\n"
+                                << BitBoard::bb_str(expected);
 
     // --- SCENARIO 5: white PAWN - FORWARD BLOCKING (Friendly & Enemy) ---
     // Pawn on a2 (start rank). Blocked on a3 by friendly, a4 by enemy.
