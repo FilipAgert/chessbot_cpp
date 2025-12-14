@@ -90,8 +90,8 @@ class Game {
      *
      */
     Move get_bestmove() const;
-    void make_move(Move move);
-    void undo_move();
+    template <bool is_white> void make_move(Move move);
+    template <bool is_white> void undo_move();
     /**
      * @brief Prints board to console. Uppercase pieces are white, lowercase black.
      *
@@ -120,6 +120,7 @@ class Game {
 
  private:
     std::stack<Move> move_stack;
+    std::stack<restore_move_info> restore_info_stack;
     /**
      * @brief Clear stack and pushes current board state onto it.
      *

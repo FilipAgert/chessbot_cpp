@@ -140,11 +140,11 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         // cutoff, we save plenty of time.
         if (entry.is_valid_move()) {  // need ot check if its a valid move or not, since it might be
                                       // e.g. no moves available on this state.
-            make_move(entry.bestmove);
+            make_move<is_white>(entry.bestmove);
             int extension = calculate_extension<!is_white>(entry.bestmove, num_extensions);
             int eval = -alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha,
                                                      num_extensions + extension);
-            undo_move();
+            undo_move<is_white>();
             if (time_manager->get_should_stop()) {
                 return 0;  // should not store into transposition table here since the search was
                            // cancelled.
@@ -184,12 +184,12 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
     // Normal move generation.
     //
     for (int i = movelb; i < num_moves; i++) {
-        this->make_move(moves[i]);
+        make_move<is_white>(moves[i]);
         int extension = calculate_extension<!is_white>(moves[i], num_extensions);
 
         int eval = -alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha,
                                                  num_extensions + extension);
-        this->undo_move();
+        undo_move<is_white>();
         if (time_manager->get_should_stop()) {
             if (is_root) {
                 if (atleast_one_move_searched) {
@@ -242,9 +242,9 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     MoveOrder::apply_move_sort<is_white>(moves, num_moves, board);
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
-        this->make_move(moves[i]);
+        make_move<is_white>(moves[i]);
         eval = -quiesence<!is_white>(ply + 1, -beta, -alpha);
-        this->undo_move();
+        undo_move<is_white>();
         if (eval >= beta)
             return beta;
         alpha = std::max(eval, alpha);
@@ -276,16 +276,19 @@ Move Game::get_bestmove() const { return bestmove; }
 
 std::string Game::get_fen() const { return board.fen_from_state(); }
 
-void Game::make_move(Move move) {
-    board.do_move(move);
+template <bool is_white> void Game::make_move(Move move) {
+    restore_move_info info = board.do_move<is_white>(move);
     move_stack.push(move);
+    restore_info_stack.push(info);
     uint64_t state_hash = ZobroistHasher::get().hash_board(board);
     state_stack.push(state_hash);
 }
 
-void Game::undo_move() {
+template <bool is_white> void Game::undo_move() {
     Move move = move_stack.top();
+    restore_move_info info = restore_info_stack.top();
     move_stack.pop();
-    board.undo_move(move);
+    restore_info_stack.pop();
+    board.undo_move<is_white>(info, move);
     state_stack.pop();
 }
