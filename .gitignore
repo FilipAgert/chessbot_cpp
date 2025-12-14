@@ -1,6 +1,7 @@
 fastchess.sh
 engine-interface.txt
 __pycache__
+callgrind*
 #fastchess folder
 fastchess/
 opening_books/
