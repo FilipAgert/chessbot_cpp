@@ -87,19 +87,20 @@ struct Board {
         }
     }
 
-    template <bool is_white, Piece_t type> void remove_piece(const uint8_t square) {
+    template <bool is_white, Piece_t type>
+    inline constexpr void remove_piece(const uint8_t square) {
         bb_remove<is_white, type>(square);
         game_board[square] = none_piece;
         num_pieces--;
     }
     template <bool is_white, Piece_t type>
-    void move_piece(const uint8_t source, const uint8_t target) {
+    inline constexpr void move_piece(const uint8_t source, const uint8_t target) {
         bb_move<is_white, type>(source, target);
         game_board[target] = game_board[source];
         game_board[source] = none_piece;
     }
 
-    template <bool is_white, Piece_t type> void add_piece(const uint8_t square) {
+    template <bool is_white, Piece_t type> constexpr void add_piece(const uint8_t square) {
         uint8_t color = is_white ? pieces::white : pieces::black;
         game_board[square] = Piece(color | type);
         bb_add<is_white, type>(square);
@@ -155,7 +156,7 @@ struct Board {
 
         return do_move<white_to_move>(move);
     }
-    template <bool white_to_move> restore_move_info do_move(Move &move) {
+    template <bool white_to_move> restore_move_info constexpr inline do_move(Move &move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         Piece_t captured = get_piece_at(move.target).get_type();
@@ -236,7 +237,7 @@ struct Board {
      * @return [TODO:description]
      */
     template <bool white_to_move, Piece_t moved, Flag_t flag>
-    restore_move_info do_move(Move &move, Piece_t captured) {
+    restore_move_info constexpr inline do_move(Move &move, Piece_t captured) {
         switch (captured) {
         case pieces::none:
             return do_move<white_to_move, moved, flag, pieces::none>(move);
@@ -264,7 +265,8 @@ struct Board {
      * @tparam white_to_move true if white MOVED. will remove black castle flags
      * @param[in] target target square
      */
-    template <bool white_to_move> void remove_castle_flag_if_capture_rook(uint8_t target) {
+    template <bool white_to_move>
+    constexpr inline void remove_castle_flag_if_capture_rook(uint8_t target) {
         if constexpr (white_to_move) {
             if (target ==
                 get_castle_from_sq<false, pieces::rook, moveflag::MOVEFLAG_long_castling>()) {
@@ -295,7 +297,7 @@ struct Board {
      * @return [TODO:description]
      */
     template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured>
-    restore_move_info do_move(Move &move) {
+    restore_move_info constexpr inline do_move(Move &move) {
         if constexpr (captured == pieces::none && moved != pieces::pawn)
             ply_moves += 1;
         else
@@ -406,7 +408,7 @@ struct Board {
     }
 
     template <bool white_to_move, Piece_t moved, Flag_t flag>
-    constexpr uint8_t get_castle_from_sq() const {
+    constexpr inline uint8_t get_castle_from_sq() const {
         if constexpr (white_to_move) {
             if constexpr (moved == pieces::king) {
                 return 4;
@@ -427,7 +429,8 @@ struct Board {
             }
         }
     }
-    template <bool white_to_move, Piece_t moved, Flag_t flag> constexpr uint8_t get_castle_to_sq() {
+    template <bool white_to_move, Piece_t moved, Flag_t flag>
+    constexpr inline uint8_t get_castle_to_sq() {
         if constexpr (white_to_move) {
             if constexpr (moved == pieces::king) {
                 if constexpr (flag == moveflag::MOVEFLAG_long_castling) {
@@ -457,7 +460,8 @@ struct Board {
         }
     }
 
-    template <bool white_moved> void undo_move(restore_move_info info, const Move move) {
+    template <bool white_moved>
+    inline constexpr void undo_move(restore_move_info info, const Move move) {
         ply_moves = info.ply_moves;
         castleinfo = info.castleinfo;
         if (info.ep_square != 0) {
@@ -585,7 +589,7 @@ struct Board {
      * @param[in] turn_color Color of the king to be check if in check
      * @return True if checked, false if not in check
      */
-    template <bool is_white> bool king_checked() const {
+    template <bool is_white> constexpr inline bool king_checked() const {
         BB king_bb = get_piece_bb<pieces::king, is_white>();
         uint8_t kingsq = BitBoard::lsb(king_bb);
         BB occ = occupancy();
@@ -754,7 +758,7 @@ struct Board {
      * @param[in] color Color of player you want to get atk bitboard for
      * @return [ALl squares under attack by given player.]
      */
-    template <bool for_white> uint64_t get_atk_bb() const {
+    template <bool for_white> constexpr inline uint64_t get_atk_bb() const {
         BB friendly_pieces = occupancy<for_white>();
         BB enemy_pieces = occupancy<!for_white>();
         BB occ = friendly_pieces | enemy_pieces;
@@ -780,7 +784,7 @@ struct Board {
      * @tparam is_white get white or black piece
      * @return Bitboard of piece
      */
-    template <Piece_t pval, bool is_white> BB get_piece_bb() const {
+    template <Piece_t pval, bool is_white> constexpr inline BB get_piece_bb() const {
         constexpr uint8_t type = pval & pieces::piece_mask;
         if constexpr (is_white) {
             if constexpr (type == pieces::pawn)
@@ -815,7 +819,7 @@ struct Board {
      * @tparam pval [Value of piece]
      * @return Bitboard of piece
      */
-    template <Piece_t pval> BB get_piece_bb(uint8_t col) const {
+    template <Piece_t pval> constexpr inline BB get_piece_bb(uint8_t col) const {
         if (col == pieces::white)
             return get_piece_bb<pval, true>();
         else
@@ -828,12 +832,12 @@ struct Board {
      * @tparam is_white flag if white or not
      * @return Number of pieces
      */
-    template <Piece_t piece, bool is_white> uint8_t get_piece_cnt() const {
+    template <Piece_t piece, bool is_white> constexpr inline uint8_t get_piece_cnt() const {
         return BitBoard::bitcount(get_piece_bb<piece, is_white>());
     }
 
-    BB occupancy() const { return occupancy<true>() | occupancy<false>(); }
-    template <bool is_white> BB occupancy() const {
+    constexpr inline BB occupancy() const { return occupancy<true>() | occupancy<false>(); }
+    template <bool is_white> constexpr inline BB occupancy() const {
         if constexpr (is_white)
             return white_pieces;
         else
@@ -1012,7 +1016,8 @@ struct Board {
      * @param[in] from index of from square
      * @param[in] to index of to square
      */
-    template <bool is_white, Piece_t piece> void bb_move(const uint8_t from, const uint8_t to) {
+    template <bool is_white, Piece_t piece>
+    constexpr inline void bb_move(const uint8_t from, const uint8_t to) {
         bb_remove<is_white, piece>(from);
         bb_add<is_white, piece>(to);
     }
@@ -1023,7 +1028,7 @@ struct Board {
      * @param[in] sq index of square to remove piece from
      * @param[in] piece to add
      */
-    template <bool is_white, Piece_t piece> void bb_remove(const uint8_t sq) {
+    template <bool is_white, Piece_t piece> constexpr inline void bb_remove(const uint8_t sq) {
         BB bb = BitBoard::one_high(sq);
         if constexpr (is_white) {
             white_pieces &= ~bb;
@@ -1062,7 +1067,7 @@ struct Board {
      * @param[in] from index of from square
      * @param[in] piece to add
      */
-    template <bool is_white, Piece_t piece> void bb_add(const uint8_t sq) {
+    template <bool is_white, Piece_t piece> constexpr inline void bb_add(const uint8_t sq) {
         BB bb = BitBoard::one_high(sq);
         if constexpr (is_white) {
             white_pieces |= bb;
@@ -1104,7 +1109,7 @@ struct Board {
      * @param[in] move move to restore
      */
     template <bool white_moved, Piece_t piece, Flag_t flag, Piece_t captured>
-    void undo_move(const Move move) {
+    constexpr void undo_move(const Move move) {
         if constexpr (flag == moveflag::MOVEFLAG_silent) {
             // Just captures and normal moves.
             move_piece<white_moved, piece>(move.target, move.source);
@@ -1158,7 +1163,7 @@ struct Board {
         assert(get_piece_at(move.source).get_type() != pieces::none);
     }
     template <bool white_moved, Piece_t piece, Flag_t flag>
-    void undo_move(const Move move, Piece_t captured) {
+    constexpr void undo_move(const Move move, Piece_t captured) {
         switch (captured) {
         case pieces::none:
             undo_move<white_moved, piece, flag, pieces::none>(move);
