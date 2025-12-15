@@ -234,7 +234,7 @@ static constexpr std::array<std::array<BB, 64>, 64> rect_lookup = [] {
             if (i == j)
                 continue;
 
-            int dir = j > i ? dirs::E : dirs::W;
+            int dir = c > colinit ? dirs::E : dirs::W;
             BB mask = ray(startsq, dir, to);
             arr[i][j] = mask & ~startsq;
         }
@@ -266,7 +266,7 @@ static constexpr std::array<std::array<BB, 64>, 64> rect_lookup = [] {
             int c_start = (rowinit + colinit < 7) ? colinit + rowinit : 7;
             int r_start = (rowinit + colinit < 7) ? 0 : rowinit + colinit - 7;
 
-            for (int r = r_start, c = c_start; r < 8 && c < 8; r++, c--) {
+            for (int r = r_start, c = c_start; r < 8 && c >= 0; r++, c--) {
                 int j = NotationInterface::idx(r, c);
 
                 if (i == j)
