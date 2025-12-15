@@ -153,48 +153,47 @@ struct Board {
     template <bool white_to_move> restore_move_info constexpr inline do_move(Move &move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
-        Piece_t captured = get_piece_at(move.target).get_type();
         switch (moved) {
         case pieces::pawn:
             switch (move.flag) {
             case moveflag::MOVEFLAG_silent:
-                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_silent>(move, captured);
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_silent>(move);
             case moveflag::MOVEFLAG_pawn_double_push:
                 return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_pawn_double_push, pieces::none>(move);
             case moveflag::MOVEFLAG_pawn_ep_capture:
                 return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_pawn_ep_capture, pieces::none>(move);
             case moveflag::MOVEFLAG_promote_queen:
-                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_queen>(move, captured);
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_queen>(move);
             case moveflag::MOVEFLAG_promote_bishop:
-                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_bishop>(move, captured);
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_bishop>(move);
             case moveflag::MOVEFLAG_promote_rook:
-                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_rook>(move, captured);
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_rook>(move);
             case moveflag::MOVEFLAG_promote_knight:
-                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_knight>(move, captured);
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_knight>(move);
             }
             break;
         case pieces::bishop:
-            return do_move<white_to_move, pieces::bishop, moveflag::MOVEFLAG_silent>(move, captured);
+            return do_move<white_to_move, pieces::bishop, moveflag::MOVEFLAG_silent>(move);
         case pieces::knight:
-            return do_move<white_to_move, pieces::knight, moveflag::MOVEFLAG_silent>(move, captured);
+            return do_move<white_to_move, pieces::knight, moveflag::MOVEFLAG_silent>(move);
         case pieces::rook:
             switch (move.flag) {
             case moveflag::MOVEFLAG_silent:
-                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_silent>(move, captured);
+                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_silent>(move);
             case moveflag::MOVEFLAG_remove_long_castle:
-                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_long_castle>(move, captured);
+                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_long_castle>(move);
             case moveflag::MOVEFLAG_remove_short_castle:
-                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_short_castle>(move, captured);
+                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_short_castle>(move);
             }
             break;
         case pieces::queen:
-            return do_move<white_to_move, pieces::queen, moveflag::MOVEFLAG_silent>(move, captured);
+            return do_move<white_to_move, pieces::queen, moveflag::MOVEFLAG_silent>(move);
         case pieces::king:
             switch (move.flag) {
             case moveflag::MOVEFLAG_silent:
-                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_silent>(move, captured);
+                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_silent>(move);
             case moveflag::MOVEFLAG_remove_all_castle:
-                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_remove_all_castle>(move, captured);
+                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_remove_all_castle>(move);
             case moveflag::MOVEFLAG_long_castling:
                 return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_long_castling, pieces::none>(move);
             case moveflag::MOVEFLAG_short_castling:
@@ -219,7 +218,8 @@ struct Board {
      * @param[[TODO:direction]] captured [TODO:description]
      * @return [TODO:description]
      */
-    template <bool white_to_move, Piece_t moved, Flag_t flag> restore_move_info constexpr inline do_move(Move &move, Piece_t captured) {
+    template <bool white_to_move, Piece_t moved, Flag_t flag> restore_move_info constexpr inline do_move(Move &move) {
+        Piece_t captured = get_piece_at(move.target).get_type();
         switch (captured) {
         case pieces::none:
             return do_move<white_to_move, moved, flag, pieces::none>(move);
