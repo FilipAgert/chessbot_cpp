@@ -397,14 +397,7 @@ struct Board {
             }
         }
     }
-
-    inline constexpr void undo_move(restore_move_info info, const Move move) {
-        if (turn_color == pieces::white)
-            undo_move<false>(info, move);
-        else
-            undo_move<true>(info, move);
-    }
-    template <bool white_moved> inline constexpr void undo_move(restore_move_info info, const Move move) {
+    template <bool white_moved> void undo_move(const restore_move_info info, const Move move) {
         ply_moves = info.ply_moves;
         castleinfo = info.castleinfo;
         if (info.ep_square != 0) {
@@ -416,103 +409,45 @@ struct Board {
         }
         if constexpr (!white_moved)
             full_moves -= 1;
-        assert(get_piece_at(move.target).get_color() == white_moved ? pieces::white : pieces::black);
-
-        assert(turn_color == white_moved ? pieces::black : pieces::white);
         change_turn();
-        if (move.flag == moveflag::MOVEFLAG_silent) {
-            // Quiet moves. These are just captures or moves with no special effects.
-            Piece_t captured = info.captured;
-            assert(captured != 0b111);
-            switch (get_piece_at(move.target).get_type()) {
-            case (pieces::pawn):
-                undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_silent>(move, captured);
-                break;
-            case (pieces::bishop):
-                undo_move<white_moved, pieces::bishop, moveflag::MOVEFLAG_silent>(move, captured);
-                break;
-            case (pieces::knight):
-                undo_move<white_moved, pieces::knight, moveflag::MOVEFLAG_silent>(move, captured);
-                break;
-            case (pieces::queen):
-                undo_move<white_moved, pieces::queen, moveflag::MOVEFLAG_silent>(move, captured);
-                break;
-            case (pieces::rook):
-                undo_move<white_moved, pieces::rook, moveflag::MOVEFLAG_silent>(move, captured);
-                break;
-            case (pieces::king):
-                undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_silent>(move, captured);
-                break;
-            default:
-                Display_board();
-                std::cerr << "Move to unmake crashed: " << move.toString() << std::endl;
-                throw std::runtime_error("Undefined piece");
-                break;
-            }
-        } else {
-            // Can be rook, king or pawn.
-            Piece_t dest = get_piece_at(move.target).get_type();
-#ifndef NDEBUG
-            if (dest == pieces::none) {
-                Display_board();
-                std::cout << move.toString() << std::endl;
-            }
+        Piece_t captured = info.captured;
 
-#endif
-            assert(dest != pieces::none);
-            if (dest == pieces::pawn) {
-                // EP capture, double pawn push.
-                if (move.flag == moveflag::MOVEFLAG_pawn_ep_capture) {
-                    undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_pawn_ep_capture, pieces::pawn>(move);
-                } else if (move.flag == moveflag::MOVEFLAG_pawn_double_push) {
-                    undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_silent, pieces::none>(move);
-                } else {
-                    throw std::runtime_error("Moveflag did not have one of the accepted values");
-                }
-            } else if (dest == pieces::king) {
-                if (move.flag == moveflag::MOVEFLAG_short_castling) {
-                    undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling, pieces::none>(move);
-                } else if (move.flag == moveflag::MOVEFLAG_long_castling) {
-                    undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_long_castling, pieces::none>(move);
-                } else if (move.flag == moveflag::MOVEFLAG_remove_all_castle) {
-                    Piece_t captured = info.captured;
-                    assert(captured != 0b111);
-                    undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_silent>(move,
-                                                                                    captured);  // INFO:This is fine since the restoring castle is restored
-                                                                                                // by restoreinfo. flag does not need to be set to special.
-                } else {
-                    throw std::runtime_error("Moveflag did not have one of the accepted values");
-                }
-
-                // castling / just move and set kingsq low.
-            } else {  // here we can have rook and promotion of pawn.
-                // Would like to avoid as many if statements as possible.
-                // Either: Check for if rook AND not promotion rook flag: do rook moves. Then we
-                // know its a pawn promotion.
-
-                Piece_t captured = info.captured;
-                assert(captured != 0b111);
-                if (dest == pieces::rook && (move.flag != moveflag::MOVEFLAG_promote_rook)) {
-                    undo_move<white_moved, pieces::rook, moveflag::MOVEFLAG_silent>(move, captured);  // INFO: This is fine. The rook moved from its castle
-                                                                                                      // square but castleinfo already restored.
-                } else {                                                                              // promotion.
-                    if (move.flag == moveflag::MOVEFLAG_promote_queen) {
-                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_queen>(move, captured);
-                    } else if (move.flag == moveflag::MOVEFLAG_promote_knight) {
-                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_knight>(move, captured);
-                    } else if (move.flag == moveflag::MOVEFLAG_promote_bishop) {
-                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_bishop>(move, captured);
-                    } else if (move.flag == moveflag::MOVEFLAG_promote_rook) {
-                        undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_rook>(move, captured);
-                    } else {
-                        std::cout << "Moveflag: " << (int)move.flag << std::endl;
-                        std::cout << "Piece: " << (int)dest << std::endl;
-                        throw std::runtime_error("In undo_move first: Moveflag entered promoton "
-                                                 "branch but no promotion was set.");
-                    }
-                }
-            }
+        switch (move.flag) {
+        case moveflag::MOVEFLAG_silent:
+            undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
+            break;
+        case moveflag::MOVEFLAG_pawn_ep_capture:
+            undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_pawn_ep_capture, pieces::none>(move);
+            break;
+        case moveflag::MOVEFLAG_long_castling:
+            undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_long_castling, pieces::none>(move);
+            break;
+        case moveflag::MOVEFLAG_short_castling:
+            undo_move<white_moved, pieces::king, moveflag::MOVEFLAG_short_castling, pieces::none>(move);
+            break;
+        case moveflag::MOVEFLAG_promote_queen:
+            undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_queen>(move, captured);
+            break;
+        case moveflag::MOVEFLAG_promote_knight:
+            undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_knight>(move, captured);
+            break;
+        case moveflag::MOVEFLAG_promote_bishop:
+            undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_bishop>(move, captured);
+            break;
+        case moveflag::MOVEFLAG_promote_rook:
+            undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_rook>(move, captured);
+            break;
+        default:
+            undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
+            break;
         }
+    }
+
+    inline constexpr void undo_move(restore_move_info info, const Move move) {
+        if (turn_color == pieces::white)
+            undo_move<false>(info, move);
+        else
+            undo_move<true>(info, move);
     }
 
     /**
@@ -1050,7 +985,35 @@ struct Board {
                                                   get_castle_from_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_short_castling>());
         }
     }
-    template <bool white_moved, Piece_t piece, Flag_t flag> constexpr void undo_move(const Move move, Piece_t captured) {
+
+    template <bool white_moved, Flag_t flag> constexpr void undo_move(const Move move, const Piece_t captured) {
+        Piece_t moved = get_piece_at(move.target).get_type();
+        switch (moved) {
+        case pieces::pawn:
+            undo_move<white_moved, pieces::pawn, flag>(move, captured);
+            break;
+        case pieces::bishop:
+            undo_move<white_moved, pieces::bishop, flag>(move, captured);
+            break;
+        case pieces::knight:
+            undo_move<white_moved, pieces::knight, flag>(move, captured);
+            break;
+        case pieces::rook:
+            undo_move<white_moved, pieces::rook, flag>(move, captured);
+            break;
+        case pieces::queen:
+            undo_move<white_moved, pieces::queen, flag>(move, captured);
+            break;
+        case pieces::king:
+            undo_move<white_moved, pieces::king, flag>(move, captured);
+            break;
+        default:
+            std::cout << "pieceval: " << (int)moved << std::endl;
+            throw std::runtime_error("Piece moved must not be none");
+            break;
+        }
+    }
+    template <bool white_moved, Piece_t piece, Flag_t flag> constexpr void undo_move(const Move move, const Piece_t captured) {
         switch (captured) {
         case pieces::none:
             undo_move<white_moved, piece, flag, pieces::none>(move);
@@ -1069,9 +1032,6 @@ struct Board {
             break;
         case pieces::queen:
             undo_move<white_moved, piece, flag, pieces::queen>(move);
-            break;
-        case pieces::king:
-            undo_move<white_moved, piece, flag, pieces::king>(move);
             break;
         default:
             std::cout << "pieceval: " << (int)captured << std::endl;
