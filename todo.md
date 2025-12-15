@@ -9,37 +9,36 @@
     - Only king moves
 
 - Move ordering by simple heuristic. Eg. attacking piece.
-# Move representation
-Fit into 32 bit
-6: source
-6: target
-4: promotion
-4: captured
-4: castle
-Others?
 # Board representation
 dont put bitboards in array. put them raw. No need for bitboard for king either.
 
-To speedup move generation.
+To speedup move generation:
 1. Remove 8x8 board containing pieces
-2. Generate template functions for move generation, color of player moved and type of move.
-This will drastically speed up do and undo move.
 Likely also for the generating bitboards etc.
 
-One template for each piece moved & colored.
-So move function would be
-<white_moved, piece_type, move_flag> do_move(uint8_t from, uint8_t to)
-undo function could be
-<white_moved, piece_type, move_flag, captured_piece> undo_move(uint8_t from, uint8_t to)
+When doing a move, also add auto king check detection. This can be STORED in the board state. Why? To be accessed by e.g. eval.
+    This should detect: 1 check, 2 or more check.
 
-E.g. when doing a move we have one flag for:
-castle long / castle short
-promote queen
-promote knight
-promote bishop
-promote rook
-double pawn push
+Can be used in movegeneration.
+If 1 check:
+    Capture offending piece
+    Blocking ray
+    King move
+If 2 check:
+    King move.
 
+Check for pinned king.
+    Generate a function xray rook and xray bishop attacks which is just a magic bitboard but it ignores the first occupancy square.
+    We the AND this with the enemy slider:
+    If its grt 0:
+    There is a piece in between us and the slider -> get a precomputed mask which is all squares between the enemy piece (inclusive) and the king piece (exclusive).
+    AND this with the friendly pieces to obtain location of pinned piece.
+    This pinned piece is ONLY allowed to move along the precomputed mask.
+
+This will allow us to reduce the do/undo move in move generation to the following cases:
+    EP capture>
+    King moves.
+    King in check.
 
 
 ## Magic bitboards:
