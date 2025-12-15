@@ -137,15 +137,13 @@ bool Board::board_BB_match() {
     }
 
     // --- General Color Bitboard Checks ---
-    BB white_sum =
-        white_pawns | white_knights | white_bishops | white_rooks | white_queen | white_king;
+    BB white_sum = white_pawns | white_knights | white_bishops | white_rooks | white_queen | white_king;
     if (white_sum != white_pieces) {
         assert(false);
         return false;
     }
 
-    BB black_sum =
-        black_pawns | black_knights | black_bishops | black_rooks | black_queen | black_king;
+    BB black_sum = black_pawns | black_knights | black_bishops | black_rooks | black_queen | black_king;
     if (black_sum != black_pieces) {
         assert(false);
         return false;
@@ -153,13 +151,9 @@ bool Board::board_BB_match() {
 
     return true;
 }
-bool Board::is_square_empty(uint8_t square) const {
-    return this->get_piece_at(square) == none_piece;
-}
+bool Board::is_square_empty(uint8_t square) const { return this->get_piece_at(square) == none_piece; }
 
-uint8_t Board::get_square_color(uint8_t square) const {
-    return this->get_piece_at(square).get_color();
-}
+uint8_t Board::get_square_color(uint8_t square) const { return this->get_piece_at(square).get_color(); }
 
 void Board::clear_board() {
     for (size_t i = 0; i < 64; i++) {
@@ -179,7 +173,6 @@ void Board::clear_board() {
     black_knights = 0;
     black_rooks = 0;
     black_pawns = 0;
-    num_pieces = 0;
 }
 
 bool does_move_check(const Move candidate, const uint8_t king_color) {
@@ -192,8 +185,6 @@ bool Board::operator==(const Board &other) const {
     for (int i = 0; i < 64; i++)
         if (!(game_board[i] == other.game_board[i]))
             return false;
-    if (num_pieces != other.num_pieces)
-        return false;
     if (castleinfo != other.castleinfo)
         return false;
     if (turn_color != other.turn_color)

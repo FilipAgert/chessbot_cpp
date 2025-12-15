@@ -88,7 +88,6 @@ struct Board {
     template <bool is_white, Piece_t type> inline constexpr void remove_piece(const uint8_t square) {
         bb_remove<is_white, type>(square);
         game_board[square] = none_piece;
-        num_pieces--;
     }
     template <bool is_white, Piece_t type> inline constexpr void move_piece(const uint8_t source, const uint8_t target) {
         bb_move<is_white, type>(source, target);
@@ -97,10 +96,12 @@ struct Board {
     }
 
     template <bool is_white, Piece_t type> constexpr void add_piece(const uint8_t square) {
-        uint8_t color = is_white ? pieces::white : pieces::black;
-        game_board[square] = Piece(color | type);
+        if constexpr (is_white) {
+            game_board[square] = Piece(pieces::white | type);
+        } else {
+            game_board[square] = Piece(pieces::black | type);
+        }
         bb_add<is_white, type>(square);
-        num_pieces++;
     }
     /**
      * @brief Use this if moveflag not defined yet.
@@ -156,6 +157,8 @@ struct Board {
         switch (moved) {
         case pieces::pawn:
             switch (move.flag) {
+            case moveflag::MOVEFLAG_silent:
+                return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_silent>(move, captured);
             case moveflag::MOVEFLAG_pawn_double_push:
                 return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_pawn_double_push, pieces::none>(move);
             case moveflag::MOVEFLAG_pawn_ep_capture:
@@ -169,24 +172,27 @@ struct Board {
             case moveflag::MOVEFLAG_promote_knight:
                 return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_promote_knight>(move, captured);
             }
-            return do_move<white_to_move, pieces::pawn, moveflag::MOVEFLAG_silent>(move, captured);
-
+            break;
+        case pieces::bishop:
+            return do_move<white_to_move, pieces::bishop, moveflag::MOVEFLAG_silent>(move, captured);
+        case pieces::knight:
+            return do_move<white_to_move, pieces::knight, moveflag::MOVEFLAG_silent>(move, captured);
         case pieces::rook:
             switch (move.flag) {
+            case moveflag::MOVEFLAG_silent:
+                return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_silent>(move, captured);
             case moveflag::MOVEFLAG_remove_long_castle:
                 return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_long_castle>(move, captured);
             case moveflag::MOVEFLAG_remove_short_castle:
                 return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_remove_short_castle>(move, captured);
             }
-            return do_move<white_to_move, pieces::rook, moveflag::MOVEFLAG_silent>(move, captured);
-        case pieces::bishop:
-            return do_move<white_to_move, pieces::bishop, moveflag::MOVEFLAG_silent>(move, captured);
-        case pieces::knight:
-            return do_move<white_to_move, pieces::knight, moveflag::MOVEFLAG_silent>(move, captured);
+            break;
         case pieces::queen:
             return do_move<white_to_move, pieces::queen, moveflag::MOVEFLAG_silent>(move, captured);
         case pieces::king:
             switch (move.flag) {
+            case moveflag::MOVEFLAG_silent:
+                return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_silent>(move, captured);
             case moveflag::MOVEFLAG_remove_all_castle:
                 return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_remove_all_castle>(move, captured);
             case moveflag::MOVEFLAG_long_castling:
@@ -194,7 +200,7 @@ struct Board {
             case moveflag::MOVEFLAG_short_castling:
                 return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_short_castling, pieces::none>(move);
             }
-            return do_move<white_to_move, pieces::king, moveflag::MOVEFLAG_silent>(move, captured);
+            break;
         default:
             std::cerr << "Error: Piece moved must not be none: " << (int)moved << std::endl;
             std::cerr << "Move: " << move.toString() << std::endl;
@@ -593,7 +599,6 @@ struct Board {
      * @return boolean if king is in check or not
      */
     bool does_move_check(const Move candidate, const uint8_t king_color);
-    inline uint8_t get_num_pieces() { return num_pieces; }
     /**
      * @brief Gets number of pieces for a player
      *
@@ -601,6 +606,7 @@ struct Board {
      * @return number of pieces for selected player
      */
     template <bool is_white> inline constexpr uint8_t get_num_pieces() { return BitBoard::bitcount(occupancy<is_white>()); }
+    inline constexpr uint8_t get_num_pieces() { return get_num_pieces<true>() + get_num_pieces<false>(); }
     void print_piece_loc() const;
 
     /**
@@ -811,8 +817,6 @@ struct Board {
             add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
         }
     }
-
-    uint8_t num_pieces = 0;
 
     /**
      * @brief For a given piece type, generate all possible to squares.
