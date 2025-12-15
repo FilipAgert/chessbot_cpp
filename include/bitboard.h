@@ -7,11 +7,10 @@
 #include <bitset>
 #include <cstdint>
 #include <iostream>
+#include <notation_interface.h>
 #include <string>
 namespace BitBoard {
-#define BitLoop(X)                                                                                 \
-    for (; X;                                                                                      \
-         X = X & (X - 1))  // The bitloop iterates over a bitboard, repeatedly clearing the LSB.
+#define BitLoop(X) for (; X; X = X & (X - 1))  // The bitloop iterates over a bitboard, repeatedly clearing the LSB.
 #define BB uint64_t
 
 /** \
@@ -23,8 +22,7 @@ namespace BitBoard {
  * @return shifted bitboard \
  */
 [[nodiscard("The return value should be handled as a uint64_t.")]]
-static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir,
-                                          const uint8_t steps) {
+static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir, const uint8_t steps) {
     int left_shift = (dir > 0) * dir * steps;
     int right_shift = (dir < 0) * (-dir) * steps;
     uint64_t left_mask = -(dir > 0);
@@ -180,6 +178,51 @@ static constexpr uint64_t edge_mask(int dir) {
     }
     return outmask;
 }
+/*
+ * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.
+ *
+ * @param origin
+ * @param dir
+ * @return uint64_t
+ */
+constexpr uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb, const int steps) {
+    // How to ensure no wrap-around?
+    uint64_t hit = origin;
+    uint64_t mask = edge_mask(dir) | blocker_bb;  // The edge mask ensures we do not wrap-around.The blocker
+                                                  // mask ensures that we do not keep going through somebody.
+    hit |= BitBoard::shift_bb(~edge_mask(dir) & hit,
+                              dir);  // Take first step without the blocker bb, since the blocker bb includes self.
+    for (int i = 2; i <= steps; i++) {
+        hit |= BitBoard::shift_bb((~mask) & hit,
+                                  dir);  // Shift the mask in dir direction, but only on non-masked places.
+    }
+    return hit & ~origin;  // Exclude origin, since the piece does not attack itself.
+}
+constexpr uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb) { return ray(origin, dir, blocker_bb, 7); }
+constexpr uint64_t ray(const uint64_t origin, const int dir) { return ray(origin, dir, 0, 7); }
+/**
+ * @brief Mask of squares in between from (exclusive) to (inclusive). If rect_lookup[i][i] return 0.
+ *
+ * @param[in] from from square. not included in mask
+ * @param[in] to to square. included in mask.
+ */
+static constexpr std::array<std::array<BB, 64>, 64> rect_lookup = [] {
+    std::array<std::array<BB, 64>, 64> arr;
+    arr.fill({0ULL});
+    for (int i = 0; i < 64; i++) {
+        // Vertical:
+        int c = NotationInterface::col(i);
+        BB startsq = BitBoard::one_high(i);
+        for (int r = 0; r < 8; r++) {
+            int j = NotationInterface::idx(r, c);
+            BB mask = 0;
+            // Fill all between i and j.
+            int steps = (j - i);
+            // If positive, move up.
+            mask = ray(i, j, 1);
+        }
+    }
+    return arr;
+}();
 }  // namespace masks
-
 #endif

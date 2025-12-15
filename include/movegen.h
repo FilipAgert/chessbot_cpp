@@ -17,45 +17,16 @@ constexpr search_type king_double_checked = {0, 0, 0, 1};
 using namespace dirs;
 using namespace masks;
 namespace magic {
-/*
- * @brief Shoots ray from origin, up to edge of board and returns the corresponding bitboard.
- *
- * @param origin
- * @param dir
- * @return uint64_t
- */
-constexpr uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb,
-                       const int steps) {
-    // How to ensure no wrap-around?
-    uint64_t hit = origin;
-    uint64_t mask =
-        edge_mask(dir) | blocker_bb;  // The edge mask ensures we do not wrap-around.The blocker
-                                      // mask ensures that we do not keep going through somebody.
-    hit |= BitBoard::shift_bb(
-        ~edge_mask(dir) & hit,
-        dir);  // Take first step without the blocker bb, since the blocker bb includes self.
-    for (int i = 2; i <= steps; i++) {
-        hit |= BitBoard::shift_bb(
-            (~mask) & hit,
-            dir);  // Shift the mask in dir direction, but only on non-masked places.
-    }
-    return hit & ~origin;  // Exclude origin, since the piece does not attack itself.
-}
-constexpr uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb) {
-    return ray(origin, dir, blocker_bb, 7);
-}
-constexpr uint64_t ray(const uint64_t origin, const int dir) { return ray(origin, dir, 0, 7); }
 
 /**
  * @brief Number of bits in the rook occupancy mask
  *
  * @return Number of bits
  */
-constexpr int rook_num_occ_bits[64] = {
-    12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
-    10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
-    10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // Target
-                                                                                      // number of
+constexpr int rook_num_occ_bits[64] = {12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
+                                       10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
+                                       10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // Target
+                                                                                                                         // number of
 //                  55  56                                      // bits to generate
 
 /**
@@ -63,22 +34,18 @@ constexpr int rook_num_occ_bits[64] = {
  *
  * @return Bits
  */
-constexpr int bishop_num_occ_bits[64] = {
-    6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7,
-    5, 5, 5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7,
-    7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};  // target number of
+constexpr int bishop_num_occ_bits[64] = {6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5,
+                                         5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};  // target number of
 /**
  * @brief Number of bits used in the rook hash. (Some are denser than the rook_num_occ_bits)
  *
  */
-constexpr std::array<uint8_t, 64> rook_magic_sizes_bits = {
-    12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
-    10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
-    10, 10, 10, 11, 10, 9,  9,  9,  9,  9,  10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // in # bits
+constexpr std::array<uint8_t, 64> rook_magic_sizes_bits = {12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
+                                                           10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
+                                                           10, 10, 10, 11, 10, 9,  9,  9,  9,  9,  10, 11, 12, 11, 11, 11, 11, 11, 11, 12};  // in # bits
 //                   48 49                          56
-constexpr std::array<uint8_t, 64> bishop_magic_sizes_bits = {
-    6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5,
-    5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};
+constexpr std::array<uint8_t, 64> bishop_magic_sizes_bits = {6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5,
+                                                             5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};
 /**
  * @brief Max bits in any magic table for any square rook or bishop.
  *
@@ -121,14 +88,13 @@ constexpr std::array<uint8_t, 64> rook_magic_shifts = [] {  // the shift value. 
     }
     return rook_magic_shifts;
 }();
-constexpr std::array<uint8_t, 64> bishop_magic_shifts =
-    [] {  // the shift value. saves a subtraction.
-        std::array<uint8_t, 64> bishop_magic_shifts;
-        for (int i = 0; i < 64; i++) {
-            bishop_magic_shifts[i] = 64 - bishop_magic_sizes_bits[i];
-        }
-        return bishop_magic_shifts;
-    }();
+constexpr std::array<uint8_t, 64> bishop_magic_shifts = [] {  // the shift value. saves a subtraction.
+    std::array<uint8_t, 64> bishop_magic_shifts;
+    for (int i = 0; i < 64; i++) {
+        bishop_magic_shifts[i] = 64 - bishop_magic_sizes_bits[i];
+    }
+    return bishop_magic_shifts;
+}();
 /**
  * @brief Offset caused by flattening 2D array [64][nbits] into 1D. Each square has its own offset
  * to start its indexing from.
@@ -161,41 +127,34 @@ constexpr size_t bishop_magic_table_sz = bishop_magic_offsets[63] + bishop_magic
  * @brief All rook magic numbers.
  *
  */
-constexpr std::array<uint64_t, 64> rook_magics = {
-    36029072008052753,   2540030258560638976, 36037730559463424,   4935967732257525760,  // 4
-    36033195099553920,   72066398737662976,   144119758021722753,  972780268429517568,   // 8
-    4611826757832540298, 1730578526099210434, 36310409438826760,   2308235752674689408,  // 12
-    2306124505668388864, 288793403415594248,  441634255655690752,  140738721480960,      // 16
-    306247523444499840,  4503874511569104,    704237734760448,     216314070029176832,   // 20
-    2305984297598715904, 72198881349206529,   3179554531207876610, 2314861203595219973,  // 24
-    180144295406215168,  72234069953347848,   4692751087674853376, 1801527816175550472,  // 28
-    162701336927039744,  3387832828312948744, 144117404279083048,  144116571055358985,   // 32
-    144258399473762592,  18049618352803840,   4616331661221568512, 126383432790974506,   // 36
-    9151252466239488,    2305983763890315776, 2266128965435920,    577305728096666372,   // 40
-    36028934604734464,   22518135580016656,   40567585314504768,   589971585546354816,   // 44
-    290271136874624,     3941749252751496,    72357236743340040,   4645437843832836,     // 48
-    4035224604685392384, 5440347568166424064, 3728980139268581888, 351280590542771712,   // 52
-    7755197639194824192, 155374144193791488,  360429197304463488,  35463555711488,       // 56
-    10698321205149826,   81346406815903874,   4683770138187567365, 1153203598060947461,  // 60
-    9288683101620225,    5066601137704962,    11259592043071492,   694842971333599362};  // 64
-                                                                                         //
+constexpr std::array<uint64_t, 64> rook_magics = {36029072008052753,   2540030258560638976, 36037730559463424,   4935967732257525760,  // 4
+                                                  36033195099553920,   72066398737662976,   144119758021722753,  972780268429517568,   // 8
+                                                  4611826757832540298, 1730578526099210434, 36310409438826760,   2308235752674689408,  // 12
+                                                  2306124505668388864, 288793403415594248,  441634255655690752,  140738721480960,      // 16
+                                                  306247523444499840,  4503874511569104,    704237734760448,     216314070029176832,   // 20
+                                                  2305984297598715904, 72198881349206529,   3179554531207876610, 2314861203595219973,  // 24
+                                                  180144295406215168,  72234069953347848,   4692751087674853376, 1801527816175550472,  // 28
+                                                  162701336927039744,  3387832828312948744, 144117404279083048,  144116571055358985,   // 32
+                                                  144258399473762592,  18049618352803840,   4616331661221568512, 126383432790974506,   // 36
+                                                  9151252466239488,    2305983763890315776, 2266128965435920,    577305728096666372,   // 40
+                                                  36028934604734464,   22518135580016656,   40567585314504768,   589971585546354816,   // 44
+                                                  290271136874624,     3941749252751496,    72357236743340040,   4645437843832836,     // 48
+                                                  4035224604685392384, 5440347568166424064, 3728980139268581888, 351280590542771712,   // 52
+                                                  7755197639194824192, 155374144193791488,  360429197304463488,  35463555711488,       // 56
+                                                  10698321205149826,   81346406815903874,   4683770138187567365, 1153203598060947461,  // 60
+                                                  9288683101620225,    5066601137704962,    11259592043071492,   694842971333599362};  // 64
+                                                                                                                                       //
 constexpr std::array<uint64_t, 64> bishop_magics = {
-    1234162236956690960, 613633058599437316,  2310418085823643872, 4614045708893316130,
-    299342076575745,     11303015101244544,   360572812689408000,  4821362919080576,
-    36204757568758784,   576619640334320002,  576478357412315272,  4415234768897,
-    2207881987072,       3661382950094464,    1152995253510226208, 4720494041334039041,
-    3606267434728686123, 1748522692899864874, 563018681831680,     2286988547915808,
-    2450244173929384064, 144396671664063488,  4612251171716858368, 4614606335336646656,
-    4522017546306321,    290554762531963648,  721280835829778,     1170940318883840032,
-    13652086932135936,   1153142506478633473, 4611971891723634706, 4756084881125687554,
-    4521758753822724,    10150725774606848,   581052896986006088,  585538354796331520,
-    2252084357628160,    9011597839499440,    186899951507276544,  86836135329923592,
-    6759866349751296,    4611976312314135616, 152069073462104064,  283476232192,
-    1152930304999031808, 299071491473728,     2396115043369985,    1299856167056443496,
-    2306408226944061440, 565715984846848,     572029649833984,     1107427584,
-    36046441017516032,   1154619219548082560, 1173190108984574016, 5774944475553794,
-    288793953304707584,  1152923712232883200, 144678417219455232,  5767445654611952648,
-    2595480902252495360, 432355477566013696,  10309038269187072,   18163966669767312};
+    1234162236956690960, 613633058599437316,  2310418085823643872, 4614045708893316130, 299342076575745,     11303015101244544,   360572812689408000,
+    4821362919080576,    36204757568758784,   576619640334320002,  576478357412315272,  4415234768897,       2207881987072,       3661382950094464,
+    1152995253510226208, 4720494041334039041, 3606267434728686123, 1748522692899864874, 563018681831680,     2286988547915808,    2450244173929384064,
+    144396671664063488,  4612251171716858368, 4614606335336646656, 4522017546306321,    290554762531963648,  721280835829778,     1170940318883840032,
+    13652086932135936,   1153142506478633473, 4611971891723634706, 4756084881125687554, 4521758753822724,    10150725774606848,   581052896986006088,
+    585538354796331520,  2252084357628160,    9011597839499440,    186899951507276544,  86836135329923592,   6759866349751296,    4611976312314135616,
+    152069073462104064,  283476232192,        1152930304999031808, 299071491473728,     2396115043369985,    1299856167056443496, 2306408226944061440,
+    565715984846848,     572029649833984,     1107427584,          36046441017516032,   1154619219548082560, 1173190108984574016, 5774944475553794,
+    288793953304707584,  1152923712232883200, 144678417219455232,  5767445654611952648, 2595480902252495360, 432355477566013696,  10309038269187072,
+    18163966669767312};
 /**
  * @brief For a given mask, gets an array with the location of the ones in the mask.
  *
@@ -258,10 +217,10 @@ constexpr std::array<uint64_t, max_size> gen_occ_variation(uint64_t occ_mask, in
  */
 constexpr uint64_t rook_atk_bb_helper(int sq, const uint64_t occ) {
     uint64_t rook_bb = BitBoard::one_high(sq);
-    uint64_t hit = ray(rook_bb, N, occ);
-    hit |= ray(rook_bb, S, occ);
-    hit |= ray(rook_bb, E, occ);
-    hit |= ray(rook_bb, W, occ);
+    uint64_t hit = masks::ray(rook_bb, N, occ);
+    hit |= masks::ray(rook_bb, S, occ);
+    hit |= masks::ray(rook_bb, E, occ);
+    hit |= masks::ray(rook_bb, W, occ);
     return hit;
 }
 constexpr uint64_t bishop_atk_bb_helper(int sq, const uint64_t occ) {
@@ -273,10 +232,10 @@ constexpr uint64_t bishop_atk_bb_helper(int sq, const uint64_t occ) {
      * @return hit: All squares the bishop can attack.
      */
     uint64_t bishop_bb = BitBoard::one_high(sq);
-    uint64_t hit = ray(bishop_bb, NE, occ);
-    hit |= ray(bishop_bb, SE, occ);
-    hit |= ray(bishop_bb, SW, occ);
-    hit |= ray(bishop_bb, NW, occ);
+    uint64_t hit = masks::ray(bishop_bb, NE, occ);
+    hit |= masks::ray(bishop_bb, SE, occ);
+    hit |= masks::ray(bishop_bb, SW, occ);
+    hit |= masks::ray(bishop_bb, NW, occ);
     return hit;
 }
 /**
@@ -286,14 +245,12 @@ constexpr uint64_t bishop_atk_bb_helper(int sq, const uint64_t occ) {
  * @param[in] sq square of rook/bishop
  * @param[in] rook is rook or bishop?
  */
-constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, max_size> occ_vars,
-                                                         int sq, bool rook) {
+constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, max_size> occ_vars, int sq, bool rook) {
     int m = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
     int num = 1 << m;  // number of occ boards to generate.
     std::array<uint64_t, max_size> atk_bbs;
     for (int n = 0; n < num; n++) {
-        atk_bbs[n] =
-            rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq, occ_vars[n]);
+        atk_bbs[n] = rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq, occ_vars[n]);
     }
     return atk_bbs;
 }
@@ -307,10 +264,8 @@ constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, ma
 constexpr uint64_t occupancy_bits_rook(uint8_t sq) {
     uint8_t row = NotationInterface::row(sq);
     uint8_t col = NotationInterface::col(sq);
-    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
-                          masks::left * (col != 0) | masks::right * (col != 7);
-    uint64_t occbits =
-        (masks::col(col) | masks::row(row)) & (~(aroundmask | BitBoard::one_high(sq)));
+    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) | masks::left * (col != 0) | masks::right * (col != 7);
+    uint64_t occbits = (masks::col(col) | masks::row(row)) & (~(aroundmask | BitBoard::one_high(sq)));
     return occbits;
 }
 
@@ -335,8 +290,7 @@ constexpr std::array<uint64_t, 64> rook_occupancy_table = [] {
 constexpr uint64_t occupancy_bits_bishop(uint8_t sq) {
     uint8_t row = NotationInterface::row(sq);
     uint8_t col = NotationInterface::col(sq);
-    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) |
-                          masks::left * (col != 0) | masks::right * (col != 7);
+    uint64_t aroundmask = masks::top * (row != 7) | masks::bottom * (row != 0) | masks::left * (col != 0) | masks::right * (col != 7);
     return bishop_atk_bb_helper(sq, 0) & ~(aroundmask | BitBoard::one_high(sq));
 }
 constexpr std::array<uint64_t, 64> bishop_occupancy_table = [] {
@@ -379,12 +333,8 @@ inline constexpr uint64_t get_bishop_key(const uint8_t sq, const uint64_t occ) {
  * @param[in] occ occupancy bitboard (can be unmasked.)
  * @return index to access array rook_magic_bitboards with.
  */
-inline constexpr int get_rook_magic_idx(const uint8_t sq, const uint64_t occ) {
-    return get_rook_key(sq, occ) + rook_magic_offsets[sq];
-}
-inline constexpr int get_bishop_magic_idx(const uint8_t sq, const uint64_t occ) {
-    return get_bishop_key(sq, occ) + bishop_magic_offsets[sq];
-}
+inline constexpr int get_rook_magic_idx(const uint8_t sq, const uint64_t occ) { return get_rook_key(sq, occ) + rook_magic_offsets[sq]; }
+inline constexpr int get_bishop_magic_idx(const uint8_t sq, const uint64_t occ) { return get_bishop_key(sq, occ) + bishop_magic_offsets[sq]; }
 /**
  * @brief Table of rook magic bitboards. Indexed by the function get_rook_magic_idx
  *
@@ -399,12 +349,8 @@ extern const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards;
  * @param[in] occ Occupancy bitboard for hess board
  * @return All attackable squares for the rook at sq.
  */
-inline constexpr uint64_t get_rook_atk_bb(const uint8_t sq, const uint64_t occ) {
-    return rook_magic_bitboards[get_rook_magic_idx(sq, occ)];
-}
-inline constexpr uint64_t get_bishop_atk_bb(const uint8_t sq, const uint64_t occ) {
-    return bishop_magic_bitboards[get_bishop_magic_idx(sq, occ)];
-}
+inline constexpr uint64_t get_rook_atk_bb(const uint8_t sq, const uint64_t occ) { return rook_magic_bitboards[get_rook_magic_idx(sq, occ)]; }
+inline constexpr uint64_t get_bishop_atk_bb(const uint8_t sq, const uint64_t occ) { return bishop_magic_bitboards[get_bishop_magic_idx(sq, occ)]; }
 }  // namespace magic
 
 namespace movegen {
@@ -425,8 +371,7 @@ template <class T, size_t N, T (*F)(int)> constexpr std::array<T, N> generate_si
     }
     return table;
 }
-template <class T, uint8_t N, T (*F)(uint8_t)>
-constexpr std::array<T, N> generate_simple_move_table_uint8_t() {
+template <class T, uint8_t N, T (*F)(uint8_t)> constexpr std::array<T, N> generate_simple_move_table_uint8_t() {
     std::array<T, N> table{};
     for (uint8_t i = 0; i < N; ++i) {
         // The compile-time loop populates the array
@@ -459,14 +404,14 @@ constexpr uint64_t knight_atk_bb(const uint64_t knight_bb) {
  * @return BB with bits high if king threatens this square.
  */
 constexpr uint64_t king_atk_bb(const uint64_t king_bb) {
-    uint64_t hit = magic::ray(king_bb, N, 0, 1);
-    hit |= magic::ray(king_bb, NE, 0, 1);
-    hit |= magic::ray(king_bb, E, 0, 1);
-    hit |= magic::ray(king_bb, SE, 0, 1);
-    hit |= magic::ray(king_bb, S, 0, 1);
-    hit |= magic::ray(king_bb, SW, 0, 1);
-    hit |= magic::ray(king_bb, W, 0, 1);
-    hit |= magic::ray(king_bb, NW, 0, 1);
+    uint64_t hit = masks::ray(king_bb, N, 0, 1);
+    hit |= masks::ray(king_bb, NE, 0, 1);
+    hit |= masks::ray(king_bb, E, 0, 1);
+    hit |= masks::ray(king_bb, SE, 0, 1);
+    hit |= masks::ray(king_bb, S, 0, 1);
+    hit |= masks::ray(king_bb, SW, 0, 1);
+    hit |= masks::ray(king_bb, W, 0, 1);
+    hit |= masks::ray(king_bb, NW, 0, 1);
     return hit;
 }
 constexpr uint64_t king_atk_sq(const uint8_t sq) {
@@ -491,21 +436,11 @@ constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
  * @param friendly_bb location of friendly pieces.
  * @return uint64_t Bitboard of all the knight moves.
  */
-constexpr uint64_t knight_moves(const uint8_t knight_loc, const uint64_t friendly_bb) {
-    return internal::knight_attack_table[knight_loc] & ~friendly_bb;
-}
-constexpr uint64_t knight_atk(const uint8_t knight_loc) {
-    return internal::knight_attack_table[knight_loc];
-}
-constexpr uint64_t knight_atk_bb(uint64_t knight_bb) {
-    return BitBoard::bitboard_operate_or<decltype(&knight_atk)>(knight_bb, &knight_atk);
-}
-constexpr uint64_t king_atk(const uint8_t king_loc) {
-    return internal::king_attack_table[king_loc];
-}
-constexpr uint64_t king_atk_bb(uint64_t king_bb) {
-    return BitBoard::bitboard_operate_or<decltype(&king_atk)>(king_bb, &king_atk);
-}
+constexpr uint64_t knight_moves(const uint8_t knight_loc, const uint64_t friendly_bb) { return internal::knight_attack_table[knight_loc] & ~friendly_bb; }
+constexpr uint64_t knight_atk(const uint8_t knight_loc) { return internal::knight_attack_table[knight_loc]; }
+constexpr uint64_t knight_atk_bb(uint64_t knight_bb) { return BitBoard::bitboard_operate_or<decltype(&knight_atk)>(knight_bb, &knight_atk); }
+constexpr uint64_t king_atk(const uint8_t king_loc) { return internal::king_attack_table[king_loc]; }
+constexpr uint64_t king_atk_bb(uint64_t king_bb) { return BitBoard::bitboard_operate_or<decltype(&king_atk)>(king_bb, &king_atk); }
 /**
  * @brief Generates bitboard for all possible king moves. The 1s in output integer represents the
  * possible to squares the king can move to.
@@ -518,11 +453,9 @@ constexpr uint64_t king_atk_bb(uint64_t king_bb) {
  * @param[[TODO:direction]] turn_color [TODO:description]
  * @return [TODO:description]
  */
-uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb,
-                    const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color);
-uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
-                           const uint64_t enemy_atk_bb, const uint8_t castle,
-                           const uint8_t turn_color);
+uint64_t king_moves(const uint8_t king_loc, const uint64_t friendly_bb, const uint64_t all_bb, const uint64_t enemy_atk_bb, const uint8_t castle,
+                    const uint8_t turn_color);
+uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb, const uint64_t enemy_atk_bb, const uint8_t castle, const uint8_t turn_color);
 
 /**
  * @brief Generates all moves for rooks given a bitboard of its location
@@ -532,8 +465,7 @@ uint64_t king_castle_moves(const uint64_t king_bb, const uint64_t all_bb,
  * block further progress
  * @return Bitboard with all available move squares set to 1.
  */
-constexpr uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly_bb,
-                                 const uint64_t enemy_bb) {
+constexpr uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly_bb, const uint64_t enemy_bb) {
     return magic::get_rook_atk_bb(rook_loc, friendly_bb | enemy_bb) & ~(friendly_bb);
 }
 /**
@@ -543,21 +475,13 @@ constexpr uint64_t rook_moves_sq(const uint8_t rook_loc, const uint64_t friendly
  * @param[in] occ Occupancy bb
  * @return [TODO:description]
  */
-constexpr uint64_t rook_atk(const uint8_t sq, const uint64_t occ) {
-    return magic::get_rook_atk_bb(sq, occ);
-}
-constexpr uint64_t bishop_atk(const uint8_t sq, const uint64_t occ) {
-    return magic::get_bishop_atk_bb(sq, occ);
-}
-constexpr uint64_t bishop_moves_sq(const uint8_t sq, const uint64_t friendly_bb,
-                                   const uint64_t enemy_bb) {
+constexpr uint64_t rook_atk(const uint8_t sq, const uint64_t occ) { return magic::get_rook_atk_bb(sq, occ); }
+constexpr uint64_t bishop_atk(const uint8_t sq, const uint64_t occ) { return magic::get_bishop_atk_bb(sq, occ); }
+constexpr uint64_t bishop_moves_sq(const uint8_t sq, const uint64_t friendly_bb, const uint64_t enemy_bb) {
     return magic::get_bishop_atk_bb(sq, friendly_bb | enemy_bb) & ~(friendly_bb);
 }
-constexpr BB queen_atk(const uint8_t sq, const uint64_t occ) {
-    return bishop_atk(sq, occ) | rook_atk(sq, occ);
-}
-constexpr uint64_t queen_moves_sq(const uint8_t sq, const uint64_t friendly_bb,
-                                  const uint64_t enemy_bb) {
+constexpr BB queen_atk(const uint8_t sq, const uint64_t occ) { return bishop_atk(sq, occ) | rook_atk(sq, occ); }
+constexpr uint64_t queen_moves_sq(const uint8_t sq, const uint64_t friendly_bb, const uint64_t enemy_bb) {
     uint64_t occ = friendly_bb | enemy_bb;
     return (rook_atk(sq, occ) | bishop_atk(sq, occ)) & ~friendly_bb;
 }
@@ -565,22 +489,18 @@ template <bool is_white> constexpr uint64_t pawn_atk_bb(const uint64_t pawn_bb) 
     BB moves;
     if constexpr (is_white) {
         constexpr int dir = N;
-        moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
-                BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
+        moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) | BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
     } else {
         constexpr int dir = S;
-        moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) |
-                BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
+        moves = BitBoard::shift_bb(pawn_bb & ~col(7), dir + 1) | BitBoard::shift_bb(pawn_bb & ~col(0), dir - 1);
     }
     return moves;
 }
-template <bool is_white>
-uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb) {
+template <bool is_white> uint64_t pawn_attack_moves(const uint64_t pawn_bb, const uint64_t enemy_bb, const uint64_t ep_bb) {
     return pawn_atk_bb<is_white>(pawn_bb) & (enemy_bb | ep_bb);
     // Require enemy or en passant there.
 }
-template <bool is_white>
-uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb) {
+template <bool is_white> uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb) {
     // TODO: Update the pawn movegen to not have to use shift_bb with negatives since this is a
     // branching.
     int dir;
@@ -599,11 +519,8 @@ uint64_t pawn_forward_moves(const uint64_t pawn_bb, const uint64_t all_bb) {
     moves |= BitBoard::shift_bb(pawn_bb & ~blocker & row(rowi), dir, 2);
     return moves;
 }
-template <bool is_white>
-uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                    const uint64_t ep_bb) {
-    return pawn_forward_moves<is_white>(pawn_bb, friendly_bb | enemy_bb) |
-           pawn_attack_moves<is_white>(pawn_bb, enemy_bb, ep_bb);
+template <bool is_white> uint64_t pawn_moves(const uint64_t pawn_bb, const uint64_t friendly_bb, const uint64_t enemy_bb, const uint64_t ep_bb) {
+    return pawn_forward_moves<is_white>(pawn_bb, friendly_bb | enemy_bb) | pawn_attack_moves<is_white>(pawn_bb, enemy_bb, ep_bb);
 }
 
 /**
@@ -624,8 +541,7 @@ inline uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
  * @return bitboard of all attacked squares by bishops
  */
 inline uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
-    return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ,
-                                                                          &bishop_atk);
+    return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ, &bishop_atk);
 }
 template <Piece_t pval, bool is_white> BB get_atk_bb(uint8_t sq, uint64_t occ) {
     constexpr Piece_t ptype = pval & pieces::piece_mask;
