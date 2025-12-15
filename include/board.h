@@ -17,10 +17,10 @@
 #include <iostream>
 #include <string>
 struct restore_move_info {
-    uint8_t castleinfo : 4;
-    Piece_t captured : 3;
-    uint8_t ep_square : 6;
-    uint8_t ply_moves;
+    uint8_t castleinfo : 4 = 0;
+    Piece_t captured : 3 = 0;
+    uint8_t ep_square : 6 = 0;
+    uint8_t ply_moves = 0;
 };
 struct Board {
  private:
@@ -133,10 +133,10 @@ struct Board {
             }
             break;
         case pieces::king:
-            if (static_cast<int>(move.target) - static_cast<int>(move.source) == 2) {
+            if (static_cast<int>(move.source) - static_cast<int>(move.target) == 2) {
                 // Positive two means queenside / long castle
                 move.flag = moveflag::MOVEFLAG_long_castling;
-            } else if (static_cast<int>(move.source) - static_cast<int>(move.target) == 2) {
+            } else if (static_cast<int>(move.target) - static_cast<int>(move.source) == 2) {
                 move.flag = moveflag::MOVEFLAG_short_castling;
             } else if (move.source == get_castle_from_sq<white_to_move, pieces::king,
                                                          moveflag::MOVEFLAG_long_castling>()) {
