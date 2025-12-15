@@ -69,7 +69,7 @@ class NotationInterface {
      * @brief col (0-7)
      * @return linear idx [0-63
      */
-    inline static uint8_t idx(uint8_t row, uint8_t col) { return col + row * 8; }
+    inline static constexpr uint8_t idx(uint8_t row, uint8_t col) { return col + row * 8; }
 
     /**
      * @brief Gets row, col from idx
@@ -86,9 +86,7 @@ class NotationInterface {
      * @return row
      */
     inline constexpr static int row(const uint8_t idx) { return idx / 8; }
-    inline constexpr static int col(const uint8_t idx) {
-        return idx & 0b111;
-    }  // Equivalent to mod 8
+    inline constexpr static int col(const uint8_t idx) { return idx & 0b111; }  // Equivalent to mod 8
 };
 
 #endif

@@ -22,9 +22,7 @@ TEST(BitBoardTest, onehigh) {
     sq = 63;
     bb = BitBoard::one_high(sq);
     expected = 0b1000000000000000000000000000000000000000000000000000000000000000;
-    ASSERT_EQ(bb, expected) << ". Expected/actual:\n"
-                            << BitBoard::bb_str(expected) << "\n"
-                            << BitBoard::bb_str(bb) << "\n";
+    ASSERT_EQ(bb, expected) << ". Expected/actual:\n" << BitBoard::bb_str(expected) << "\n" << BitBoard::bb_str(bb) << "\n";
 }
 TEST(BitBoardTest, shift) {
     uint64_t bb = 0b1;
@@ -43,6 +41,55 @@ TEST(BitBoardTest, mask) {
     ASSERT_EQ(top, row(7));  // #
     ASSERT_EQ(sides, col(0) | col(7));
     ASSERT_EQ(top | bottom, row(0) | row(7));
+}
+
+TEST(BitBoardTest, rect_lookup) {
+    uint8_t from = 8;
+    uint8_t to = 11;
+    BB expected = BitBoard::one_high(9) | BitBoard::one_high(10) | BitBoard::one_high(11);
+    BB actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
+
+    from = 8;
+    to = 16;
+    expected = BitBoard::one_high(16);
+    actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
+
+    from = 8;
+    to = 17;
+    expected = BitBoard::one_high(17);
+    actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
+
+    from = 8;
+    to = 18;
+    expected = 0;
+    actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
+
+    from = 0;
+    to = 64 - 8;
+    expected = masks::left & ~BitBoard::one_high(0);
+    actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
+
+    from = 0;
+    to = 7;
+    expected = masks::bottom & ~BitBoard::one_high(0);
+    actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
+    from = 64 - 8;
+    to = 64 - 16 + 1;
+    expected = BitBoard::one_high(64 - 16 + 1);
+    actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
+
+    from = 64 - 8;
+    to = 64 - 24 + 2;
+    expected = BitBoard::one_high(64 - 16 + 1) | BitBoard::one_high(64 - 24 + 2);
+    actual = rect_lookup[from][to];
+    ASSERT_EQ(expected, actual);
 }
 
 TEST(BitBoardTest, test_knight_moves) {
@@ -94,8 +141,7 @@ TEST(BitBoardTest, test_ray) {
 
     dir = N;
     attacked = ray(origin, dir);
-    ASSERT_EQ(attacked,
-              masks::col(1) & ~BitBoard::one_high(NotationInterface::idx_from_string("b1")));
+    ASSERT_EQ(attacked, masks::col(1) & ~BitBoard::one_high(NotationInterface::idx_from_string("b1")));
 
     dir = NW;
     attacked = ray(origin, dir);
@@ -226,8 +272,7 @@ TEST(BitBoardTest, test_queen_moves) {
     attack.fill(0);
 
     // rook directions
-    for (auto sq :
-         {"d1", "d2", "d3", "d5", "d6", "d7", "d8", "a4", "b4", "c4", "e4", "f4", "g4", "h4"})
+    for (auto sq : {"d1", "d2", "d3", "d5", "d6", "d7", "d8", "a4", "b4", "c4", "e4", "f4", "g4", "h4"})
         attack[NotationInterface::idx_from_string(sq)] = 1;
 
     // bishop directions
@@ -348,8 +393,7 @@ TEST(BitBoardTest, test_pawn_moves) {
 
     expected = BitBoard::bb_from_array(attack_map);
     actual = pawn_moves<true>(pawn, friendly, enemy, ep);
-    ASSERT_EQ(actual, expected) << "White pawn on e4 failed capture and blocking."
-                                << BitBoard::bb_str(expected) << " " << BitBoard::bb_str(actual);
+    ASSERT_EQ(actual, expected) << "White pawn on e4 failed capture and blocking." << BitBoard::bb_str(expected) << " " << BitBoard::bb_str(actual);
 
     // --- SCENARIO 4: white PAWN - EN PASSANT CAPTURE ---
     // Pawn on e5. Ep target square is f6 (i.e., black pawn moved f7-f5).
@@ -357,7 +401,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("e5"));
     friendly = pawn;
-    enemy = 0;  // The captured enemy piece is assumed to be handled internally by ep_bb logic.
+    enemy = 0;                                                          // The captured enemy piece is assumed to be handled internally by ep_bb logic.
     ep = BitBoard::one_high(NotationInterface::idx_from_string("f6"));  // Ep target square
 
     attack_map[NotationInterface::idx_from_string("e6")] = 1;  // Normal forward move
@@ -365,9 +409,7 @@ TEST(BitBoardTest, test_pawn_moves) {
 
     expected = BitBoard::bb_from_array(attack_map);
     actual = pawn_moves<true>(pawn, friendly, enemy, ep);
-    ASSERT_EQ(actual, expected) << "White pawn on e5 failed En Passant move to f6\n"
-                                << BitBoard::bb_str(actual) << "\n"
-                                << BitBoard::bb_str(expected);
+    ASSERT_EQ(actual, expected) << "White pawn on e5 failed En Passant move to f6\n" << BitBoard::bb_str(actual) << "\n" << BitBoard::bb_str(expected);
 
     // --- SCENARIO 5: white PAWN - FORWARD BLOCKING (Friendly & Enemy) ---
     // Pawn on a2 (start rank). Blocked on a3 by friendly, a4 by enemy.
@@ -435,16 +477,14 @@ TEST(BitBoardTest, test_pawn_moves) {
 
     expected = BitBoard::bb_from_array(attack_map);
     actual = pawn_moves<false>(pawn, friendly, enemy, ep);
-    ASSERT_EQ(actual, expected) << "Black pawn on d7 failed 1/2 square move."
-                                << BitBoard::bb_str(actual);
+    ASSERT_EQ(actual, expected) << "Black pawn on d7 failed 1/2 square move." << BitBoard::bb_str(actual);
 
     // --- SCENARIO 8: black PAWN - CAPTUREST ---
     // Pawn on e4. Friendly on d3. enemy on f3.
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
-    friendly = pawn | BitBoard::one_high(NotationInterface::idx_from_string(
-                          "d3"));  // This spot is now a friendly to test no capture
-    enemy = BitBoard::one_high(NotationInterface::idx_from_string("f3"));  // Normal capture
+    friendly = pawn | BitBoard::one_high(NotationInterface::idx_from_string("d3"));  // This spot is now a friendly to test no capture
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("f3"));            // Normal capture
     ep = 0;
 
     // Expected moves: e3 (forward), f3 (capture).
@@ -460,8 +500,7 @@ TEST(BitBoardTest, test_pawn_moves) {
     attack_map.fill(0);
     pawn = BitBoard::one_high(NotationInterface::idx_from_string("e4"));
     friendly = pawn;
-    enemy = BitBoard::one_high(NotationInterface::idx_from_string("d4")) |
-            BitBoard::one_high(NotationInterface::idx_from_string("f3"));  // Normal capture
+    enemy = BitBoard::one_high(NotationInterface::idx_from_string("d4")) | BitBoard::one_high(NotationInterface::idx_from_string("f3"));  // Normal capture
     ep = BitBoard::one_high(NotationInterface::idx_from_string("d3"));
 
     // Expected moves: e3 (forward), f3 (capture), d3 (ep capture).

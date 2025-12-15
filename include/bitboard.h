@@ -211,15 +211,74 @@ static constexpr std::array<std::array<BB, 64>, 64> rect_lookup = [] {
     arr.fill({0ULL});
     for (int i = 0; i < 64; i++) {
         // Vertical:
-        int c = NotationInterface::col(i);
+        int rowinit = NotationInterface::row(i);
+        int colinit = NotationInterface::col(i);
         BB startsq = BitBoard::one_high(i);
         for (int r = 0; r < 8; r++) {
-            int j = NotationInterface::idx(r, c);
-            BB mask = 0;
+            int j = NotationInterface::idx(r, colinit);
+            BB to = BitBoard::one_high(j);
+            if (i == j)
+                continue;
             // Fill all between i and j.
-            int steps = (j - i);
             // If positive, move up.
-            mask = ray(i, j, 1);
+            int dir = j > i ? dirs::N : dirs::S;
+            BB mask = ray(startsq, dir, to);
+            arr[i][j] = mask & ~startsq;
+        }
+
+        for (int c = 0; c < 8; c++) {
+            int j = NotationInterface::idx(rowinit, c);
+            BB to = BitBoard::one_high(j);
+            // Fill all between i and j.
+            // If positive, move up.
+            if (i == j)
+                continue;
+
+            int dir = j > i ? dirs::E : dirs::W;
+            BB mask = ray(startsq, dir, to);
+            arr[i][j] = mask & ~startsq;
+        }
+
+        {
+            // NE/SW diagonal.
+            // If row > col : COL = 0.
+            int c_start = (rowinit >= colinit) ? 0 : colinit - rowinit;
+            int r_start = (rowinit >= colinit) ? rowinit - colinit : 0;
+
+            for (int r = r_start, c = c_start; r < 8 && c < 8; r++, c++) {
+                int j = NotationInterface::idx(r, c);
+
+                if (i == j)
+                    continue;
+
+                BB to = BitBoard::one_high(j);
+
+                int dir = j > i ? dirs::NE : dirs::SW;
+
+                BB mask = ray(startsq, dir, to);
+                arr[i][j] = mask & ~startsq;
+            }
+        }
+
+        {
+            // NW/SE diagonal.
+            // row + column = constant.
+            int c_start = (rowinit + colinit < 7) ? colinit + rowinit : 7;
+            int r_start = (rowinit + colinit < 7) ? 0 : rowinit + colinit - 7;
+
+            for (int r = r_start, c = c_start; r < 8 && c < 8; r++, c--) {
+                int j = NotationInterface::idx(r, c);
+
+                if (i == j)
+                    continue;
+
+                BB to = BitBoard::one_high(j);
+
+                int dir = j > i ? dirs::NW : dirs::SE;
+
+                BB mask = ray(startsq, dir, to);
+                arr[i][j] = mask & ~startsq;
+            }
         }
     }
     return arr;
