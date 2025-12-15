@@ -1015,54 +1015,40 @@ struct Board {
      * @param[in] move move to restore
      */
     template <bool white_moved, Piece_t piece, Flag_t flag, Piece_t captured> constexpr void undo_move(const Move move) {
-        if constexpr (flag == moveflag::MOVEFLAG_silent) {
-            // Just captures and normal moves.
+        if constexpr (flag == moveflag::MOVEFLAG_promote_queen) {
+            add_piece<white_moved, pieces::pawn>(move.source);
+            remove_piece<white_moved, pieces::queen>(move.target);
+        } else if constexpr (flag == moveflag::MOVEFLAG_promote_knight) {
+            add_piece<white_moved, pieces::pawn>(move.source);
+            remove_piece<white_moved, pieces::knight>(move.target);
+        } else if constexpr (flag == moveflag::MOVEFLAG_promote_rook) {
+            add_piece<white_moved, pieces::pawn>(move.source);
+            remove_piece<white_moved, pieces::rook>(move.target);
+        } else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) {
+            add_piece<white_moved, pieces::pawn>(move.source);
+            remove_piece<white_moved, pieces::bishop>(move.target);
+        } else {
             move_piece<white_moved, piece>(move.target, move.source);
-            if constexpr (captured != pieces::none) {
-                // If capture: restore captured piece
-                add_piece<!white_moved, captured>(move.target);
-            }
-
-        } else if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
-            move_piece<white_moved, piece>(move.target, move.source);
-            if constexpr (white_moved) {  // if white to move, the enemy pawn was on square - 8
+        }
+        if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
+            if constexpr (white_moved)  // if white to move, the enemy pawn was on square - 8
                 add_piece<!white_moved, pieces::pawn>(move.target - 8);
-            } else {
+            else
                 add_piece<!white_moved, pieces::pawn>(move.target + 8);
-            }
-        } else if constexpr (flag == moveflag::MOVEFLAG_long_castling) {
-            move_piece<white_moved, pieces::king>(move.target, move.source);
-            // King moved
+
+        } else if constexpr (captured != pieces::none) {
+            // If capture: restore captured piece
+            add_piece<!white_moved, captured>(move.target);
+        }
+
+        if constexpr (flag == moveflag::MOVEFLAG_long_castling) {
             move_piece<white_moved, pieces::rook>(get_castle_to_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_long_castling>(),
                                                   get_castle_from_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_long_castling>());
-            // rook moved.
-
-        } else if constexpr (flag == moveflag::MOVEFLAG_short_castling) {
-            move_piece<white_moved, pieces::king>(move.target, move.source);
-            // King moved
+        }
+        if constexpr (flag == moveflag::MOVEFLAG_short_castling) {
             move_piece<white_moved, pieces::rook>(get_castle_to_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_short_castling>(),
                                                   get_castle_from_sq<white_moved, pieces::rook, moveflag::MOVEFLAG_short_castling>());
-        } else {  // Should only be promotions here. these could have captured.
-            static_assert(piece == pieces::pawn, "Moveflag entered promotion branch without moving a pawn");
-
-            add_piece<white_moved, pieces::pawn>(move.source);
-            if constexpr (flag == moveflag::MOVEFLAG_promote_queen) {
-                remove_piece<white_moved, pieces::queen>(move.target);
-            } else if constexpr (flag == moveflag::MOVEFLAG_promote_knight) {
-                remove_piece<white_moved, pieces::knight>(move.target);
-            } else if constexpr (flag == moveflag::MOVEFLAG_promote_rook) {
-                remove_piece<white_moved, pieces::rook>(move.target);
-            } else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) {
-                remove_piece<white_moved, pieces::bishop>(move.target);
-            } else {
-                std::cout << "moveflag: " << (int)move.flag << std::endl;
-                throw std::runtime_error("In undo_move final. Moveflag entered promoton branch but "
-                                         "no promotion was set.");
-            }
-            if constexpr (captured != pieces::none)
-                add_piece<!white_moved, captured>(move.target);
         }
-        assert(get_piece_at(move.source).get_type() != pieces::none);
     }
     template <bool white_moved, Piece_t piece, Flag_t flag> constexpr void undo_move(const Move move, Piece_t captured) {
         switch (captured) {
