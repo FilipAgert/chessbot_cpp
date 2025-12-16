@@ -19,13 +19,15 @@ struct check_type {
     bool no_check : 1;
     bool one_check : 1;
     bool two_checks : 1;
+    bool slider_check : 1;
 };
 
 constexpr search_type normal_search = {true, false};
 constexpr search_type quiesence_search = {false, true};
-constexpr check_type no_check = {true, false, false};
-constexpr check_type single_check = {false, true, false};
-constexpr check_type double_check = {false, false, true};
+constexpr check_type no_check = {true, false, false, false};
+constexpr check_type single_check = {false, true, false, false};
+constexpr check_type slider_check = {false, true, false, true};
+constexpr check_type double_check = {false, false, true, false};
 using namespace dirs;
 using namespace masks;
 namespace magic {

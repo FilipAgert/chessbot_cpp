@@ -511,7 +511,12 @@ struct Board {
         if (count == 0) {
             return get_moves<stype, no_check, is_white>(moves, king_attackers);
         } else if (count == 1) {
-            return get_moves<stype, single_check, is_white>(moves, king_attackers);
+            if (king_attackers &
+                (get_piece_bb<pieces::bishop, !is_white>() | get_piece_bb<pieces::rook, !is_white>() | get_piece_bb<pieces::queen, !is_white>())) {
+                return get_moves<stype, slider_check, is_white>(moves, king_attackers);
+            } else {
+                return get_moves<stype, single_check, is_white>(moves, king_attackers);
+            }
         } else {
             return get_moves<stype, double_check, is_white>(moves, king_attackers);
         }
@@ -529,7 +534,7 @@ struct Board {
             add_moves<is_white, pieces::king>(moves, num_moves, to_squares, sq);
             // Need to test for move legality.
             return num_moves;
-        } else {
+        } else {  // In case of check, valid moves are: Move king, block the checker if a ray piece, or capture the piece.
             size_t num_pseudolegal_moves = 0;
             BB friendly_bb = occupancy<is_white>();
             BB enemy_bb = occupancy<!is_white>();
@@ -575,20 +580,24 @@ struct Board {
 
             std::array<Move, max_legal_moves> pseudolegal_moves;
             gen_add_all_moves<pieces::queen, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, queen_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                     castleinfo);
+                                                                     castleinfo, king_attackers);
             gen_add_all_moves<pieces::bishop, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, bishop_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                      castleinfo);
+                                                                      castleinfo, king_attackers);
             gen_add_all_moves<pieces::rook, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, rook_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                    castleinfo);
+                                                                    castleinfo, king_attackers);
             gen_add_all_moves<pieces::king, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, king_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                    castleinfo);
+                                                                    castleinfo, king_attackers);
             gen_add_all_moves<pieces::knight, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, knight_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                      castleinfo);
+                                                                      castleinfo, king_attackers);
             gen_add_all_moves<pieces::pawn, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, pawn_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                    castleinfo);
+                                                                    castleinfo, king_attackers);
 
             //  uint8_t opposite_color = turn_color ^ color_mask;
 
+            // Only EP move needs to be tested.
+            // All other moves are taken care of by:
+            // Pins.
+            // King cannot walk into attacker bb.
             size_t num_moves = 0;
             for (size_t m = 0; m < num_pseudolegal_moves; m++) {
                 restore_move_info info = do_move<is_white>(pseudolegal_moves[m]);
@@ -876,7 +885,13 @@ struct Board {
      */
     template <Piece_t ptype, search_type stype, check_type ctype, bool is_white>
     void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                           const pininfo pi, const uint64_t ep_bb, const uint8_t castleinfo) const {
+                           const pininfo pi, const uint64_t ep_bb, const uint8_t castleinfo, const BB king_attacker) const {
+        BB checker_mask = ~0;
+        if constexpr (ctype.slider_check) {
+            checker_mask = rect_lookup[pi.kingloc][BitBoard::lsb(king_attacker)];  // Allowed to go in between, or to capture
+        } else {
+            checker_mask = king_attacker;  // allowed to capture.
+        }
         BitLoop(piece_bb) {
             // Compute pins --------------------------
             BB pin_mask = ~0;                      // mask of allowed squares due to pins
@@ -907,6 +922,8 @@ struct Board {
             uint8_t sq = BitBoard::lsb(piece_bb);
             uint64_t to_sqs = to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
             to_sqs &= pin_mask;
+            if constexpr (ctype.one_check) {
+            }
             add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
         }
     }
