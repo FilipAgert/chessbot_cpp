@@ -38,6 +38,50 @@ TEST(magic_test, rookmagic) {
         }
     }
 }
+TEST(magic_test, rookxraymagic) {
+
+    for (int i = 0; i < 64; i++) {
+        uint64_t occmask = rook_occupancy_table[i];
+        int m = BitBoard::bitcount(occmask);
+        std::array<uint64_t, max_size> occvar = gen_occ_variation(occmask, m);
+        std::array<uint64_t, max_size> atk = compute_atk_bbs(occvar, i, true, true);
+        int nelems = 1 << m;
+        for (int j = 0; j < nelems; j++) {
+            if (atk[j] != get_rook_xray_atk_bb(i, occvar[j])) {
+                std::cout << "atk arr:" << std::endl;
+                BitBoard::print_full(atk[j]);
+                std::cout << "from compute:" << std::endl;
+                BitBoard::print_full(get_rook_xray_atk_bb(i, occvar[j]));
+                std::cout << "with occupancy:" << std::endl;
+                BitBoard::print_full(occvar[j]);
+                std::cout << "i: " << i << "\n";
+                ASSERT_FALSE(true);
+            }
+        }
+    }
+}
+TEST(magic_test, bishopxraymagic) {
+
+    for (int i = 0; i < 64; i++) {
+        uint64_t occmask = bishop_occupancy_table[i];
+        int m = BitBoard::bitcount(occmask);
+        std::array<uint64_t, max_size> occvar = gen_occ_variation(occmask, m);
+        std::array<uint64_t, max_size> atk = compute_atk_bbs(occvar, i, false, true);
+        int nelems = 1 << m;
+        for (int j = 0; j < nelems; j++) {
+            if (atk[j] != get_bishop_xray_atk_bb(i, occvar[j])) {
+                std::cout << "atk arr:" << std::endl;
+                BitBoard::print_full(atk[j]);
+                std::cout << "from compute:" << std::endl;
+                BitBoard::print_full(get_bishop_xray_atk_bb(i, occvar[j]));
+                std::cout << "with occupancy:" << std::endl;
+                BitBoard::print_full(occvar[j]);
+                std::cout << "i: " << i << "\n";
+                ASSERT_FALSE(true);
+            }
+        }
+    }
+}
 
 TEST(Movegentest, mated) {
     Board board;
