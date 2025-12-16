@@ -223,6 +223,29 @@ constexpr uint64_t rook_atk_bb_helper(int sq, const uint64_t occ) {
     hit |= masks::ray(rook_bb, W, occ);
     return hit;
 }
+constexpr uint64_t rook_xray_atk_bb_helper(int sq, const uint64_t occ) {
+    uint64_t rook_bb = BitBoard::one_high(sq);
+    uint64_t hit = masks::ray(rook_bb, N, occ);
+    hit |= masks::ray(rook_bb, S, occ);
+    hit |= masks::ray(rook_bb, E, occ);
+    hit |= masks::ray(rook_bb, W, occ);
+    return hit;
+}
+/**
+ * @brief Slow way of computing xray bishop attack squares by casting a ray
+ *
+ * @param[in] sq Square of bishop
+ * @param[in] occ occupancy bitboard for all pieces on the board
+ * @return hit: All squares the bishop can attack.
+ */
+constexpr uint64_t bishop_xray_atk_bb_helper(int sq, const uint64_t occ) {
+    uint64_t bishop_bb = BitBoard::one_high(sq);
+    uint64_t hit = masks::ray(bishop_bb, NE, occ);
+    hit |= masks::ray(bishop_bb, SE, occ);
+    hit |= masks::ray(bishop_bb, SW, occ);
+    hit |= masks::ray(bishop_bb, NW, occ);
+    return hit;
+}
 constexpr uint64_t bishop_atk_bb_helper(int sq, const uint64_t occ) {
     /**
      * @brief Slow way of computing bishop attack squares by casting a ray
@@ -245,12 +268,16 @@ constexpr uint64_t bishop_atk_bb_helper(int sq, const uint64_t occ) {
  * @param[in] sq square of rook/bishop
  * @param[in] rook is rook or bishop?
  */
-constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, max_size> occ_vars, int sq, bool rook) {
+constexpr std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, max_size> occ_vars, int sq, bool rook, bool xray) {
     int m = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
     int num = 1 << m;  // number of occ boards to generate.
     std::array<uint64_t, max_size> atk_bbs;
     for (int n = 0; n < num; n++) {
-        atk_bbs[n] = rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq, occ_vars[n]);
+        if (xray) {
+            atk_bbs[n] = rook ? rook_xray_atk_bb_helper(sq, occ_vars[n]) : bishop_xray_atk_bb_helper(sq, occ_vars[n]);
+        } else {
+            atk_bbs[n] = rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq, occ_vars[n]);
+        }
     }
     return atk_bbs;
 }
@@ -341,6 +368,8 @@ inline constexpr int get_bishop_magic_idx(const uint8_t sq, const uint64_t occ) 
  */
 extern const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards;
 extern const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards;
+extern const std::array<uint64_t, rook_magic_table_sz> rook_xray_magic_bitboards;
+extern const std::array<uint64_t, bishop_magic_table_sz> bishop_xray_magic_bitboards;
 /**
  * @brief Gets all the squares the rook can reach from the given position given an occupancy of the
  * board stored in the occ bitboard. Needs to be masked with friendly pieces to not capture them.
@@ -351,6 +380,8 @@ extern const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards;
  */
 inline constexpr uint64_t get_rook_atk_bb(const uint8_t sq, const uint64_t occ) { return rook_magic_bitboards[get_rook_magic_idx(sq, occ)]; }
 inline constexpr uint64_t get_bishop_atk_bb(const uint8_t sq, const uint64_t occ) { return bishop_magic_bitboards[get_bishop_magic_idx(sq, occ)]; }
+inline constexpr uint64_t get_rook_xray_atk_bb(const uint8_t sq, const uint64_t occ) { return rook_xray_magic_bitboards[get_rook_magic_idx(sq, occ)]; }
+inline constexpr uint64_t get_bishop_xray_atk_bb(const uint8_t sq, const uint64_t occ) { return bishop_xray_magic_bitboards[get_bishop_magic_idx(sq, occ)]; }
 }  // namespace magic
 
 namespace movegen {

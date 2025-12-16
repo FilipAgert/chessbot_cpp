@@ -200,6 +200,25 @@ constexpr uint64_t ray(const uint64_t origin, const int dir, const uint64_t bloc
 }
 constexpr uint64_t ray(const uint64_t origin, const int dir, const uint64_t blocker_bb) { return ray(origin, dir, blocker_bb, 7); }
 constexpr uint64_t ray(const uint64_t origin, const int dir) { return ray(origin, dir, 0, 7); }
+
+/**
+ * @brief Ray but ignores the first hit.
+ *
+ * @param[in] origin location of xray shot
+ * @param[in] dir direction of ray
+ * @param[in] blocker_bb bb of occupancy
+ * @return bb of ray
+ */
+constexpr BB xray(const BB origin, const int dir, const BB occ) {
+    BB mask = edge_mask(dir);                                    // The edge mask ensures we do not wrap-around.The blocker
+                                                                 // mask ensures that we do not keep going through somebody.
+    BB hit = BitBoard::shift_bb(~edge_mask(dir) & origin, dir);  // Take first step without the blocker bb, since the blocker bb includes self.
+    BB enhits = hit & occ;
+    for (int i = 2; i <= 7 && BitBoard::bitcount(enhits) < 2; i++, enhits |= hit & occ) {
+        hit |= BitBoard::shift_bb((~mask) & hit, dir);  // Shift the mask in dir direction, but only on non-masked places.
+    }
+    return hit;
+}
 /**
  * @brief Mask of squares in between from (exclusive) to (inclusive). If rect_lookup[i][i] return 0.
  *

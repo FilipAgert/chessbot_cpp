@@ -129,6 +129,46 @@ TEST(BitBoardTest, test_knight_moves) {
     actual = 8;
     ASSERT_EQ(expected, actual);
 }
+TEST(BitBoardTest, test_xray) {
+    BB origin = 1;
+    int dir = N;
+    BB occ = 1ULL << 8;  // A2;
+
+    BB expected = left & ~(origin);
+    BB actual = xray(origin, dir, occ);
+    ASSERT_EQ(expected, actual);
+
+    occ |= (1ULL) << 16;  // A3
+    expected = occ;
+    actual = xray(origin, dir, occ);
+    ASSERT_EQ(expected, actual);
+
+    occ |= (1ULL) << 24;  // A4
+    ASSERT_EQ(expected, actual);
+
+    occ = 0b10;
+
+    actual = xray(origin, dir, occ);
+    expected = left & ~origin;
+    ASSERT_EQ(expected, actual);
+
+    dir = E;
+    actual = xray(origin, dir, occ);
+    expected = bottom & ~origin;
+    ASSERT_EQ(expected, actual);
+
+    occ = 0b1010;  // d1
+    expected = 0b1110;
+
+    actual = xray(origin, dir, occ);
+    ASSERT_EQ(expected, actual);
+
+    occ = BitBoard::one_high(NotationInterface::idx_from_string("c3")) | BitBoard::one_high(NotationInterface::idx_from_string("e5"));
+    dir = NE;
+    actual = xray(origin, dir, occ);
+    expected = rect_lookup[0][NotationInterface::idx_from_string("e5")];
+    ASSERT_EQ(expected, actual);
+}
 TEST(BitBoardTest, test_ray) {
     uint64_t origin = 0b1;  // A1.
     int dir = W;
