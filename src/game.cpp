@@ -93,8 +93,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
-template <bool is_root, bool is_white>
-int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
@@ -144,8 +143,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
                                       // e.g. no moves available on this state.
             make_move<is_white>(entry.bestmove);
             int extension = calculate_extension<!is_white>(entry.bestmove, num_extensions);
-            int eval = -alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha,
-                                                     num_extensions + extension);
+            int eval = -alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move<is_white>();
             if (time_manager->get_should_stop()) {
                 return 0;  // should not store into transposition table here since the search was
@@ -170,7 +168,7 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
 
     // Handle if king is checked or no moves can be made.
     std::array<Move, max_legal_moves> moves;
-    int num_moves = board.get_moves<normal_search, is_white>(moves);
+    int num_moves = board.get_moves<quiesence_search, is_white>(moves);
     moves_generated += num_moves;
     if (num_moves == 0) {
         const int MATE_SCORE = 30000;
@@ -189,14 +187,12 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         make_move<is_white>(moves[i]);
         int extension = calculate_extension<!is_white>(moves[i], num_extensions);
 
-        int eval = -alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha,
-                                                 num_extensions + extension);
+        int eval = -alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         undo_move<is_white>();
         if (time_manager->get_should_stop()) {
             if (is_root) {
                 if (atleast_one_move_searched) {
-                    trans_table->store(zob_hash, best_curr_move, bestscore, transposition_entry::lb,
-                                       depth);
+                    trans_table->store(zob_hash, best_curr_move, bestscore, transposition_entry::lb, depth);
                 }
             }
             return 0;
@@ -209,8 +205,8 @@ int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions
         if (eval >= beta) {  // FAIL HIGH.
             trans_table->store(zob_hash, best_curr_move, beta, transposition_entry::lb,
                                depth);  // Can update hash to curr depth.
-            return beta;  // This move is too good. The minimising player (beta) will never
-                          // allow the board to go here. we can return.
+            return beta;                // This move is too good. The minimising player (beta) will never
+                                        // allow the board to go here. we can return.
         }
         if (eval > alpha) {  // if alpha is raised, then we have found an exact node.
             alpha = eval;    // if alpha is never raised, the value returned will be an upper bound.
@@ -269,8 +265,7 @@ template <bool is_white> int Game::calculate_extension(const Move &move, int num
 bool Game::check_repetition() {
     // Checks if we have repeated this board state.
     uint64_t hash = state_stack.top();
-    constexpr int instances_for_draw =
-        3;  // How many occurences of this board should have occured for a draw?
+    constexpr int instances_for_draw = 3;  // How many occurences of this board should have occured for a draw?
     bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
     return atleast2;
 }

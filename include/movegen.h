@@ -12,15 +12,20 @@ struct pininfo {
     BB bishop_pinners;
 };
 struct search_type {
-    uint8_t normal_search : 1;
-    uint8_t quiesence_search : 1;
-    uint8_t king_checked : 1;
-    uint8_t king_double_checked : 1;
+    bool normal_search : 1;
+    bool quiesence_search : 1;
 };
-constexpr search_type normal_search = {1, 0, 0, 0};
-constexpr search_type quiesence_search = {0, 1, 0, 0};
-constexpr search_type king_checked = {0, 0, 1, 0};
-constexpr search_type king_double_checked = {0, 0, 0, 1};
+struct check_type {
+    bool no_check : 1;
+    bool one_check : 1;
+    bool two_checks : 1;
+};
+
+constexpr search_type normal_search = {true, false};
+constexpr search_type quiesence_search = {false, true};
+constexpr check_type no_check = {true, false, false};
+constexpr check_type single_check = {false, true, false};
+constexpr check_type double_check = {false, false, true};
 using namespace dirs;
 using namespace masks;
 namespace magic {

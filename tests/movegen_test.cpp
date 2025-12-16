@@ -193,6 +193,22 @@ TEST(Movegentest, gen_moves) {
     size_t expected = 20;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 20. Actual found moves is" << num_moves;
 }
+TEST(Movegentest, double_check) {
+    Board board;
+    std::string fen = "rn2kbnr/pppppppp/2b5/8/K1q5/2Q5/PPPPPPPP/RNB2BNR w HAkq - 0 1";
+    board.read_fen(fen);
+    // Only valid king moves are a3 or a5.
+    std::array<Move, max_legal_moves> moves_array;
+    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+
+    std::vector<std::string> expected_moves = {"a4a5", "a4a3"};
+    std::vector<std::string> generated_moves;
+    for (size_t i = 0; i < num_moves; ++i)
+        generated_moves.push_back(moves_array[i].toString());
+    std::sort(expected_moves.begin(), expected_moves.end());
+    std::sort(generated_moves.begin(), generated_moves.end());
+    ASSERT_EQ(expected_moves, generated_moves) << "Failed FEN: " << fen;
+}
 TEST(Movegentest, capture_check) {
     // Fen: King move out of check or capture checker valid moves.
     Board board;
