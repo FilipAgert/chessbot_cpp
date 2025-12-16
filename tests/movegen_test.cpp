@@ -82,6 +82,21 @@ TEST(magic_test, bishopxraymagic) {
         }
     }
 }
+TEST(Movegentest, checktest) {
+    std::string fen = "8/2p5/3p4/KP5r/5Rk1/4P3/6P1/8 b - - 0 1";
+    Board board;
+    board.read_fen(fen);
+    std::array<Move, max_legal_moves> moves;
+    size_t num_moves = board.get_moves<normal_search, false>(moves);
+
+    size_t expected = 2;
+    if (expected != num_moves) {
+        for (int i = 0; i < num_moves; i++) {
+            std::cout << moves[i].toString() << std::endl;
+        }
+    }
+    ASSERT_EQ(expected, num_moves);
+}
 
 TEST(Movegentest, mated) {
     Board board;
