@@ -243,27 +243,6 @@ TEST(bbgentest, black_pawns) {
     uint64_t actual = movegen::pawn_moves<false>(b_pawn_bb, b_pawn_bb, 0, 0);
     ASSERT_EQ(expected, actual) << BitBoard::to_string_bb(actual) << " " << BitBoard::to_string_bb(expected) << "\n";
 }
-TEST(bbgentest, black_pawns_fen) {
-    Board board;
-    std::string fen = "8/p7/8/8/8/8/8/8 b - - 0 1";
-    std::cout << "here";
-    board.read_fen(fen);
-    std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_pseudolegal_moves<normal_search, false>(moves);
-    std::cout << "here";
-    std::vector<std::string> expected_moves = {"a7a6", "a7a5"};
-    std::vector<std::string> generated_moves;
-    for (size_t i = 0; i < num_moves; ++i) {
-        generated_moves.push_back(moves[i].toString());
-    }
-
-    // 3. Sort both lists for order-independent comparison
-    std::sort(expected_moves.begin(), expected_moves.end());
-    std::sort(generated_moves.begin(), generated_moves.end());
-
-    // 4. Assert that the sorted lists are identical
-    ASSERT_EQ(expected_moves, generated_moves) << "The generated moves do not match the expected moves for FEN: " << fen;
-}
 TEST(bbgentest, fen1) {
     Board board;
     std::string fen = "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1";

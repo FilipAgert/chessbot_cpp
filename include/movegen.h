@@ -4,6 +4,13 @@
 #include <bitboard.h>
 #include <iostream>
 #include <notation_interface.h>
+struct pininfo {
+    uint8_t kingloc;
+    BB rook_pinmask;
+    BB bishop_pinmask;
+    BB rook_pinners;
+    BB bishop_pinners;
+};
 struct search_type {
     uint8_t normal_search : 1;
     uint8_t quiesence_search : 1;

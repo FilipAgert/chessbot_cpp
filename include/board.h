@@ -486,16 +486,58 @@ struct Board {
      * @return * size_t: number of legal moves in array.
      */
     template <search_type stype, bool is_white> size_t get_moves(std::array<Move, max_legal_moves> &moves) {
+        size_t num_pseudolegal_moves = 0;
+        BB friendly_bb = occupancy<is_white>();
+        BB enemy_bb = occupancy<!is_white>();
+        BB occ = friendly_bb | enemy_bb;
+        BB queen_bb = get_piece_bb<pieces::queen, is_white>();
+        BB bishop_bb = get_piece_bb<pieces::bishop, is_white>();
+        BB rook_bb = get_piece_bb<pieces::rook, is_white>();
+        BB pawn_bb = get_piece_bb<pieces::pawn, is_white>();
+        BB king_bb = get_piece_bb<pieces::king, is_white>();
+        BB knight_bb = get_piece_bb<pieces::knight, is_white>();
+        BB ep_bb = en_passant ? BitBoard::one_high(en_passant_square) : 0;
+
+        // Compute pins
+        uint8_t kingsq = BitBoard::lsb(king_bb);
+        BB rook_xraymask = magic::get_rook_xray_atk_bb(kingsq, occ);
+        BB bishop_xraymask = magic::get_bishop_xray_atk_bb(kingsq, occ);
+        BB enemy_rooks = get_piece_bb<pieces::rook, !is_white>() | get_piece_bb<pieces::queen, !is_white>();
+        BB enemy_bishops = get_piece_bb<pieces::bishop, !is_white>() | get_piece_bb<pieces::queen, !is_white>();
+        // If any enemy queens, bishops or rooks are present in these masks, pieces are pinned.
+        BB pinning_rooks = enemy_rooks & rook_xraymask;
+        BB pinrooktemp = pinning_rooks;
+        BB pinning_bishops = enemy_bishops & bishop_xraymask;
+        BB pinbishoptemp = pinning_bishops;
+        // Generate a new mask only between king and enemy pinners, if any,
+        BB rook_pinmask = 0;
+        BB bishop_pinmask = 0;
+        BitLoop(pinrooktemp) {
+            uint8_t pinnerloc = BitBoard::lsb(pinrooktemp);
+            rook_pinmask |= rect_lookup[kingsq][pinnerloc];
+        }
+        BitLoop(pinbishoptemp) {
+            uint8_t pinnerloc = BitBoard::lsb(pinbishoptemp);
+            bishop_pinmask |= rect_lookup[kingsq][pinnerloc];
+        }
+        pininfo pi = {kingsq, rook_pinmask, bishop_pinmask, pinning_rooks, pinning_bishops};
+        // In the movegenerator, if the piece to be moved is on the rook or bishop pin mask,
+        // then need to obtain the rectangular mask on which it is allowed to move.
+        // This can be done by popping bits in the pinning_rooks BB / pinning_bishops BB, checking if this BB is between this piece and the king.
+        // If it is, the piece is only allowed to move between king and the pinee.
+
         std::array<Move, max_legal_moves> pseudolegal_moves;
-        size_t num_pseudolegal_moves = get_pseudolegal_moves<stype, is_white>(pseudolegal_moves);
+        gen_add_all_moves<pieces::queen, stype, is_white>(pseudolegal_moves, num_pseudolegal_moves, queen_bb, friendly_bb, enemy_bb, pi, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::bishop, stype, is_white>(pseudolegal_moves, num_pseudolegal_moves, bishop_bb, friendly_bb, enemy_bb, pi, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::rook, stype, is_white>(pseudolegal_moves, num_pseudolegal_moves, rook_bb, friendly_bb, enemy_bb, pi, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::king, stype, is_white>(pseudolegal_moves, num_pseudolegal_moves, king_bb, friendly_bb, enemy_bb, pi, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::knight, stype, is_white>(pseudolegal_moves, num_pseudolegal_moves, knight_bb, friendly_bb, enemy_bb, pi, ep_bb, castleinfo);
+        gen_add_all_moves<pieces::pawn, stype, is_white>(pseudolegal_moves, num_pseudolegal_moves, pawn_bb, friendly_bb, enemy_bb, pi, ep_bb, castleinfo);
+
         //  uint8_t opposite_color = turn_color ^ color_mask;
 
         size_t num_moves = 0;
-        for (size_t m = 0; m < num_pseudolegal_moves; m++) {  // For movechecker, we can have cheaper do_move
-                                                              // undo_move. Dont need to handle everything.
-                                                              // E.g. board could have a bitboard version only.
-                                                              // PERF: Implement method in Board that only does/undoes moves in the
-                                                              // bitboards for performance.
+        for (size_t m = 0; m < num_pseudolegal_moves; m++) {
             restore_move_info info = do_move<is_white>(pseudolegal_moves[m]);
             if (!king_checked<is_white>()) {
                 // PERF: Check how expensive this king_checked thing is. Is it worth the move
@@ -508,36 +550,6 @@ struct Board {
             undo_move<is_white>(info, pseudolegal_moves[m]);
             assert(board_BB_match());
         }
-        return num_moves;
-    }
-    /**
-     * @brief Get the all possible moves for specified player.
-     *
-     * @tparam stype of moves to generate
-     * @param[out] Array containing the moves
-     * @param[in] Color of player to find moves for.
-     * @param[in] en_passant bool flag for en passant
-     * @param[in] en_passant_sq square index containing en_passant square
-     * @param[in] castle_info integer containing information for castling.
-     * @return size_t Number of legal moves found.
-     */
-    template <search_type stype, bool is_white> size_t get_pseudolegal_moves(std::array<Move, max_legal_moves> &moves) const {
-        size_t num_moves = 0;
-        BB friendly_bb = occupancy<is_white>();
-        BB enemy_bb = occupancy<!is_white>();
-        BB queen_bb = get_piece_bb<pieces::queen, is_white>();
-        BB bishop_bb = get_piece_bb<pieces::bishop, is_white>();
-        BB rook_bb = get_piece_bb<pieces::rook, is_white>();
-        BB pawn_bb = get_piece_bb<pieces::pawn, is_white>();
-        BB king_bb = get_piece_bb<pieces::king, is_white>();
-        BB knight_bb = get_piece_bb<pieces::knight, is_white>();
-        uint64_t ep_bb = en_passant ? BitBoard::one_high(en_passant_square) : 0;
-        gen_add_all_moves<pieces::queen, stype, is_white>(moves, num_moves, queen_bb, friendly_bb, enemy_bb, ep_bb, castleinfo);
-        gen_add_all_moves<pieces::bishop, stype, is_white>(moves, num_moves, bishop_bb, friendly_bb, enemy_bb, ep_bb, castleinfo);
-        gen_add_all_moves<pieces::rook, stype, is_white>(moves, num_moves, rook_bb, friendly_bb, enemy_bb, ep_bb, castleinfo);
-        gen_add_all_moves<pieces::king, stype, is_white>(moves, num_moves, king_bb, friendly_bb, enemy_bb, ep_bb, castleinfo);
-        gen_add_all_moves<pieces::knight, stype, is_white>(moves, num_moves, knight_bb, friendly_bb, enemy_bb, ep_bb, castleinfo);
-        gen_add_all_moves<pieces::pawn, stype, is_white>(moves, num_moves, pawn_bb, friendly_bb, enemy_bb, ep_bb, castleinfo);
         return num_moves;
     }
     /**
@@ -810,10 +822,37 @@ struct Board {
      */
     template <Piece_t ptype, search_type stype, bool is_white>
     void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                           const uint64_t ep_bb, const uint8_t castleinfo) const {
+                           const pininfo pi, const uint64_t ep_bb, const uint8_t castleinfo) const {
         BitLoop(piece_bb) {
+            // Compute pins --------------------------
+            BB pin_mask = ~0;                      // mask of allowed squares due to pins
+            BB sqbb = BitBoard::lsb_bb(piece_bb);  // BB with only lsb.
+            if (pi.rook_pinmask & sqbb) {
+                // Need to find which piece is pinning us by looping through offending pieces
+                BB temp_rooks = pi.rook_pinners;
+                BitLoop(temp_rooks) {
+                    uint8_t pinnersq = BitBoard::lsb(temp_rooks);
+                    BB mask = rect_lookup[pi.kingloc][pinnersq];
+                    if (mask & sqbb) {  //
+                        pin_mask = mask;
+                        break;
+                    }
+                }
+            } else if (pi.bishop_pinmask & sqbb) {  // Cannot be both bishop & rook pinned.
+                BB temp_bishops = pi.bishop_pinners;
+                BitLoop(temp_bishops) {
+                    uint8_t pinnersq = BitBoard::lsb(temp_bishops);
+                    BB mask = rect_lookup[pi.kingloc][pinnersq];
+                    if (mask & sqbb) {  //
+                        pin_mask = mask;
+                        break;
+                    }
+                }
+            }  // End compute pins -----------------------
+
             uint8_t sq = BitBoard::lsb(piece_bb);
             uint64_t to_sqs = to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
+            to_sqs &= pin_mask;
             add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
         }
     }

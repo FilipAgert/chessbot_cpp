@@ -61,6 +61,8 @@ inline constexpr int bitcount(uint64_t bb) { return __builtin_popcountll(bb); }
  */
 inline constexpr int lsb(uint64_t bb) { return __builtin_ctzll(bb); }
 
+inline constexpr BB lsb_bb(uint64_t bb) { return bb & -bb; }
+
 inline constexpr uint64_t clear_lsb(uint64_t bb) { return bb & (bb - 1); }
 /**
  * @brief For each high bit in the input bitboard, clear it and repeatedly OR the outputs of an
