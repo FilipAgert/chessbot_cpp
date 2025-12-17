@@ -4,7 +4,7 @@
 using namespace dirs;
 using namespace masks;
 namespace magic {
-const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards = [] {  // precompute the magic bitboards;
+alignas(64) const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards = [] {  // precompute the magic bitboards;
     std::array<uint64_t, rook_magic_table_sz> rook_magic_bbs;
     for (int sq = 0; sq < 64; sq++) {
         std::array<uint64_t, max_size> occ, atk;
@@ -20,7 +20,7 @@ const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards = [] {  // 
     }
     return rook_magic_bbs;
 }();
-const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards = [] {  // precompute the magic bitboards;
+alignas(64) const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards = [] {  // precompute the magic bitboards;
     std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bbs;
     for (int sq = 0; sq < 64; sq++) {
         std::array<uint64_t, max_size> occ, atk;

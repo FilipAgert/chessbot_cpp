@@ -49,7 +49,7 @@ static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir) {
     uint64_t right = (board >> right_shift) & right_mask;
     return left | right;
 }
-static constexpr std::array<BB, 64> one_high_precomputed = [] {
+alignas(64) static constexpr std::array<BB, 64> one_high_precomputed = [] {
     std::array<BB, 64> local;
     for (int i = 0; i < 64; i++) {
         local[i] = 1ULL << i;
@@ -235,7 +235,7 @@ constexpr BB xray(const BB origin, const int dir, const BB occ) {
  * @param[in] from from square. not included in mask
  * @param[in] to to square. included in mask.
  */
-static constexpr std::array<std::array<BB, 64>, 64> rect_lookup = [] {
+alignas(64) static constexpr std::array<std::array<BB, 64>, 64> rect_lookup = [] {
     std::array<std::array<BB, 64>, 64> arr;
     arr.fill({0ULL});
     for (int i = 0; i < 64; i++) {

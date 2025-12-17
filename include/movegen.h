@@ -95,14 +95,14 @@ constexpr std::array<size_t, 64> bishop_magic_sizes = [] {
  * @brief the shift values used for each rook square. 64-#bits
  *
  */
-constexpr std::array<uint8_t, 64> rook_magic_shifts = [] {  // the shift value. saves a subtraction.
+alignas(64) constexpr std::array<uint8_t, 64> rook_magic_shifts = [] {  // the shift value. saves a subtraction.
     std::array<uint8_t, 64> rook_magic_shifts;
     for (int i = 0; i < 64; i++) {
         rook_magic_shifts[i] = 64 - rook_magic_sizes_bits[i];
     }
     return rook_magic_shifts;
 }();
-constexpr std::array<uint8_t, 64> bishop_magic_shifts = [] {  // the shift value. saves a subtraction.
+alignas(64) constexpr std::array<uint8_t, 64> bishop_magic_shifts = [] {  // the shift value. saves a subtraction.
     std::array<uint8_t, 64> bishop_magic_shifts;
     for (int i = 0; i < 64; i++) {
         bishop_magic_shifts[i] = 64 - bishop_magic_sizes_bits[i];
@@ -114,7 +114,7 @@ constexpr std::array<uint8_t, 64> bishop_magic_shifts = [] {  // the shift value
  * to start its indexing from.
  *
  */
-constexpr std::array<size_t, 64> rook_magic_offsets = [] {
+alignas(64) constexpr std::array<size_t, 64> rook_magic_offsets = [] {
     std::array<size_t, 64> offsets;
     offsets[0] = 0;
     for (int i = 1; i < 64; i++) {
@@ -122,7 +122,7 @@ constexpr std::array<size_t, 64> rook_magic_offsets = [] {
     }
     return offsets;
 }();  // ofset for 1d flattened array
-constexpr std::array<size_t, 64> bishop_magic_offsets = [] {
+alignas(64) constexpr std::array<size_t, 64> bishop_magic_offsets = [] {
     std::array<size_t, 64> offsets;
     offsets[0] = 0;
     for (int i = 1; i < 64; i++) {
@@ -141,24 +141,24 @@ constexpr size_t bishop_magic_table_sz = bishop_magic_offsets[63] + bishop_magic
  * @brief All rook magic numbers.
  *
  */
-constexpr std::array<uint64_t, 64> rook_magics = {36029072008052753,   2540030258560638976, 36037730559463424,   4935967732257525760,  // 4
-                                                  36033195099553920,   72066398737662976,   144119758021722753,  972780268429517568,   // 8
-                                                  4611826757832540298, 1730578526099210434, 36310409438826760,   2308235752674689408,  // 12
-                                                  2306124505668388864, 288793403415594248,  441634255655690752,  140738721480960,      // 16
-                                                  306247523444499840,  4503874511569104,    704237734760448,     216314070029176832,   // 20
-                                                  2305984297598715904, 72198881349206529,   3179554531207876610, 2314861203595219973,  // 24
-                                                  180144295406215168,  72234069953347848,   4692751087674853376, 1801527816175550472,  // 28
-                                                  162701336927039744,  3387832828312948744, 144117404279083048,  144116571055358985,   // 32
-                                                  144258399473762592,  18049618352803840,   4616331661221568512, 126383432790974506,   // 36
-                                                  9151252466239488,    2305983763890315776, 2266128965435920,    577305728096666372,   // 40
-                                                  36028934604734464,   22518135580016656,   40567585314504768,   589971585546354816,   // 44
-                                                  290271136874624,     3941749252751496,    72357236743340040,   4645437843832836,     // 48
-                                                  4035224604685392384, 5440347568166424064, 3728980139268581888, 351280590542771712,   // 52
-                                                  7755197639194824192, 155374144193791488,  360429197304463488,  35463555711488,       // 56
-                                                  10698321205149826,   81346406815903874,   4683770138187567365, 1153203598060947461,  // 60
-                                                  9288683101620225,    5066601137704962,    11259592043071492,   694842971333599362};  // 64
-                                                                                                                                       //
-constexpr std::array<uint64_t, 64> bishop_magics = {
+alignas(64) constexpr std::array<uint64_t, 64> rook_magics = {36029072008052753,   2540030258560638976, 36037730559463424,   4935967732257525760,  // 4
+                                                              36033195099553920,   72066398737662976,   144119758021722753,  972780268429517568,   // 8
+                                                              4611826757832540298, 1730578526099210434, 36310409438826760,   2308235752674689408,  // 12
+                                                              2306124505668388864, 288793403415594248,  441634255655690752,  140738721480960,      // 16
+                                                              306247523444499840,  4503874511569104,    704237734760448,     216314070029176832,   // 20
+                                                              2305984297598715904, 72198881349206529,   3179554531207876610, 2314861203595219973,  // 24
+                                                              180144295406215168,  72234069953347848,   4692751087674853376, 1801527816175550472,  // 28
+                                                              162701336927039744,  3387832828312948744, 144117404279083048,  144116571055358985,   // 32
+                                                              144258399473762592,  18049618352803840,   4616331661221568512, 126383432790974506,   // 36
+                                                              9151252466239488,    2305983763890315776, 2266128965435920,    577305728096666372,   // 40
+                                                              36028934604734464,   22518135580016656,   40567585314504768,   589971585546354816,   // 44
+                                                              290271136874624,     3941749252751496,    72357236743340040,   4645437843832836,     // 48
+                                                              4035224604685392384, 5440347568166424064, 3728980139268581888, 351280590542771712,   // 52
+                                                              7755197639194824192, 155374144193791488,  360429197304463488,  35463555711488,       // 56
+                                                              10698321205149826,   81346406815903874,   4683770138187567365, 1153203598060947461,  // 60
+                                                              9288683101620225,    5066601137704962,    11259592043071492,   694842971333599362};  // 64
+                                                                                                                                                   //
+alignas(64) constexpr std::array<uint64_t, 64> bishop_magics = {
     1234162236956690960, 613633058599437316,  2310418085823643872, 4614045708893316130, 299342076575745,     11303015101244544,   360572812689408000,
     4821362919080576,    36204757568758784,   576619640334320002,  576478357412315272,  4415234768897,       2207881987072,       3661382950094464,
     1152995253510226208, 4720494041334039041, 3606267434728686123, 1748522692899864874, 563018681831680,     2286988547915808,    2450244173929384064,
@@ -380,8 +380,8 @@ inline constexpr int get_bishop_magic_idx(const uint8_t sq, const uint64_t occ) 
  * @brief Table of rook magic bitboards. Indexed by the function get_rook_magic_idx
  *
  */
-extern const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards;
-extern const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards;
+alignas(64) extern const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards;
+alignas(64) extern const std::array<uint64_t, bishop_magic_table_sz> bishop_magic_bitboards;
 /**
  * @brief Gets all the squares the rook can reach from the given position given an occupancy of the
  * board stored in the occ bitboard. Needs to be masked with friendly pieces to not capture them.
@@ -473,9 +473,9 @@ constexpr uint64_t knight_atk_sq(const uint8_t sq) {
     uint64_t knight_bb = BitBoard::one_high(sq);
     return knight_atk_bb(knight_bb);
 }
-constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
+alignas(64) constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, king_atk_sq>();
-constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
+alignas(64) constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, knight_atk_sq>();
 
 }  // namespace internal
