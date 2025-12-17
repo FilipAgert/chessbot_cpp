@@ -198,6 +198,12 @@ TEST(perft, p6) {
         ASSERT_EQ(expected, num_moves);
     }
 }
+TEST(perft, ep_remove_check) {
+    std::string starting_fen = "8/8/3p4/1Pp4r/1K3p2/6k1/4P1P1/1R6 w - c6 0 3";
+    int num_moves = movegen_benchmark::gen_num_moves(starting_fen, 1);
+    size_t expected = 7;
+    ASSERT_EQ(expected, num_moves);
+}
 TEST(Movegentest, gen_moves) {
     Board board;
     std::string starting_fen = NotationInterface::starting_FEN();
