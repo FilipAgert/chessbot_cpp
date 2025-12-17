@@ -17,9 +17,9 @@ int movegen_benchmark::gen_num_moves(std::string FEN, int depth, int print_depth
 int movegen_benchmark::gen_num_moves(Board state, int depth, int print_depth) {
     bool is_white = state.get_turn_color() == pieces::white;
     if (is_white)
-        return recurse_moves<true>(state, print_depth, 0, depth);
+        return recurse_moves<true>(state, print_depth, 1, depth);
     else
-        return recurse_moves<false>(state, print_depth, 0, depth);
+        return recurse_moves<false>(state, print_depth, 1, depth);
 }
 std::array<std::array<Move, max_legal_moves>, 32> movegen_benchmark::move_arr;
 template <bool is_white> int movegen_benchmark::recurse_moves(Board state, int print_depth, int curr_depth, int to_depth) {
