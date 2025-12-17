@@ -24,22 +24,20 @@ struct restore_move_info {
 };
 struct Board {
  private:
+    std::array<Piece, 64> game_board;
+    BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king, white_pieces;
+    BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king, black_pieces;
+    int full_moves;
     uint8_t castleinfo = err_val8;
     uint8_t turn_color = err_val8;  // 0b01000 for white 0b10000 for black
-    bool en_passant = false;
     uint8_t en_passant_square = 0;
     uint8_t check = 0;  // 0 For no check, white for white checked, black for black checked.
-
     uint8_t ply_moves;
-    int full_moves;
-    std::array<Piece, 64> game_board;
+    bool en_passant = false;
     // Color                 W          B
     // Bitboards: Pieces: [9-14]   [17-22].
     //            Attack: 15         23
     //            All p : 8          16
-
-    BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king, white_pieces;
-    BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king, black_pieces;
 
  public:
     Board();
