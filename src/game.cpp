@@ -167,8 +167,7 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     }
 
     // Handle if king is checked or no moves can be made.
-    std::array<Move, max_legal_moves> moves;
-    int num_moves = board.get_moves<normal_search, is_white>(moves);
+    int num_moves = board.get_moves<normal_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (num_moves == 0) {
         const int MATE_SCORE = 30000;
@@ -180,12 +179,12 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     }
     // End mate and draws.
 
-    MoveOrder::apply_move_sort<is_white>(moves, num_moves, first_move, board);
+    MoveOrder::apply_move_sort<is_white>(move_arr[ply], num_moves, first_move, board);
     // Normal move generation.
     //
     for (int i = movelb; i < num_moves; i++) {
-        make_move<is_white>(moves[i]);
-        int extension = calculate_extension<!is_white>(moves[i], num_extensions);
+        make_move<is_white>(move_arr[ply][i]);
+        int extension = calculate_extension<!is_white>(move_arr[ply][i], num_extensions);
 
         int eval = -alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         undo_move<is_white>();
@@ -199,7 +198,7 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
         }
         if (eval > bestscore) {
             bestscore = eval;
-            best_curr_move = moves[i];
+            best_curr_move = move_arr[ply][i];
             atleast_one_move_searched = true;
         }
         if (eval >= beta) {  // FAIL HIGH.
@@ -233,14 +232,13 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     alpha = std::max(alpha, eval);
 
     // Handle if king is checked or no moves can be made.
-    std::array<Move, max_legal_moves> moves;
-    int num_moves = board.get_moves<quiesence_search, is_white>(moves);
+    int num_moves = board.get_moves<quiesence_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
 
-    MoveOrder::apply_move_sort<is_white>(moves, num_moves, board);
+    MoveOrder::apply_move_sort<is_white>(move_arr[ply], num_moves, board);
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
-        make_move<is_white>(moves[i]);
+        make_move<is_white>(move_arr[ply][i]);
         eval = -quiesence<!is_white>(ply + 1, -beta, -alpha);
         undo_move<is_white>();
         if (time_manager->get_should_stop()) {

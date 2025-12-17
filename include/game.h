@@ -138,7 +138,7 @@ class Game {
     std::queue<InfoMsg> info_queue;
 
  private:
-    std::array<std::array<Move, max_legal_moves>, 256> move_arr;
+    std::array<std::array<Move, max_legal_moves>, 64> move_arr;
     std::stack<Move> move_stack;
     std::stack<restore_move_info> restore_info_stack;
     /**
