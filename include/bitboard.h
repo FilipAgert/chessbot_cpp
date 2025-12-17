@@ -48,9 +48,16 @@ static inline constexpr uint64_t shift_bb(const uint64_t board, const int dir) {
     uint64_t right = (board >> right_shift) & right_mask;
     return left | right;
 }
+static constexpr std::array<BB, 64> one_high_precomputed = [] {
+    std::array<BB, 64> local;
+    for (int i = 0; i < 64; i++) {
+        local[i] = 1ULL << i;
+    }
+    return local;
+}();
 [[nodiscard("The return value should be handled as a uint64_t.")]]
-constexpr uint64_t one_high(uint8_t sq) {
-    return 1ULL << sq;
+constexpr inline uint64_t one_high(uint8_t sq) {
+    return one_high_precomputed[sq];
 }
 inline constexpr int bitcount(uint64_t bb) { return __builtin_popcountll(bb); }
 /**
