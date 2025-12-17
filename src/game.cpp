@@ -243,6 +243,9 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
         make_move<is_white>(moves[i]);
         eval = -quiesence<!is_white>(ply + 1, -beta, -alpha);
         undo_move<is_white>();
+        if (time_manager->get_should_stop()) {
+            return 0;
+        }
         if (eval >= beta)
             return beta;
         alpha = std::max(eval, alpha);
