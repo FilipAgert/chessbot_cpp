@@ -953,8 +953,36 @@ struct Board {
      * @param[in] to index of to square
      */
     template <bool is_white, Piece_t piece> constexpr inline void bb_move(const uint8_t from, const uint8_t to) {
-        bb_remove<is_white, piece>(from);
-        bb_add<is_white, piece>(to);
+        BB change = BitBoard::one_high(from) | BitBoard::one_high(to);
+        if constexpr (is_white) {
+            white_pieces ^= change;
+            if constexpr (piece == pieces::pawn)
+                white_pawns ^= change;
+            else if constexpr (piece == pieces::bishop)
+                white_bishops ^= change;
+            else if constexpr (piece == pieces::rook)
+                white_rooks ^= change;
+            else if constexpr (piece == pieces::knight)
+                white_knights ^= change;
+            else if constexpr (piece == pieces::queen)
+                white_queen ^= change;
+            else if constexpr (piece == pieces::king)
+                white_king ^= change;
+        } else {
+            black_pieces ^= change;
+            if constexpr (piece == pieces::pawn)
+                black_pawns ^= change;
+            else if constexpr (piece == pieces::bishop)
+                black_bishops ^= change;
+            else if constexpr (piece == pieces::rook)
+                black_rooks ^= change;
+            else if constexpr (piece == pieces::knight)
+                black_knights ^= change;
+            else if constexpr (piece == pieces::queen)
+                black_queen ^= change;
+            else if constexpr (piece == pieces::king)
+                black_king ^= change;
+        }
     }
     /**
      * @brief Handles removing piece on bitboard.
