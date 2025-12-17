@@ -64,6 +64,7 @@ std::optional<transposition_entry> transposition_table::get(uint64_t hash) {
         hits++;
         maybe = std::make_optional(curr);
     } else {
+        std::cout << curr.eval << std::endl;
         maybe = {};
         misses++;
         if (curr.hash != 0) {
