@@ -73,9 +73,13 @@ run:
 	cd $(DEXE); \
 	./$(EXE)
 
-# Run all tests
+# Compile tests
 test: $(DEXE)/$(TEST_EXE)
-	./$(DEXE)/$(TEST_EXE)  # Run the test executable
+
+filter?="*"
+# runtests
+runtest: $(DEXE)/$(TEST_EXE)
+	./$(DEXE)/$(TEST_EXE) --gtest_filter="$(filter)"
 
 magic: $(DEXE)/$(MAGIC_EXE)
 	./$(DEXE)/$(MAGIC_EXE)
