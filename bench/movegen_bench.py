@@ -13,7 +13,7 @@ import numpy as np
 # --- Configuration ---
 SCOREBOARD_FILE = "bench/performance_scoreboard.json"
 NUM_RUNS = 10  # Number of times to run the test PER FEN
-BENCHMARK_DEPTHS = [5]  # Search depth for the benchmark
+BENCHMARK_DEPTHS = [4]  # Search depth for the benchmark
 NUM_THREADS = 1  # Number of threads to use (pass to the executable)
 AI_EXECUTABLE_PATH = "./bin/filipbot"
 FEN_CONFIG_FILE = "bench/fen_benchmarks.txt"  # File containing FENs for benchmarking

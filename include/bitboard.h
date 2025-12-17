@@ -6,11 +6,12 @@
 #include <array>
 #include <bitset>
 #include <cstdint>
+#include <immintrin.h>
 #include <iostream>
 #include <notation_interface.h>
 #include <string>
 namespace BitBoard {
-#define BitLoop(X) for (; X; X = X & (X - 1))  // The bitloop iterates over a bitboard, repeatedly clearing the LSB.
+#define BitLoop(X) for (; X; X = _blsr_u64(X))  // The bitloop iterates over a bitboard, repeatedly clearing the LSB.
 #define BB uint64_t
 
 /** \
@@ -66,11 +67,11 @@ inline constexpr int bitcount(uint64_t bb) { return __builtin_popcountll(bb); }
  * @param[in] bb Bitboard
  * @return lsb index
  */
-inline constexpr int lsb(uint64_t bb) { return __builtin_ctzll(bb); }
+inline constexpr int lsb(uint64_t bb) { return _tzcnt_u64(bb); }
 
 inline constexpr BB lsb_bb(uint64_t bb) { return bb & -bb; }
 
-inline constexpr uint64_t clear_lsb(uint64_t bb) { return bb & (bb - 1); }
+inline constexpr uint64_t clear_lsb(uint64_t bb) { return _blsr_u64(bb); }
 /**
  * @brief For each high bit in the input bitboard, clear it and repeatedly OR the outputs of an
  * input function. return result

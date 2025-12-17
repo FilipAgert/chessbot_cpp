@@ -15,11 +15,11 @@ MAKEFLAGS+= -j$(NPROCS)
 
 type?=dev
 ifeq ($(type), release)
-	FLAGS = -Wall -std=c++23 -O3 -DNDEBUG
+	FLAGS = -Wall -std=c++23 -O3 -DNDEBUG -march=native
 else ifeq ($(type), dev)
-	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast
+	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast -march=native
 else ifeq ($(type), perft)
-	FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG
+	FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG -march=native
 else
 	$(error Invalid value for type: '$(type)'. Must be 'release', 'dev' or 'perft'.)
 endif
