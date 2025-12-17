@@ -573,37 +573,11 @@ struct Board {
             // This can be done by popping bits in the pinning_rooks BB / pinning_bishops BB, checking if this BB is between this piece and the king.
             // If it is, the piece is only allowed to move between king and the pinee.
 
-            std::array<Move, max_legal_moves> pseudolegal_moves;
-            gen_add_all_moves<pieces::queen, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, queen_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                     castleinfo, king_attackers);
-            gen_add_all_moves<pieces::bishop, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, bishop_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                      castleinfo, king_attackers);
-            gen_add_all_moves<pieces::rook, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, rook_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                    castleinfo, king_attackers);
-            gen_add_all_moves<pieces::knight, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, knight_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                      castleinfo, king_attackers);
-            gen_add_all_moves<pieces::pawn, stype, ctype, is_white>(pseudolegal_moves, num_pseudolegal_moves, pawn_bb, friendly_bb, enemy_bb, pi, ep_bb,
-                                                                    castleinfo, king_attackers);
-
-            //  uint8_t opposite_color = turn_color ^ color_mask;
-
-            // Only EP move needs to be tested.
-            // All other moves are taken care of by:
-            // Pins.
-            // King cannot walk into attacker bb.
-            for (size_t m = 0; m < num_pseudolegal_moves; m++) {
-                restore_move_info info = do_move<is_white>(pseudolegal_moves[m]);
-                if (!king_checked<is_white>()) {
-                    // PERF: Check how expensive this king_checked thing is. Is it worth the move
-                    // ordering benefit?
-                    // bool opponent_checked = board.king_checked(opposite_color);
-                    // pseudolegal_moves[m].check = opponent_checked;
-                    moves[num_moves++] = pseudolegal_moves[m];
-                }
-                assert(board_BB_match());
-                undo_move<is_white>(info, pseudolegal_moves[m]);
-                assert(board_BB_match());
-            }
+            gen_add_all_moves<pieces::queen, stype, ctype, is_white>(moves, num_moves, queen_bb, friendly_bb, enemy_bb, pi, ep_bb, king_attackers);
+            gen_add_all_moves<pieces::bishop, stype, ctype, is_white>(moves, num_moves, bishop_bb, friendly_bb, enemy_bb, pi, ep_bb, king_attackers);
+            gen_add_all_moves<pieces::rook, stype, ctype, is_white>(moves, num_moves, rook_bb, friendly_bb, enemy_bb, pi, ep_bb, king_attackers);
+            gen_add_all_moves<pieces::knight, stype, ctype, is_white>(moves, num_moves, knight_bb, friendly_bb, enemy_bb, pi, ep_bb, king_attackers);
+            gen_add_all_moves<pieces::pawn, stype, ctype, is_white>(moves, num_moves, pawn_bb, friendly_bb, enemy_bb, pi, ep_bb, king_attackers);
             return num_moves;
         }
     }
@@ -817,8 +791,7 @@ struct Board {
      * calling this routine
      * @param[in] from from square.
      */
-    template <bool is_white, Piece_t type>
-    void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) const {
+    template <bool is_white, Piece_t type> void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) {
         constexpr uint8_t friendly_longsq = is_white ? 0 : 56;
         constexpr uint8_t friendly_shortsq = is_white ? 7 : 63;
         BitLoop(to_bb) {
@@ -835,6 +808,14 @@ struct Board {
                 } else {
                     if (lsb == en_passant_square) {
                         flag = moveflag::MOVEFLAG_pawn_ep_capture;
+                        // Need to check for if move is legal or not.
+                        Move testmove = Move(from, lsb, flag);
+                        auto info = do_move<is_white, pieces::pawn, moveflag::MOVEFLAG_pawn_ep_capture, pieces::none>(testmove);
+                        bool iskingcheck = king_checked<is_white>();
+                        undo_move<is_white>(info, testmove);
+                        if (iskingcheck)
+                            continue;
+
                     } else if (abs(static_cast<int>(from) - static_cast<int>(lsb)) == 16) {
                         flag = moveflag::MOVEFLAG_pawn_double_push;
                     }
@@ -878,12 +859,21 @@ struct Board {
      */
     template <Piece_t ptype, search_type stype, check_type ctype, bool is_white>
     void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
-                           const pininfo pi, const uint64_t ep_bb, const uint8_t castleinfo, const BB king_attacker) const {
+                           const pininfo pi, const uint64_t ep_bb, const BB king_attacker) {
         BB checker_mask = ~0;
         if constexpr (ctype.slider_check) {
             checker_mask = rect_lookup[pi.kingloc][BitBoard::lsb(king_attacker)];  // Allowed to go in between, or to capture
-        } else {
+        } else if constexpr (ctype.one_check) {
             checker_mask = king_attacker;  // allowed to capture.
+            //
+            // Special case: the king attacker might be a pawn which can be captured en_passant.
+            if constexpr (ptype == pieces::pawn) {
+                checker_mask |= ep_bb;
+                // Sometimes will evaluate an en passant capture does not capture a checking pawn. Most of the time. However, I think that the cost of this
+                // extra check is lower than the if-else statements of checking if it is a pawn that is checking the king.
+                // The only case where an en-passant leads to a check is either the pawn checks, or its a discovered check.
+                //
+            }
         }
         BitLoop(piece_bb) {
             // Compute pins --------------------------
@@ -915,6 +905,9 @@ struct Board {
             uint8_t sq = BitBoard::lsb(piece_bb);
             uint64_t to_sqs = to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
             to_sqs &= pin_mask;
+            if constexpr (ctype.one_check || ctype.slider_check) {
+                to_sqs &= checker_mask;
+            }
             add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
         }
     }
