@@ -24,8 +24,7 @@ void ZobroistHasher::randomize_local_vars() {
     }
     black_number = rand_uint64_t();
 }
-template <Piece_t p, bool is_white>
-void ZobroistHasher::hash_piece(uint64_t &hash, const Board &board) {
+template <Piece_t p, bool is_white> void ZobroistHasher::hash_piece(uint64_t &hash, const Board &board) {
     BB piece_bb = board.get_piece_bb<p, is_white>();
     constexpr uint8_t key = piece_key<p, is_white>();
     BitLoop(piece_bb) {
@@ -73,4 +72,4 @@ std::optional<transposition_entry> transposition_table::get(uint64_t hash) {
     }
     return maybe;
 }
-int transposition_table::load_factor() const { return (overwrites * 1000) / writes; }
+int transposition_table::load_factor() const { return writes > 0 ? (overwrites * 1000) / writes : 0; }
