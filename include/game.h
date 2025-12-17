@@ -64,8 +64,7 @@ class Game {
      * @param[in] num_extensions - number of move extensions performed so far
      * @return Score of current state.
      */
-    template <bool is_root, bool is_white>
-    int alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
+    template <bool is_root, bool is_white> int alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
     /**
      * @brief Quiesence search. Only evaluates captures
      * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
@@ -139,6 +138,7 @@ class Game {
     std::queue<InfoMsg> info_queue;
 
  private:
+    std::array<std::array<Move, max_legal_moves>, 256> move_arr;
     std::stack<Move> move_stack;
     std::stack<restore_move_info> restore_info_stack;
     /**
