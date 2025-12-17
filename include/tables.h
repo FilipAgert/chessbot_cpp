@@ -202,17 +202,15 @@ struct transposition_table {
      */
     std::optional<transposition_entry> get(uint64_t hash);
 
-    inline void set(transposition_entry entry) {
-        size_t key = get_key(entry.hash);
+    inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
+        assert(bestmove.source != bestmove.target);
+        uint64_t shifted_hash = (hash >> transposition_entry::shift_hash);
+        size_t key = get_key(hash);
         writes++;
         if (arr[key].nodetype != transposition_entry::invalid) {
             overwrites++;
         }
-        arr[key] = entry;
-    }
-    inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
-        assert(bestmove.source != bestmove.target);
-        set({(hash >> transposition_entry::shift_hash), nodetype, depth, eval, bestmove});
+        arr[key] = {shifted_hash, nodetype, depth, eval, bestmove};
     }
     /**
      * @brief Gets if the entry provided is

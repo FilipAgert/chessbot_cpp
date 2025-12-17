@@ -60,11 +60,10 @@ std::optional<transposition_entry> transposition_table::get(uint64_t hash) {
     size_t key = get_key(hash);
     transposition_entry curr = arr[key];
     std::optional<transposition_entry> maybe;
-    if (curr.hash == hash && curr.nodetype != transposition_entry::invalid) {
+    if (curr.hash == (hash >> transposition_entry::shift_hash) && curr.nodetype != transposition_entry::invalid) {
         hits++;
         maybe = std::make_optional(curr);
     } else {
-        std::cout << curr.eval << std::endl;
         maybe = {};
         misses++;
         if (curr.hash != 0) {

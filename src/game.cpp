@@ -168,7 +168,7 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
 
     // Handle if king is checked or no moves can be made.
     std::array<Move, max_legal_moves> moves;
-    int num_moves = board.get_moves<quiesence_search, is_white>(moves);
+    int num_moves = board.get_moves<normal_search, is_white>(moves);
     moves_generated += num_moves;
     if (num_moves == 0) {
         const int MATE_SCORE = 30000;
