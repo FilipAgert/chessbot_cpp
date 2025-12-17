@@ -153,6 +153,8 @@ struct Board {
     template <bool white_to_move> restore_move_info constexpr inline do_move(Move &move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
+        [[assume(moved >= 1 && moved <= 6)]];
+        [[assume(move.flag >= 0 && move.flag <= 11)]];
         switch (moved) {
         case pieces::pawn:
             switch (move.flag) {
@@ -201,11 +203,7 @@ struct Board {
             }
             break;
         default:
-            std::cerr << "Error: Piece moved must not be none: " << (int)moved << std::endl;
-            std::cerr << "Move: " << move.toString() << std::endl;
-            Display_board();
-            throw std::runtime_error("moved none piece");
-            exit(EXIT_FAILURE);
+            __builtin_unreachable();
         }
     }
     /**
@@ -220,6 +218,7 @@ struct Board {
      */
     template <bool white_to_move, Piece_t moved, Flag_t flag> restore_move_info constexpr inline do_move(Move &move) {
         Piece_t captured = get_piece_at(move.target).get_type();
+        [[assume(captured >= 0 && captured <= 6 && captured != 1)]];
         switch (captured) {
         case pieces::none:
             return do_move<white_to_move, moved, flag, pieces::none>(move);
@@ -234,9 +233,7 @@ struct Board {
         case pieces::queen:
             return do_move<white_to_move, moved, flag, pieces::queen>(move);
         default:
-            std::cout << "pieceval: " << (int)captured << std::endl;
-            throw std::runtime_error("Should not be allowed to capture a king.");
-            return {};
+            __builtin_unreachable();
         }
     }
 
@@ -418,6 +415,7 @@ struct Board {
         change_turn();
         Piece_t captured = info.captured;
 
+        [[assume(move.flag >= 0 && move.flag <= 11)]];
         switch (move.flag) {
         case moveflag::MOVEFLAG_silent:
             undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
@@ -1086,6 +1084,7 @@ struct Board {
 
     template <bool white_moved, Flag_t flag> constexpr void undo_move(const Move move, const Piece_t captured) {
         Piece_t moved = get_piece_at(move.target).get_type();
+        [[assume(moved >= 1 && moved <= 6)]];
         switch (moved) {
         case pieces::pawn:
             undo_move<white_moved, pieces::pawn, flag>(move, captured);
@@ -1106,12 +1105,11 @@ struct Board {
             undo_move<white_moved, pieces::king, flag>(move, captured);
             break;
         default:
-            std::cout << "pieceval: " << (int)moved << std::endl;
-            throw std::runtime_error("Piece moved must not be none");
-            break;
+            __builtin_unreachable();
         }
     }
     template <bool white_moved, Piece_t piece, Flag_t flag> constexpr void undo_move(const Move move, const Piece_t captured) {
+        [[assume(captured >= 0 && captured <= 6 && captured != 1)]];
         switch (captured) {
         case pieces::none:
             undo_move<white_moved, piece, flag, pieces::none>(move);
@@ -1132,9 +1130,7 @@ struct Board {
             undo_move<white_moved, piece, flag, pieces::queen>(move);
             break;
         default:
-            std::cout << "pieceval: " << (int)captured << std::endl;
-            throw std::runtime_error("Should not be allowed to capture a king.");
-            break;
+            __builtin_unreachable();
         }
     }
 };
