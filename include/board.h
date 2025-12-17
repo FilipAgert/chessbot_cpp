@@ -118,7 +118,7 @@ struct Board {
         switch (moved) {
         case pieces::pawn:
             // Check for ep...
-            if (move.target == en_passant_square)
+            if (move.target == en_passant_square && en_passant_square != 0)
                 move.flag = moveflag::MOVEFLAG_pawn_ep_capture;
 
             if constexpr (white_to_move) {
