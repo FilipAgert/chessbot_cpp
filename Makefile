@@ -11,7 +11,7 @@ MAGIC_EXE = gen_magics
 
 #compile in parallel
 NPROCS:= $(SHELL grep -c 'processor' /proc/cpuinfo)
-MAKEFLAGS+= -j$(NPROCS)
+MAKEFLAGS+= -j4
 
 type?=dev
 ifeq ($(type), release)
