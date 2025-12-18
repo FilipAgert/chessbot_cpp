@@ -109,7 +109,7 @@ struct Board {
      * @param[in] move move to flag
      * @return restore_move_info
      */
-    template <bool white_to_move> restore_move_info do_move_no_flag(Move &move) {
+    template <bool white_to_move> restore_move_info do_move_no_flag(Move move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         assert(moved != pieces::none);
@@ -148,7 +148,7 @@ struct Board {
 
         return do_move<white_to_move>(move);
     }
-    template <bool white_to_move> restore_move_info constexpr inline do_move(Move &move) {
+    template <bool white_to_move> restore_move_info constexpr inline do_move(Move move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         [[assume(moved >= 1 && moved <= 6)]];
@@ -214,7 +214,7 @@ struct Board {
      * @param[[TODO:direction]] captured [TODO:description]
      * @return [TODO:description]
      */
-    template <bool white_to_move, Piece_t moved, Flag_t flag> restore_move_info constexpr inline do_move(Move &move) {
+    template <bool white_to_move, Piece_t moved, Flag_t flag> restore_move_info constexpr inline do_move(Move move) {
         Piece_t captured = get_piece_at(move.target).get_type();
         [[assume(captured >= 0 && captured <= 6 && captured != 1)]];
         switch (captured) {
@@ -268,7 +268,7 @@ struct Board {
      * @param[[TODO:direction]] move [TODO:description]
      * @return [TODO:description]
      */
-    template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured> restore_move_info constexpr inline do_move(Move &move) {
+    template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured> restore_move_info constexpr inline do_move(Move move) {
         if constexpr (captured == pieces::none && moved != pieces::pawn)
             ply_moves += 1;
         else
