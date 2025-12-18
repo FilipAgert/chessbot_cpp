@@ -18,11 +18,11 @@ constexpr uint8_t manhattan(uint8_t sq1, uint8_t sq2) {
     r2 = NotationInterface::row(sq2);
     c1 = NotationInterface::col(sq1);
     c2 = NotationInterface::col(sq2);
-    int rdist =  static_cast<int>(r1) - static_cast<int>(r2);
+    int rdist = static_cast<int>(r1) - static_cast<int>(r2);
     rdist = rdist < 0 ? -rdist : rdist;
     int cdist = static_cast<int>(c1) - static_cast<int>(c2);
-    cdist = cdist < 0 ? - cdist : cdist;
-    return rdist+cdist;
+    cdist = cdist < 0 ? -cdist : cdist;
+    return rdist + cdist;
 }
 constexpr std::array<uint8_t, 64> dist2centre = [] {
     constexpr std::array<uint8_t, 4> centre_squares = {27, 28, 35, 36};
@@ -71,9 +71,7 @@ class EvalState {
      * @param[in] num_pieces Number of pieces and pawns
      * @return Game phase. 0 is early game and 1 is end game
      */
-    constexpr static float eval_game_phase(const int num_pieces) {
-        return 1. - (num_pieces - 1.) / 15.;
-    }
+    constexpr static float eval_game_phase(const int num_pieces) { return 1. - (num_pieces - 1.) / 15.; }
 
     /**
      * @brief Score for pawn structure. Passed pawns, unprotected pawns, blocking pawns, etc.
@@ -94,8 +92,7 @@ static constexpr int queen = 900;
 static constexpr int bishop_double_bonus = 25;
 static constexpr std::array<int, 7> piecevals = {0, king, queen, rook, knight, bishop, pawn};
 
-static constexpr int inv_frac =
-    10;  // Fraction of extra value piece is worth extra from having more spaces to move to.
+static constexpr int inv_frac = 10;  // Fraction of extra value piece is worth extra from having more spaces to move to.
 // Formula is : piece_val * num_moves / max_possible_moves * frac
 static constexpr int pawn_moveval = 0;
 static constexpr int knight_moveval = knight / (8 * inv_frac);
@@ -103,10 +100,9 @@ static constexpr int bishop_moveval = bishop / (14 * inv_frac);
 static constexpr int rook_moveval = rook / (14 * inv_frac);
 static constexpr int queen_moveval = 0;
 static constexpr int king_moveval = -6;
-static constexpr std::array<int, 7> movevals = {
-    0, king_moveval, queen_moveval, rook_moveval, knight_moveval, bishop_moveval, pawn_moveval};
+static constexpr std::array<int, 7> movevals = {0, king_moveval, queen_moveval, rook_moveval, knight_moveval, bishop_moveval, pawn_moveval};
 
-static constexpr int king_dist2centre_value = 20;  // 20 per distance.
+static constexpr int king_dist2centre_value = 5;
 //
 static constexpr int passed_pawn_eval = 30;
 static constexpr int doubled_pawn_punishment = -15;
