@@ -108,7 +108,7 @@ struct Board {
      * @param[in] move move to flag
      * @return restore_move_info
      */
-    template <bool white_to_move> restore_move_info do_move_no_flag(Move move) {
+    template <bool white_to_move> restore_move_info do_move_no_flag(Move & move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         assert(moved != pieces::none);
