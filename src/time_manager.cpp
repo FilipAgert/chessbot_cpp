@@ -7,16 +7,10 @@
 
 using namespace std::chrono;
 bool TimeManager::get_should_stop() const { return should_stop.load(); }
-bool TimeManager::get_should_start_new_iteration() const {
-    return should_start_next_iteration.load();
-}
+bool TimeManager::get_should_start_new_iteration() const { return should_start_next_iteration.load(); }
 void TimeManager::set_should_stop(bool stop_flag) { should_stop.store(stop_flag); }
-void TimeManager::set_should_start_next_iteration(bool start_flag) {
-    should_start_next_iteration.store(start_flag);
-}
-int TimeManager::get_time_elapsed() const {
-    return calculate_time_elapsed_ms();
-}  // return time_elapsed.load(); }
+void TimeManager::set_should_start_next_iteration(bool start_flag) { should_start_next_iteration.store(start_flag); }
+int TimeManager::get_time_elapsed() const { return calculate_time_elapsed_ms(); }  // return time_elapsed.load(); }
 
 void TimeManager::start_time_management() {
     int64_t target_time = calculate_target_move_time_ms();
@@ -31,8 +25,7 @@ int64_t TimeManager::calculate_target_move_time_ms() {
     if (this->infinite) {
         return -1;
     } else {
-        int64_t base_time =
-            remtime / this->remtime_frac;  // Use up 1/20th of the remaining time plus increment.
+        int64_t base_time = remtime / this->remtime_frac;  // Use up 1/20th of the remaining time plus increment.
 
         target_time = base_time + inc - buffer;
     }
@@ -67,6 +60,7 @@ void TimeManager::time_loop_function(int64_t target_move_time_ms) {
 void TimeManager::stop_and_join() {
     // Ensure the stop flag is set so the time_loop_function will break its 'while(true)' loop.
     this->set_should_stop(true);
+    this->set_should_start_next_iteration(false);
 
     // Wait for the thread to finish execution, if it's joinable.
     if (timer_thread.joinable()) {
