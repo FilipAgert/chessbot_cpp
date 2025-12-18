@@ -111,7 +111,7 @@ struct Move {
         return out;
     }
     constexpr inline bool is_valid() { return (source != target); }
-    constexpr inline bool operator==(const Move &other) const { return source == other.source && target == other.target && flag == other.flag; }
+    constexpr inline bool operator==(const Move &other) const { return (source == other.source) && (target == other.target) && (flag == other.flag); }
     constexpr Move() {}
 };
 

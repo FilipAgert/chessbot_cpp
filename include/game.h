@@ -24,6 +24,8 @@ struct InfoMsg {
     int score = 0;              // Current evaluated best move score
     int d0score = 0;            // Score of state (no going deep)
     int hashfill = 0;
+    bool stringmsg = false;
+    std::string string;
 };
 class Game {
  public:

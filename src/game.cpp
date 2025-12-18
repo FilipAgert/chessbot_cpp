@@ -44,6 +44,23 @@ void Game::reset_state_stack() {
 }
 
 template <bool is_white> void Game::think_loop(const time_control rem_time) {
+    if (check_repetition()) {
+        InfoMsg new_msg;
+        new_msg.stringmsg = true;
+        new_msg.string = "draw by threefold repetition detected";
+    } else {
+        int num_moves = board.get_moves<normal_search, is_white>(move_arr[0]);
+        if (num_moves == 0) {
+            InfoMsg new_msg;
+            new_msg.stringmsg = true;
+            if (board.king_checked<is_white>()) {
+                std::string othercol = is_white ? "black" : "white";
+                new_msg.string = "mate detected " + othercol + " has won the game.";
+            } else {
+                new_msg.string = "draw detected";
+            }
+        }
+    }
     int buffer = STANDARD_TIME_BUFFER;  // ms
     int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
 

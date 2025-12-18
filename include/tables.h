@@ -243,6 +243,8 @@ struct transposition_table {
                 if (entry.value().is_valid_move()) {
                     auto it = std::find(pv_line.begin(), pv_line.end(), entry.value().bestmove);  // check if move already found.
                     if (it != pv_line.end()) {
+                        break;  // found move inside.
+                    } else {
                         pv_line.push_back(entry.value().bestmove);
                         restore_move_info info;
                         if (board.get_turn_color() == pieces::white)
@@ -250,8 +252,6 @@ struct transposition_table {
                         else
                             info = board.do_move<false>(entry.value().bestmove);
                         restore_stack.push(info);
-                    } else {
-                        break;
                     }
                 }
             }
