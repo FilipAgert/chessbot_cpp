@@ -264,7 +264,7 @@ void UCIInterface::process_bench_command(std::string command) {
     }
 
     int depth = std::stoi(parts[depthloc]);
-    int threads = std::stoi(parts[depthloc + 1]);
+    //int threads = std::stoi(parts[depthloc + 1]);
     UCIInterface::uci_response("Generating moves to depth: " + std::to_string(depth));
     auto start = std::chrono::high_resolution_clock::now();
     int64_t nummoves = movegen_benchmark::gen_num_moves(Game::instance().get_board(), depth, -1);

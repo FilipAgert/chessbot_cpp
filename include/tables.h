@@ -8,7 +8,6 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <iostream>
 #include <piece.h>
 #include <random>
 #include <stack>

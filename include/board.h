@@ -10,12 +10,11 @@
 #include <notation_interface.h>
 #include <piece.h>
 #include <stdexcept>
-#include <vector>
 
 #include <array>
 #include <cstdint>
-#include <iostream>
 #include <string>
+
 struct restore_move_info {
     uint8_t castleinfo : 4 = 0;
     Piece_t captured : 3 = 0;
@@ -203,6 +202,7 @@ struct Board {
         default:
             __builtin_unreachable();
         }
+        return {};
     }
     /**
      * @brief Intermediary do_move to select captured and enter templated function.
@@ -233,6 +233,7 @@ struct Board {
         default:
             __builtin_unreachable();
         }
+        return {};
     }
 
     /**
@@ -530,7 +531,6 @@ struct Board {
         if constexpr (ctype.two_checks) {
             return num_moves;
         } else {  // In case of check, valid moves are: Move king, block the checker if a ray piece, or capture the piece.
-            size_t num_pseudolegal_moves = 0;
             BB occ = friendly_bb | enemy_bb;
             BB queen_bb = get_piece_bb<pieces::queen, is_white>();
             BB bishop_bb = get_piece_bb<pieces::bishop, is_white>();
@@ -657,7 +657,9 @@ struct Board {
     template <bool for_white, bool exclude_kingocc> constexpr inline uint64_t get_atk_bb() const {
         BB friendly_pieces = occupancy<for_white>();
         BB enemy_pieces = occupancy<!for_white>();
-        BB occ = friendly_pieces | enemy_pieces & ~(get_piece_bb<pieces::king, !for_white>());
+        BB occ = (friendly_pieces | enemy_pieces);
+        if constexpr (exclude_kingocc)
+            occ &= ~(get_piece_bb<pieces::king, !for_white>());
         BB queen_bb = get_piece_bb<pieces::queen, for_white>();
         BB bishop_bb = get_piece_bb<pieces::bishop, for_white>();
         BB rook_bb = get_piece_bb<pieces::rook, for_white>();

@@ -22,15 +22,13 @@ const Flag_t MOVEFLAG_promote_knight = 9;
 const Flag_t MOVEFLAG_short_castling = 10;
 const Flag_t MOVEFLAG_long_castling = 11;
 template <Flag_t flag> static constexpr bool is_promotion() {
-    if constexpr ((flag == MOVEFLAG_promote_queen) || (flag == MOVEFLAG_promote_bishop) ||
-                  (flag == MOVEFLAG_promote_knight) || (flag == MOVEFLAG_promote_rook))
+    if constexpr ((flag == MOVEFLAG_promote_queen) || (flag == MOVEFLAG_promote_bishop) || (flag == MOVEFLAG_promote_knight) || (flag == MOVEFLAG_promote_rook))
         return true;
     else
         return false;
 }
 inline constexpr bool is_promotion(Flag_t flag) {
-    return ((flag == MOVEFLAG_promote_queen) || (flag == MOVEFLAG_promote_bishop) ||
-            (flag == MOVEFLAG_promote_knight) || (flag == MOVEFLAG_promote_rook));
+    return ((flag == MOVEFLAG_promote_queen) || (flag == MOVEFLAG_promote_bishop) || (flag == MOVEFLAG_promote_knight) || (flag == MOVEFLAG_promote_rook));
 }
 }  // namespace moveflag
 struct Move {
@@ -59,7 +57,6 @@ struct Move {
         this->source = source;
         this->target = target;
         if (move_str.length() == 5) {
-            uint8_t color = NotationInterface::row(target) == 0 ? pieces::black : pieces::white;
             switch (Piece::piece_type_from_char(move_str[4])) {
             case pieces::queen:
                 this->flag = moveflag::MOVEFLAG_promote_queen;
@@ -81,9 +78,7 @@ struct Move {
         this->target = to;
         this->flag = 0;
     }
-    constexpr Move(uint8_t from, uint8_t to, Flag_t flagval) : Move(from, to) {
-        this->flag = flagval;
-    }
+    constexpr Move(uint8_t from, uint8_t to, Flag_t flagval) : Move(from, to) { this->flag = flagval; }
     constexpr Move(uint8_t from, uint8_t to, Piece promo) : Move(from, to) {
         switch (promo.get_type()) {
         case (pieces::queen):
@@ -104,8 +99,7 @@ struct Move {
         if (source == target)
             return "0000";
 
-        std::string out =
-            NotationInterface::string_from_idx(source) + NotationInterface::string_from_idx(target);
+        std::string out = NotationInterface::string_from_idx(source) + NotationInterface::string_from_idx(target);
         if (flag == moveflag::MOVEFLAG_promote_rook)
             out += 'r';
         else if (flag == moveflag::MOVEFLAG_promote_bishop)

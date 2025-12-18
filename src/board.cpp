@@ -5,7 +5,6 @@
 #include <iostream>
 #include <movegen.h>
 #include <sstream>
-#include <vector>
 using namespace movegen;
 using namespace pieces;
 

@@ -1,7 +1,6 @@
 
 #include <chrono>
 #include <gtest/gtest.h>
-#include <iostream>
 #include <thread>
 #include <time_manager.h>
 TEST(TimeManagerTest, ontime) {
@@ -42,7 +41,6 @@ TEST(TimeManagerTest, thread_stop_test) {
     int remtime_frac = 20;
     time_control rem_time = time_control(remtime, timeinc, remtime, timeinc);
     TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true);
-    int target = remtime / remtime_frac + timeinc - buffer;  // Here is where we want to go.
 
     auto start = std::chrono::high_resolution_clock::now();
     manager.start_time_management();

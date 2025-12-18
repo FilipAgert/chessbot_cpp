@@ -92,7 +92,7 @@ template <class T, class Func> uint64_t bitboard_operate_or(uint64_t &bb, T arg,
  * @param[inout] bb input bb to call function with idx of high bits. Destroys it.
  * @return orsum_i  f_i(idx_i, occ)
  */
-template <class Func> uint64_t bitboard_operate_or(uint64_t &bb, Func func) {
+template <class Func> constexpr uint64_t bitboard_operate_or(uint64_t &bb, Func func) {
     uint64_t out = 0;
     BitLoop(bb) { out |= func(lsb(bb)); }
     return out;

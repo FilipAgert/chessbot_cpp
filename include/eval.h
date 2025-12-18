@@ -1,9 +1,10 @@
-// Copyright 2025 Filip Agert
+// Copyrinht 2025 Filip Agert
 #ifndef EVAL_H
 #define EVAL_H
 #include <algorithm>
 #include <array>
 #include <board.h>
+namespace helpers {
 /**
  * @brief Get manhattan distance between two squares
  *
@@ -11,15 +12,17 @@
  * @param[in] sq2 square2
  * @return manhattan distance between squares
  */
-namespace helpers {
 constexpr uint8_t manhattan(uint8_t sq1, uint8_t sq2) {
     uint8_t r1, c1, r2, c2;
     r1 = NotationInterface::row(sq1);
     r2 = NotationInterface::row(sq2);
     c1 = NotationInterface::col(sq1);
     c2 = NotationInterface::col(sq2);
-    return std::abs(static_cast<int>(r1) - static_cast<int>(r2)) +
-           std::abs(static_cast<int>(c1) - static_cast<int>(c2));
+    int rdist =  static_cast<int>(r1) - static_cast<int>(r2);
+    rdist = rdist < 0 ? -rdist : rdist;
+    int cdist = static_cast<int>(c1) - static_cast<int>(c2);
+    cdist = cdist < 0 ? - cdist : cdist;
+    return rdist+cdist;
 }
 constexpr std::array<uint8_t, 64> dist2centre = [] {
     constexpr std::array<uint8_t, 4> centre_squares = {27, 28, 35, 36};

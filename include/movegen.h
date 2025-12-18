@@ -2,7 +2,6 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 #include <bitboard.h>
-#include <iostream>
 #include <notation_interface.h>
 struct pininfo {
     uint8_t kingloc;

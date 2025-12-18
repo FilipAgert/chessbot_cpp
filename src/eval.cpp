@@ -1,9 +1,7 @@
 // Copyright Filip Agert
-#include <algorithm>
 #include <cassert>
 #include <eval.h>
 #include <piece.h>
-#include <vector>
 int EvalState::eval(Board &board) {
     int score = 0;
     if (forced_draw_ply(board))
@@ -97,7 +95,6 @@ int EvalState::eval_pawn_structure(Board &board) {
     constexpr BB AFILE = ~masks::left;
     constexpr BB HFILE = ~masks::right;
 
-    int passed = 0;
     BB wpawns = board.get_piece_bb<pieces::pawn, true>();
     BB bpawns = board.get_piece_bb<pieces::pawn, false>();
 
