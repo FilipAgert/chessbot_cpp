@@ -84,7 +84,7 @@ class Game {
      * @param[in] num_extensions number of extensions previously performed
      * @return move extensions
      */
-    template <bool is_white> int calculate_extension(const Move &move, int num_extensions) const;
+    template <bool is_white> int calculate_extension(const Move move, uint8_t movenum, int num_extensions) const;
 
     /**
      * @brief Gets the current best known move to send to GUI.

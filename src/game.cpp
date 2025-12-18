@@ -159,7 +159,7 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
         if (entry.is_valid_move()) {  // need ot check if its a valid move or not, since it might be
                                       // e.g. no moves available on this state.
             make_move<is_white>(entry.bestmove);
-            int extension = calculate_extension<!is_white>(entry.bestmove, num_extensions);
+            int extension = calculate_extension<!is_white>(entry.bestmove, 0, num_extensions);
             int eval = -alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
             undo_move<is_white>();
             if (time_manager->get_should_stop()) {
@@ -199,9 +199,9 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     MoveOrder::apply_move_sort<is_white>(move_arr[ply], num_moves, first_move, board);
     // Normal move generation.
     //
-    for (int i = movelb; i < num_moves; i++) {
+    for (uint8_t i = movelb; i < num_moves; i++) {
         make_move<is_white>(move_arr[ply][i]);
-        int extension = calculate_extension<!is_white>(move_arr[ply][i], num_extensions);
+        int extension = calculate_extension<!is_white>(move_arr[ply][i], i, num_extensions);
 
         int eval = -alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         undo_move<is_white>();
@@ -269,7 +269,7 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     return alpha;
 }
 
-template <bool is_white> int Game::calculate_extension(const Move &move, int num_extensions) const {
+template <bool is_white> int Game::calculate_extension(const Move move, uint8_t movenum, int num_extensions) const {
     constexpr int max_num_extensions = 16;
 
     int extension = 0;
@@ -277,6 +277,8 @@ template <bool is_white> int Game::calculate_extension(const Move &move, int num
         if (board.king_checked<is_white>())
             extension = 1;
     }
+    if (movenum > 3)
+        extension-=1;
     return extension;
 }
 
