@@ -114,7 +114,6 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
-    std::cout << "past rep. ply" << (int)board.get_ply_moves() << std::endl;
     if (EvalState::forced_draw_ply(board))
         return 0;
 
