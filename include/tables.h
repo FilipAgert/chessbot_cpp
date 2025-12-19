@@ -87,9 +87,8 @@ struct transposition_entry {
     bool is_exact() { return nodetype == exact; }
     bool is_lb() { return nodetype == lb; }
     bool is_ub() { return nodetype == ub; }
-    enum nodetype { exact, lb, ub, invalid };
 };
-constexpr transposition_entry nullentry = {0, transposition_entry::invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
+constexpr transposition_entry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 
 class ZobroistHasher {
  private:
@@ -206,7 +205,7 @@ struct transposition_table {
         uint64_t shifted_hash = (hash >> transposition_entry::shift_hash);
         size_t key = get_key(hash);
         writes++;
-        if (arr[key].nodetype != transposition_entry::invalid) {
+        if (arr[key].nodetype != invalid) {
             overwrites++;
         }
         arr[key] = {shifted_hash, nodetype, depth, eval, bestmove};
@@ -220,7 +219,7 @@ struct transposition_table {
      */
     static bool is_useable_entry(const transposition_entry entry, const int depth) { return depth <= entry.depth; }
     void clear() {
-        std::fill(arr.begin(), arr.end(), transposition_entry{0, transposition_entry::invalid, 0, 0, Move()});
+        std::fill(arr.begin(), arr.end(), transposition_entry{0, invalid, 0, 0, Move()});
         writes = 0;
         overwrites = 0;
     }

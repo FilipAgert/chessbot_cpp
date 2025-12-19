@@ -83,7 +83,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
             break;
         int alpha = -INF;
         const int beta = INF;
-        alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
+        std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         InfoMsg new_msg;
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
@@ -117,13 +117,13 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
-template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition()) {
-        return 0;  // Checks if position is a repeat.
+        return {0, exact};  // Checks if position is a repeat.
     }
     if (EvalState::forced_draw_ply(board)) {
-        return 0;
+        return {0, exact};
     }
 
     if (depth <= 0) {
@@ -138,24 +138,24 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     Move best_curr_move;
     bool atleast_one_move_searched = false;
     int bestscore = -INF;
-    uint8_t nodetype = transposition_entry::ub;
+    uint8_t nodetype = ub;
     if (maybe_entry) {
         transposition_entry entry = maybe_entry.value();
         if (trans_table->is_useable_entry(entry, depth)) {
             // If exact, return score
             int eval = entry.eval;
             if (entry.is_exact()) {  // if exact value
-                return eval;
+                return {eval, exact};
             } else if (entry.is_lb()) {
                 if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than
                     // any move opponent can make
-                    return beta;
+                    return {beta, lb};
                 else
                     alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha./
             } else if (entry.is_ub()) {
                 if (eval < alpha)  // if its an upper bound, and this upper bound is worse
                                    // than any move we could make, dont need to search more.
-                    return alpha;
+                    return {alpha, ub};
                 else
                     beta = std::min(beta, eval);  // an upper bound can still tighten beta.
             }
@@ -169,24 +169,25 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
                                       // e.g. no moves available on this state.
             make_move<is_white>(entry.bestmove);
             int extension = calculate_extension<!is_white>(entry.bestmove, 0, num_extensions);
-            int eval = -alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
+            std::pair<int, uint8_t> result = alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
+            int eval = -result.first;
             undo_move<is_white>();
             if (time_manager->get_should_stop()) {
-                return 0;  // should not store into transposition table here since the search was
-                           // cancelled.
+                return {0, invalid};  // should not store into transposition table here since the search was
+                                      // cancelled.
             }
             bestscore = eval;
             best_curr_move = entry.bestmove;
             atleast_one_move_searched = true;
             if (eval >= beta) {  // FAIL HIGH: move is too good, will never get here.
-                trans_table->store(zob_hash, entry.bestmove, beta, transposition_entry::lb,
+                trans_table->store(zob_hash, entry.bestmove, beta, lb,
                                    depth);  // Can update hash to curr depth.
-                return beta;
+                return {beta, lb};
             }
 
             if (eval > alpha) {  // alpha raised and node is exact.
                 alpha = eval;
-                nodetype = transposition_entry::exact;
+                nodetype = exact;
             }
             movelb = 1;
         }
@@ -199,9 +200,9 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     if (num_moves == 0) {
         const int MATE_SCORE = 30000;
         if (board.king_checked<is_white>()) {
-            return (-MATE_SCORE + ply);
+            return {-MATE_SCORE + ply, exact};
         } else {
-            return 0;
+            return {0, exact};
         }
     }
     // End mate and draws.
@@ -212,16 +213,16 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     for (uint8_t i = movelb; i < num_moves; i++) {
         make_move<is_white>(move_arr[ply][i]);
         int extension = calculate_extension<!is_white>(move_arr[ply][i], i, num_extensions);
-
-        int eval = -alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
+        std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
+        int eval = -res.first;
         undo_move<is_white>();
         if (time_manager->get_should_stop()) {
             if (is_root) {
                 if (atleast_one_move_searched) {
-                    trans_table->store(zob_hash, best_curr_move, bestscore, transposition_entry::lb, depth);
+                    trans_table->store(zob_hash, best_curr_move, bestscore, lb, depth);
                 }
             }
-            return 0;
+            return {0, invalid};
         }
         if (eval > bestscore) {
             bestscore = eval;
@@ -229,25 +230,26 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
             atleast_one_move_searched = true;
         }
         if (eval >= beta) {  // FAIL HIGH.
-            trans_table->store(zob_hash, best_curr_move, beta, transposition_entry::lb,
+            trans_table->store(zob_hash, best_curr_move, beta, lb,
                                depth);  // Can update hash to curr depth.
-            return beta;                // This move is too good. The minimising player (beta) will never
-                                        // allow the board to go here. we can return.
+            return {beta, lb};          // This move is too good. The minimising player (beta) will never
+
+            // allow the board to go here. we can return.
         }
         if (eval > alpha) {  // if alpha is raised, then we have found an exact node.
             alpha = eval;    // if alpha is never raised, the value returned will be an upper bound.
-            nodetype = transposition_entry::exact;
+            nodetype = exact;
         }
     }
     trans_table->store(zob_hash, best_curr_move, alpha, nodetype, depth);
-    return alpha;
+    return {alpha, nodetype};
 }
 
-template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
+template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int alpha, int beta) {
     if (this->check_repetition())
-        return 0;  // Checks if position is a repeat.
+        return {0, exact};  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
-        return 0;
+        return {0, exact};
 
     int eval = EvalState::eval(board);
     seldepth = std::max(ply, seldepth);
@@ -255,7 +257,7 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     // This assumes that there is at least one move that can match, or increase the current score.
     // So best_value is a lower bound.
     if (eval >= beta)
-        return beta;
+        return {beta, lb};
     alpha = std::max(alpha, eval);
 
     // Handle if king is checked or no moves can be made.
@@ -267,17 +269,18 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
         make_move<is_white>(move_arr[ply][i]);
-        eval = -quiesence<!is_white>(ply + 1, -beta, -alpha);
+        std::pair<int, uint8_t> res = quiesence<!is_white>(ply + 1, -beta, -alpha);
+        int eval = -res.first;
         undo_move<is_white>();
         if (time_manager->get_should_stop()) {
-            return 0;
+            return {0, invalid};
         }
         if (eval >= beta)
-            return beta;
+            return {beta, lb};
         alpha = std::max(eval, alpha);
     }
 
-    return alpha;
+    return {alpha, ub};
 }
 
 template <bool is_white> int Game::calculate_extension(const Move move, uint8_t movenum, int num_extensions) const {
