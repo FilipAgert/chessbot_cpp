@@ -288,8 +288,8 @@ template <bool is_white> int Game::calculate_extension(const Move move, uint8_t 
         if (board.king_checked<is_white>())
             extension = 1;
     }
-    if (movenum > 3)
-        extension -= 1;
+    // if (movenum > 3)
+    //     extension -= 1;
     return extension;
 }
 
