@@ -270,14 +270,16 @@ struct Board {
      * @return [TODO:description]
      */
     template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured> restore_move_info constexpr inline do_move(Move move) {
-        if (captured != pieces::none || moved == pieces::pawn)
-            ply_moves = 0;
+        restore_move_info info = {ply_moves, en_passant_square, castleinfo, captured};
+        if constexpr (captured != pieces::none)
+            this->ply_moves = 0;
+        else if constexpr (moved == pieces::pawn)
+            this->ply_moves = 0;
         else
-            ply_moves += 1;
+            this->ply_moves += 1;
 
         if constexpr (!white_to_move)
             full_moves += 1;
-        restore_move_info info = {ply_moves, en_passant_square, castleinfo, captured};
 
         uint8_t old_ep = en_passant_square;
         en_passant = false;
@@ -904,6 +906,7 @@ struct Board {
             uint8_t sq = BitBoard::lsb(piece_bb);
             uint64_t to_sqs = to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
             to_sqs &= pin_mask;
+
             if constexpr (ctype.one_check || ctype.slider_check) {
                 to_sqs &= checker_mask;
             }

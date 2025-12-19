@@ -318,10 +318,18 @@ void UCIInterface::process_self_command(std::string command) {
         return;
     }
     int nummoves = std::stoi(parts[0]);
-    std::string comm = fen + " moves ";
+    std::string comm = fen + " moves";
     for (int i = 0; i < nummoves; i++) {
         process_go_command("wtime 1000 btime 1000 winc 0 binc 0");
         Move bestmove = Game::instance().get_bestmove();
-        Game::instance().make_move(bestmove);
+        if (bestmove.is_valid())
+            comm.append(" " + bestmove.toString());
+        else {
+            std::cout << "No valid move available. Game over." << std::endl;
+            break;
+        }
+        uci_response("I received command: position startpos fen " + comm);
+        process_position_command("startpos fen " + comm);
+        process_d_command();
     }
 }

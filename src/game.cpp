@@ -44,10 +44,16 @@ void Game::reset_state_stack() {
 }
 
 template <bool is_white> void Game::think_loop(const time_control rem_time) {
-    if (check_repetition()) {
+    if (this->check_repetition()) {
         InfoMsg new_msg;
         new_msg.stringmsg = true;
         new_msg.string = "draw by threefold repetition detected";
+        return;
+    } else if (EvalState::forced_draw_ply(board)) {
+        InfoMsg new_msg;
+        new_msg.stringmsg = true;
+        new_msg.string = "draw by excess ply moves.";
+        return;
     } else {
         int num_moves = board.get_moves<normal_search, is_white>(move_arr[0]);
         if (num_moves == 0) {
@@ -59,6 +65,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
             } else {
                 new_msg.string = "draw detected";
             }
+            return;
         }
     }
     int buffer = STANDARD_TIME_BUFFER;  // ms
@@ -112,10 +119,12 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
 
 template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     seldepth = std::max(ply, seldepth);
-    if (this->check_repetition())
+    if (this->check_repetition()) {
         return 0;  // Checks if position is a repeat.
-    if (EvalState::forced_draw_ply(board))
+    }
+    if (EvalState::forced_draw_ply(board)) {
         return 0;
+    }
 
     if (depth <= 0) {
         nodes_evaluated++;
@@ -184,6 +193,7 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     }
 
     // Handle if king is checked or no moves can be made.
+    assert(ply < 64);
     int num_moves = board.get_moves<normal_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (num_moves == 0) {
@@ -249,6 +259,7 @@ template <bool is_white> int Game::quiesence(int ply, int alpha, int beta) {
     alpha = std::max(alpha, eval);
 
     // Handle if king is checked or no moves can be made.
+    assert(ply < 64);
     int num_moves = board.get_moves<quiesence_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
 
