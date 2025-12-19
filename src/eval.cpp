@@ -18,16 +18,12 @@ int EvalState::eval(Board &board) {
 
 int EvalState::eval_mobility(Board &board) {
     constexpr bool omit_pawn = true;
-    int king_mobility = board.get_piece_mobility<pieces::king, omit_pawn, true>() -
-                        board.get_piece_mobility<pieces::king, omit_pawn, false>();
-    int bishop_mobility = board.get_piece_mobility<pieces::bishop, omit_pawn, true>() -
-                          board.get_piece_mobility<pieces::bishop, omit_pawn, false>();
+    int king_mobility = board.get_piece_mobility<pieces::king, omit_pawn, true>() - board.get_piece_mobility<pieces::king, omit_pawn, false>();
+    int bishop_mobility = board.get_piece_mobility<pieces::bishop, omit_pawn, true>() - board.get_piece_mobility<pieces::bishop, omit_pawn, false>();
     // int queen_mobility = board.get_piece_mobility<pieces::queen, omit_pawn, true>() -
     //                      board.get_piece_mobility<pieces::queen, omit_pawn, false>();
-    int knight_mobility = board.get_piece_mobility<pieces::knight, omit_pawn, true>() -
-                          board.get_piece_mobility<pieces::knight, omit_pawn, false>();
-    int mobility_eval = king_mobility * PieceValue::movevals[pieces::king] +
-                        bishop_mobility * PieceValue::movevals[pieces::bishop] +
+    int knight_mobility = board.get_piece_mobility<pieces::knight, omit_pawn, true>() - board.get_piece_mobility<pieces::knight, omit_pawn, false>();
+    int mobility_eval = king_mobility * PieceValue::movevals[pieces::king] + bishop_mobility * PieceValue::movevals[pieces::bishop] +
                         knight_mobility * PieceValue::movevals[pieces::knight];
     // queen_mobility * PieceValue::movevals[pieces::queen];
     return mobility_eval;
@@ -67,10 +63,8 @@ int EvalState::eval_king_dist2centre(Board &board) {
     uint8_t white_dist = helpers::dist2centre[white_king_sq];
     uint8_t black_dist = helpers::dist2centre[black_king_sq];
     uint8_t king_dist = helpers::manhattan(white_king_sq, black_king_sq);
-    float white_endgame =
-        2 * eval_game_phase(board.get_num_pieces<false>()) - 1;  // eval based on black pieces
-    float black_endgame =
-        2 * eval_game_phase(board.get_num_pieces<true>()) - 1;  // eval based on white pieces
+    float white_endgame = 2 * eval_game_phase(board.get_num_pieces<false>()) - 1;  // eval based on black pieces
+    float black_endgame = 2 * eval_game_phase(board.get_num_pieces<true>()) - 1;   // eval based on white pieces
 
     // Absolute king position value.
     float wval = -white_dist * PieceValue::king_dist2centre_value * white_endgame;
@@ -114,11 +108,9 @@ int EvalState::eval_pawn_structure(Board &board) {
     BB w_full_mask = w_NE_fill | w_NW_fill | w_N_fill;
     BB b_full_mask = b_SE_fill | b_SW_fill | b_S_fill;
 
-    int bpassed =
-        BitBoard::bitcount(~w_full_mask & bpawns);  // Counts black pawns not in the white passed
-                                                    // mask. these are all passed black pawns.
-    int wpassed = BitBoard::bitcount(~b_full_mask &
-                                     wpawns);  // Counts white pawns not in the black passed mask
+    int bpassed = BitBoard::bitcount(~w_full_mask & bpawns);  // Counts black pawns not in the white passed
+                                                              // mask. these are all passed black pawns.
+    int wpassed = BitBoard::bitcount(~b_full_mask & wpawns);  // Counts white pawns not in the black passed mask
     assert(bpassed <= 8);
     assert(wpassed <= 8);
     assert(bpassed >= 0);
@@ -148,7 +140,6 @@ int EvalState::eval_pawn_structure(Board &board) {
     int nsolow = BitBoard::bitcount(wpawns) - BitBoard::bitcount(w_sides & wpawns);
     int nsolob = BitBoard::bitcount(bpawns) - BitBoard::bitcount(b_sides & bpawns);
 
-    return (wpassed - bpassed) * PieceValue::passed_pawn_eval +
-           (wdoubled - bdoubled) * PieceValue::doubled_pawn_punishment +
+    return (wpassed - bpassed) * PieceValue::passed_pawn_eval + (wdoubled - bdoubled) * PieceValue::doubled_pawn_punishment +
            (nsolow - nsolob) * PieceValue::solo_pawn_punishment;
 }

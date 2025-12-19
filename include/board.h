@@ -16,10 +16,10 @@
 #include <string>
 
 struct restore_move_info {
-    uint8_t castleinfo : 4 = 0;
-    Piece_t captured : 3 = 0;
-    uint8_t ep_square : 6 = 0;
     uint8_t ply_moves = 0;
+    uint8_t ep_square = 0;
+    uint8_t castleinfo = 0;
+    Piece_t captured = 0;
 };
 struct Board {
  private:
@@ -108,7 +108,7 @@ struct Board {
      * @param[in] move move to flag
      * @return restore_move_info
      */
-    template <bool white_to_move> restore_move_info do_move_no_flag(Move & move) {
+    template <bool white_to_move> restore_move_info do_move_no_flag(Move &move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         assert(moved != pieces::none);
@@ -270,13 +270,14 @@ struct Board {
      * @return [TODO:description]
      */
     template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured> restore_move_info constexpr inline do_move(Move move) {
-        if constexpr (captured == pieces::none && moved != pieces::pawn)
-            ply_moves += 1;
-        else
+        if (captured != pieces::none || moved == pieces::pawn)
             ply_moves = 0;
+        else
+            ply_moves += 1;
+
         if constexpr (!white_to_move)
             full_moves += 1;
-        restore_move_info info = {castleinfo, captured, en_passant_square, ply_moves};
+        restore_move_info info = {ply_moves, en_passant_square, castleinfo, captured};
 
         uint8_t old_ep = en_passant_square;
         en_passant = false;

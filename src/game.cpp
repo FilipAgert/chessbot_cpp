@@ -98,7 +98,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
             info_queue.push(new_msg);
             eval = std::make_optional(new_msg.score);
         } else {
-            std::cout << "Err: could not get entry for hash" << std::endl;
+            std::cout << "Err: could not get entry for hash. Depth: " << depth << std::endl;
         }
 
         std::optional<int> moves_to_mate = eval ? EvalState::moves_to_mate(eval.value()) : 0;
@@ -114,6 +114,7 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition())
         return 0;  // Checks if position is a repeat.
+    std::cout << "past rep. ply" << (int)board.get_ply_moves() << std::endl;
     if (EvalState::forced_draw_ply(board))
         return 0;
 
@@ -134,7 +135,7 @@ template <bool is_root, bool is_white> int Game::alpha_beta(int depth, int ply, 
         transposition_entry entry = maybe_entry.value();
         if (trans_table->is_useable_entry(entry, depth)) {
             // If exact, return score
-            int eval = entry.eval;   //
+            int eval = entry.eval;
             if (entry.is_exact()) {  // if exact value
                 return eval;
             } else if (entry.is_lb()) {
@@ -278,7 +279,7 @@ template <bool is_white> int Game::calculate_extension(const Move move, uint8_t 
             extension = 1;
     }
     if (movenum > 3)
-        extension-=1;
+        extension -= 1;
     return extension;
 }
 
