@@ -77,13 +77,13 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
     int max_depth = 256;
     uint64_t hash = ZobroistHasher::get().hash_board(board);
     assert(board.board_BB_match());
+    int preveval = 0;
     for (int depth = 1; depth < max_depth; depth++) {
         seldepth = 0;
         if (!time_manager->get_should_start_new_iteration())
             break;
-        int alpha = -INF;
-        const int beta = INF;
-        std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
+        aspiration_search<is_white>(preveval, depth);
+        // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         InfoMsg new_msg;
         new_msg.nodes = this->nodes_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
@@ -102,10 +102,12 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
         std::optional<int> eval = {};
         if (entry) {
             new_msg.score = entry.value().eval;
+            preveval = entry.value().eval;
             info_queue.push(new_msg);
             eval = std::make_optional(new_msg.score);
         } else {
             std::cout << "Err: could not get entry for hash. Depth: " << depth << std::endl;
+            break;
         }
 
         std::optional<int> moves_to_mate = eval ? EvalState::moves_to_mate(eval.value()) : 0;
@@ -117,6 +119,36 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
+std::pair<int, int> Game::aspiration_window(int alpha, int beta, uint8_t nodetype) {
+    int diff = beta - alpha;
+    if (nodetype == lb) {  // increase beta
+        beta = beta + diff / 2;
+    } else if (nodetype == ub) {
+        alpha = alpha - diff / 2;
+    }
+    return {alpha, beta};
+}
+template <bool is_white> void Game::aspiration_search(int preveval, int depth) {
+    constexpr int init_window = 50;
+    int alpha, beta;
+    if (depth == 1) {
+        alpha = -INF;
+        beta = INF;
+    } else {
+        alpha = preveval - init_window;
+        beta = preveval + init_window;
+    }
+    uint8_t nodetype = invalid;
+
+    while (nodetype != exact && nodetype != timeout) {
+        std::cout << "asp search, alpha: " << alpha << " beta " << beta << "\n";
+        std::pair<int, uint8_t> res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
+        nodetype = res.second;
+        std::pair<int, int> new_window = aspiration_window(alpha, beta, nodetype);
+        alpha = new_window.first;
+        beta = new_window.second;
+    }
+}
 template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition()) {
@@ -173,7 +205,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             int eval = -result.first;
             undo_move<is_white>();
             if (time_manager->get_should_stop()) {
-                return {0, invalid};  // should not store into transposition table here since the search was
+                return {0, timeout};  // should not store into transposition table here since the search was
                                       // cancelled.
             }
             bestscore = eval;
@@ -222,7 +254,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
                     trans_table->store(zob_hash, best_curr_move, bestscore, lb, depth);
                 }
             }
-            return {0, invalid};
+            return {0, timeout};
         }
         if (eval > bestscore) {
             bestscore = eval;
@@ -273,7 +305,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         int eval = -res.first;
         undo_move<is_white>();
         if (time_manager->get_should_stop()) {
-            return {0, invalid};
+            return {0, timeout};
         }
         if (eval >= beta)
             return {beta, lb};

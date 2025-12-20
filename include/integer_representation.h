@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 
-enum nodetype { exact, lb, ub, invalid };
+enum nodetype { exact, lb, ub, invalid, timeout };
 namespace castling {
 static constexpr uint8_t cast_white_kingside = 0b1;
 static constexpr uint8_t cast_white_queenside = 0b10;

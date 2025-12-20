@@ -55,7 +55,7 @@ TEST(TransTest, optionalReturn) {
     uint64_t hash = ZobroistHasher::get().hash_board(state);
     std::unique_ptr<transposition_table> tab = std::make_unique<transposition_table>();
     ASSERT_FALSE(tab->get(hash));
-    tab->store(hash, Move{2, 9}, 0, transposition_entry::exact, 0);
+    tab->store(hash, Move{2, 9}, 0, exact, 0);
     ASSERT_TRUE(tab->get(hash));
 }
 TEST(TransTest, moveOrderTest) {

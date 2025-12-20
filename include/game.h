@@ -165,4 +165,21 @@ class Game {
      */
     bool one_depth_complete;
     template <bool is_white> void think_loop(const time_control rem_time);
+
+    /**
+     * @brief Returns new aspiration window given the old one and the nodetype of the search (lb or ub)
+     *
+     * @param[in] alpha Value of alpha at start of search.
+     * @param[in] beta Value of beta at start of search.
+     * @param[in] nodetype if the search resulted in beta or alpha cutoff
+     */
+    std::pair<int, int> aspiration_window(int alpha, int beta, uint8_t nodetype);
+
+    /**
+     * @brief Launches an aspiration search and handles the aspiration window
+     *
+     * @param[in] preveval previous iteration's evaluation.
+     * @param[in] depth Depth of search.
+     */
+    template <bool is_white> void aspiration_search(int preveval, int depth);
 };
