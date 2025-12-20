@@ -141,7 +141,6 @@ template <bool is_white> void Game::aspiration_search(int preveval, int depth) {
     uint8_t nodetype = invalid;
 
     while (nodetype != exact && nodetype != timeout) {
-        std::cout << "asp search, alpha: " << alpha << " beta " << beta << "\n";
         std::pair<int, uint8_t> res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         nodetype = res.second;
         std::pair<int, int> new_window = aspiration_window(alpha, beta, nodetype);
