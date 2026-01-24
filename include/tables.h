@@ -12,6 +12,7 @@
 #include <random>
 #include <stack>
 #include <vector>
+#include <eval.h>
 /**
  * @brief Class for storing the occured game states for checking 3 move repetion draws.
  */
@@ -232,7 +233,7 @@ struct transposition_table {
      */
     int load_factor() const;
 
-    template <bool is_white> std::vector<Move> get_pv(Board &board, int depth) {
+    template <bool is_white> std::vector<Move> get_pv(Board &board, int depth){
         std::vector<Move> pv_line;
         std::stack<restore_move_info> restore_stack;
         for (int i = 0; i <= depth; i++) {
@@ -251,6 +252,8 @@ struct transposition_table {
                         else
                             info = board.do_move<false>(entry.value().bestmove);
                         restore_stack.push(info);
+                        if (EvalState::forced_draw_ply(board))
+                            break;
                     }
                 }
             }
@@ -261,6 +264,6 @@ struct transposition_table {
             board.undo_move(info, pv_line[i]);
         }
         return pv_line;
-    }
+}
 };
 #endif
