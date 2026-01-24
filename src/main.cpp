@@ -43,11 +43,13 @@ int main() {
             UCIInterface::process_quit_command();
         } else if (command == "self") {
             UCIInterface::process_self_command(body);
+        } else if (command == "repeat") {
+            UCIInterface::process_repeat_command();
         } else if (command == "debug") {
             std::cout << "Debug mode is not implemented yet." << std::endl;
         } else if (command == "help") {
             std::cout << "Available commands: uci, isready, go, position, bestmove, ponder, "
-                         "newgame, quit, debug, d, board, help"
+                         "newgame, quit, debug, d, self, repeat, help"
                       << std::endl;
         } else {
             std::cout << "Unknown command: " << input << std::endl;

@@ -329,7 +329,14 @@ void UCIInterface::process_self_command(std::string command) {
             break;
         }
         uci_response("I received command: position startpos fen " + comm);
-        process_position_command("startpos fen " + comm);
+        process_position_command("fen " + comm);
         process_d_command();
+    }
+}
+
+void UCIInterface::process_repeat_command() {
+    while (true) {
+        process_position_command("startpos");
+        process_self_command("500");
     }
 }

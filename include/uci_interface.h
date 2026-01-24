@@ -16,6 +16,11 @@ class UCIInterface {
     static void process_d_command();
     static void process_ponder_command();
     static void process_self_command(std::string command);
+    /**
+     * @brief Repeatedly plays against itself.
+     *
+     */
+    static void process_repeat_command();
 
     /**
      * @brief Checks if game has info to send, if so: send info. Empties game queue.
