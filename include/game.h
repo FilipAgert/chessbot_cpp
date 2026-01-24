@@ -1,6 +1,9 @@
 // Copyright 2025 Filip Agert
+#ifndef GAME_H
+#define GAME_H
 #include <board.h>
 #include <constants.h>
+#include "config.h"
 #include <memory>
 #include <move.h>
 #include <notation_interface.h>
@@ -140,7 +143,11 @@ class Game {
 
     std::queue<InfoMsg> info_queue;
 
+    void set_settings(ConfigSettings settings){
+        settings_=settings;
+    }
  private:
+    ConfigSettings settings_;
     std::array<std::array<Move, max_legal_moves>, 64> move_arr;
     std::stack<Move> move_stack;
     std::stack<restore_move_info> restore_info_stack;
@@ -183,3 +190,5 @@ class Game {
      */
     template <bool is_white> void aspiration_search(int preveval, int depth);
 };
+
+#endif

@@ -3,8 +3,23 @@
 #include "string"
 #include "thread"
 #include "uci_interface.h"
+#include "config_parser.h"
+#include "config.h"
+#include "game.h"
+int main(int argc, char*argv[]) {
+    std::string config_file = "input/input.cfg";
+    if (argc > 1){
+        config_file = argv[1];
+    }
+    
+    ConfigParser parser;
+    parser.load(config_file);
+    ConfigSettings settings = parser.get_settings();
+    Game::instance().set_settings(settings);
+    
 
-int main() {
+
+
     std::string input;
     std::cout << "Welcome to the UCI interface!" << std::endl;
     std::string command, body;

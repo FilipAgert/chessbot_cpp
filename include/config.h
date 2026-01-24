@@ -4,6 +4,7 @@
 
 #include <string>
 struct ConfigSettings{
+    bool aspiration_enable = false;
     
 };
 inline std::string const ID_name = "chiral_ebt";
