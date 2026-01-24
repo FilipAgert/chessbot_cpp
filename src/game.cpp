@@ -131,7 +131,7 @@ std::pair<int, int> Game::aspiration_window(int alpha, int beta, uint8_t nodetyp
 template <bool is_white> void Game::aspiration_search(int preveval, int depth) {
     constexpr int init_window = 50;
     int alpha, beta;
-    if (depth == 1) {
+    if (depth == 1 || ! settings_.aspiration_enable) {
         alpha = -INF;
         beta = INF;
     } else {
