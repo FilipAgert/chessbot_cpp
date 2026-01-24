@@ -177,6 +177,7 @@ struct transposition_table {
 
         return numbits;
     }();
+    static_assert(nbits > transposition_entry::shift_hash, "Must have more bits in table than the hash shift.");
     static constexpr int table_size = 1ULL << nbits;
     static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
     static constexpr int actual_size_kB = (table_size * entry_size) / 1000;
