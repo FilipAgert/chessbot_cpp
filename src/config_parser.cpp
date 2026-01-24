@@ -52,7 +52,7 @@ int ConfigParser::read_int(const std::string& key, int default_val) {
 
 ConfigSettings ConfigParser::get_settings(){
     ConfigSettings settings;
-    if (read_string("transposition/enable") == "yes"){
+    if (read_string("aspiration/enable") == "yes"){
         settings.aspiration_enable = true;
     }
     
