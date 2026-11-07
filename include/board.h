@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <string>
 
-struct restore_move_info {
+struct RestoreMoveInfo {
     uint8_t ply_moves = 0;
     uint8_t ep_square = 0;
     uint8_t castleinfo = 0;
@@ -108,7 +108,7 @@ struct Board {
      * @param[in] move move to flag
      * @return restore_move_info
      */
-    template <bool white_to_move> restore_move_info do_move_no_flag(Move &move) {
+    template <bool white_to_move> RestoreMoveInfo do_move_no_flag(Move &move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         assert(moved != pieces::none);
@@ -147,7 +147,7 @@ struct Board {
 
         return do_move<white_to_move>(move);
     }
-    template <bool white_to_move> restore_move_info constexpr inline do_move(Move move) {
+    template <bool white_to_move> RestoreMoveInfo constexpr inline do_move(Move move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         [[assume(moved >= 1 && moved <= 6)]];
@@ -214,7 +214,7 @@ struct Board {
      * @param[[TODO:direction]] captured [TODO:description]
      * @return [TODO:description]
      */
-    template <bool white_to_move, Piece_t moved, Flag_t flag> restore_move_info constexpr inline do_move(Move move) {
+    template <bool white_to_move, Piece_t moved, Flag_t flag> RestoreMoveInfo constexpr inline do_move(Move move) {
         Piece_t captured = get_piece_at(move.target).get_type();
         [[assume(captured >= 0 && captured <= 6 && captured != 1)]];
         switch (captured) {
@@ -269,8 +269,8 @@ struct Board {
      * @param[[TODO:direction]] move [TODO:description]
      * @return [TODO:description]
      */
-    template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured> restore_move_info constexpr inline do_move(Move move) {
-        restore_move_info info = {ply_moves, en_passant_square, castleinfo, captured};
+    template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured> RestoreMoveInfo constexpr inline do_move(Move move) {
+        RestoreMoveInfo info = {ply_moves, en_passant_square, castleinfo, captured};
         if constexpr (captured != pieces::none)
             this->ply_moves = 0;
         else if constexpr (moved == pieces::pawn)
@@ -402,7 +402,7 @@ struct Board {
             }
         }
     }
-    template <bool white_moved> void undo_move(const restore_move_info info, const Move move) {
+    template <bool white_moved> void undo_move(const RestoreMoveInfo info, const Move move) {
         ply_moves = info.ply_moves;
         castleinfo = info.castleinfo;
         if (info.ep_square != 0) {
@@ -449,7 +449,7 @@ struct Board {
         }
     }
 
-    inline constexpr void undo_move(restore_move_info info, const Move move) {
+    inline constexpr void undo_move(RestoreMoveInfo info, const Move move) {
         if (turn_color == pieces::white)
             undo_move<false>(info, move);
         else

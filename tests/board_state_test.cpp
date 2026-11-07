@@ -17,7 +17,7 @@ TEST(BoardTest, doUndoMove) {
     move.source = NotationInterface::idx_from_string("a2");
     move.target = NotationInterface::idx_from_string("a4");
     ASSERT_EQ(board.get_turn_color(), white);
-    restore_move_info info = board.do_move_no_flag<true>(move);
+    RestoreMoveInfo info = board.do_move_no_flag<true>(move);
     ASSERT_TRUE(board.is_square_empty(move.source));
     ASSERT_FALSE(board.is_square_empty(move.target));
     Piece p = Piece('P');
@@ -40,7 +40,7 @@ TEST(BoardTest, doUndoMovePromotion) {
 
     ASSERT_EQ(move.flag, moveflag::MOVEFLAG_promote_queen);
 
-    restore_move_info info = board.do_move_no_flag<true>(move);
+    RestoreMoveInfo info = board.do_move_no_flag<true>(move);
 
     ASSERT_TRUE(board.is_square_empty(move.source));
     ASSERT_EQ(board.get_piece_at(move.target), Piece('Q'));
@@ -66,7 +66,7 @@ TEST(BoardTest, doUndoMoveCapture) {
     move.target = NotationInterface::idx_from_string("d5");
 
     Piece captured = modified.get_piece_at(move.target);
-    restore_move_info info = modified.do_move_no_flag<true>(move);
+    RestoreMoveInfo info = modified.do_move_no_flag<true>(move);
 
     ASSERT_EQ(modified.get_piece_at(move.target), Piece('P'));
     ASSERT_TRUE(modified.is_square_empty(move.source));
@@ -94,7 +94,7 @@ TEST(BoardTest, do_move_move_ctr) {
     Move m1, m2, m3, m4, m5, m6;
 
     m1 = Move("e7e5");
-    restore_move_info info1 = modified.do_move_no_flag<false>(m1);
+    RestoreMoveInfo info1 = modified.do_move_no_flag<false>(m1);
     ASSERT_EQ(modified.get_full_moves(), 2);
     modified.undo_move<false>(info1, m1);
     ASSERT_EQ(modified.get_full_moves(), 1);
@@ -113,8 +113,8 @@ TEST(BoardTest, doUndoMoveEnPassant) {
 
     m1 = Move("e7e5");
     m2 = Move("d5e6");
-    restore_move_info info1 = modified.do_move_no_flag<false>(m1);
-    restore_move_info info2 = modified.do_move_no_flag<true>(m2);
+    RestoreMoveInfo info1 = modified.do_move_no_flag<false>(m1);
+    RestoreMoveInfo info2 = modified.do_move_no_flag<true>(m2);
     ASSERT_EQ(modified.get_num_pieces(), 3);
     modified.undo_move<true>(info2, m2);
     modified.undo_move<false>(info1, m1);
@@ -133,7 +133,7 @@ TEST(BoardTest, doUndoMoveEnPassantFEN) {
     ep_move.source = NotationInterface::idx_from_string("e5");
     ep_move.target = NotationInterface::idx_from_string("d6");
 
-    restore_move_info info = board.do_move_no_flag<true>(ep_move);
+    RestoreMoveInfo info = board.do_move_no_flag<true>(ep_move);
 
     ASSERT_TRUE(board.is_square_empty(NotationInterface::idx_from_string("e5")));
     ASSERT_EQ(board.get_piece_at(NotationInterface::idx_from_string("d6")), Piece('P'));

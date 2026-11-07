@@ -237,7 +237,7 @@ struct TranspositionTable {
 
     template <bool is_white> std::vector<Move> get_pv(Board &board, int depth){
         std::vector<Move> pv_line;
-        std::stack<restore_move_info> restore_stack;
+        std::stack<RestoreMoveInfo> restore_stack;
         for (int i = 0; i <= depth; i++) {
             uint64_t hash = ZobroistHasher::get().hash_board(board);
             std::optional<TranspositionEntry> entry = get(hash);
@@ -248,7 +248,7 @@ struct TranspositionTable {
                         break;  // found move inside.
                     } else {
                         pv_line.push_back(entry.value().bestmove);
-                        restore_move_info info;
+                        RestoreMoveInfo info;
                         if (board.get_turn_color() == pieces::white)
                             info = board.do_move<true>(entry.value().bestmove);
                         else
@@ -261,7 +261,7 @@ struct TranspositionTable {
             }
         }
         for (int i = pv_line.size() - 1; i >= 0; i--) {
-            restore_move_info info = restore_stack.top();
+            RestoreMoveInfo info = restore_stack.top();
             restore_stack.pop();
             board.undo_move(info, pv_line[i]);
         }

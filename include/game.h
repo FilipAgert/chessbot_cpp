@@ -96,7 +96,7 @@ class Game {
      */
     Move get_bestmove() const;
     template <bool is_white> void make_move_no_flag(Move move) {
-        restore_move_info info = board.do_move_no_flag<is_white>(move);
+        RestoreMoveInfo info = board.do_move_no_flag<is_white>(move);
         move_stack.push(move);
         restore_info_stack.push(info);
         uint64_t state_hash = ZobroistHasher::get().hash_board(board);
@@ -150,7 +150,7 @@ class Game {
     ConfigSettings settings_;
     std::array<std::array<Move, max_legal_moves>, 64> move_arr;
     std::stack<Move> move_stack;
-    std::stack<restore_move_info> restore_info_stack;
+    std::stack<RestoreMoveInfo> restore_info_stack;
     /**
      * @brief Clear stack and pushes current board state onto it.
      *

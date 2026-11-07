@@ -29,7 +29,7 @@ template <bool is_white> int movegen_benchmark::recurse_moves(Board state, int p
     int num_moves = state.get_moves<normal_search, is_white>(movegen_benchmark::move_arr[curr_depth]);
     int total_moves = 0;
     for (int i = 0; i < num_moves; i++) {
-        restore_move_info info = state.do_move<is_white>(movegen_benchmark::move_arr[curr_depth][i]);
+        RestoreMoveInfo info = state.do_move<is_white>(movegen_benchmark::move_arr[curr_depth][i]);
         int this_move_nbr = recurse_moves<!is_white>(state, print_depth, curr_depth + 1, to_depth);
         if (curr_depth <= print_depth) {
             for (int j = 0; j < curr_depth; j++)
