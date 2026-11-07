@@ -84,11 +84,11 @@ struct TranspositionEntry {
     Move bestmove = Move();
     // 1 = an upper bound.
     // same or shallower.
-    inline bool is_valid_move() { return (bestmove.source != bestmove.target); }
+    inline bool is_valid_move() const { return (bestmove.source != bestmove.target); }
 
-    bool is_exact() { return nodetype == exact; }
-    bool is_lb() { return nodetype == lb; }
-    bool is_ub() { return nodetype == ub; }
+    bool is_exact() const { return nodetype == exact; }
+    bool is_lb() const { return nodetype == lb; }
+    bool is_ub() const { return nodetype == ub; }
 };
 constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 

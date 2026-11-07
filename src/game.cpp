@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <move.h>
+#include <optional>
 #include <string>
 #include <time_manager.h>
 #include <utility>
@@ -162,16 +163,22 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         return quiesence<is_white>(ply, alpha, beta);
     }
 
-    uint64_t zob_hash = ZobroistHasher::get().hash_board(board);
-    std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
-    std::optional<Move> first_move = {};
+
+
     int movelb = 0;
     Move best_curr_move;
     bool atleast_one_move_searched = false;
     int bestscore = -INF;
     uint8_t nodetype = ub;
+    
+    uint64_t zob_hash = ZobroistHasher::get().hash_board(board);
+    std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
+    std::optional<Move> first_move = {};
     if (maybe_entry) {
-        TranspositionEntry entry = maybe_entry.value();
+        const TranspositionEntry &entry = maybe_entry.value();
+        if (entry.is_valid_move())
+            first_move = std::make_optional(maybe_entry.value().bestmove);
+
         if (trans_table->is_useable_entry(entry, depth)) {
             // If exact, return score
             int eval = entry.eval;
@@ -191,39 +198,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
                     beta = std::min(beta, eval);  // an upper bound can still tighten beta.
             }
         }
-        // If the transposition table entry was not useable due to bad depth, or if it was not
-        // enough to produce a cutoff, it can still be used for move ordering.
-        first_move = std::make_optional(entry.bestmove);
-        // We first search the first move before generating the other moves. If it generates a
-        // cutoff, we save plenty of time.
-        if (entry.is_valid_move()) {  // need ot check if its a valid move or not, since it might be
-                                      // e.g. no moves available on this state.
-            make_move<is_white>(entry.bestmove);
-            int extension = calculate_extension<!is_white>(entry.bestmove, 0, num_extensions);
-            std::pair<int, uint8_t> result = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
-            int eval = -result.first;
-            undo_move<is_white>();
-            if (time_manager->get_should_stop()) {
-                return {0, timeout};  // should not store into transposition table here since the search was
-                                      // cancelled.
-            }
-            bestscore = eval;
-            best_curr_move = entry.bestmove;
-            atleast_one_move_searched = true;
-            if (eval >= beta) {  // FAIL HIGH: move is too good, will never get here.
-                trans_table->store(zob_hash, entry.bestmove, beta, lb,
-                                   depth);  // Can update hash to curr depth.
-                return {beta, lb};
-            }
-
-            if (eval > alpha) {  // alpha raised and node is exact.
-                alpha = eval;
-                nodetype = exact;
-            }
-            movelb = 1;
-        }
     }
-
     // Handle if king is checked or no moves can be made.
     assert(ply < 64);
     int num_moves = board.get_moves<normal_search, is_white>(move_arr[ply]);
@@ -239,6 +214,9 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     // End mate and draws.
 
     MoveOrder::apply_move_sort<is_white>(move_arr[ply], num_moves, first_move, board);
+
+
+
     // Normal move generation.
     //
     for (uint8_t i = movelb; i < num_moves; i++) {
@@ -248,7 +226,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         int eval = -res.first;
         undo_move<is_white>();
         if (time_manager->get_should_stop()) {
-            if (is_root) {
+            if constexpr (is_root) {
                 if (atleast_one_move_searched) {
                     trans_table->store(zob_hash, best_curr_move, bestscore, lb, depth);
                 }
