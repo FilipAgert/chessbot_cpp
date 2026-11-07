@@ -165,7 +165,6 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
 
 
 
-    int movelb = 0;
     Move best_curr_move;
     bool atleast_one_move_searched = false;
     int bestscore = -INF;
@@ -219,7 +218,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
 
     // Normal move generation.
     //
-    for (uint8_t i = movelb; i < num_moves; i++) {
+    for (uint8_t i = 0; i < num_moves; i++) {
         make_move<is_white>(move_arr[ply][i]);
         int extension = calculate_extension<!is_white>(move_arr[ply][i], i, num_extensions);
         std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
