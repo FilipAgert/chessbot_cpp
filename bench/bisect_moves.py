@@ -5,7 +5,7 @@ import time
 # --- CONFIGURATION ---
 EXECUTABLE_SF = "stockfish"
 # Ensure the path style matches your OS (forward slashes usually work in python on Win too)
-EXECUTABLE_FA = "exe/main.exe" 
+EXECUTABLE_FA = "bin/filipbot" 
 #--- STANDARD FEN LIBRARY ---
 # These FENs are commonly used for perft testing, often called 'Perft Suite' positions.
 STANDARD_FENS = {
@@ -93,7 +93,7 @@ def bisect_error_chain(fen, depth, move_chain, sf_proc, fa_proc):
     send_command(fa_proc, position_cmd)
 
     # 2. Run perft at the new (decremented) depth
-    perft_command = f"go perft {depth}"
+    perft_command = f"go perft {depth} 1"
     
     # Running perft on the new position (depth - 1 from the original call)
     send_command(sf_proc, perft_command)
@@ -188,7 +188,7 @@ def main():
 
     # Initial Run to find the first error
     position_cmd = f"position fen {fen}"
-    perft_command = f"go perft {initial_depth}"
+    perft_command = f"go perft {initial_depth} 1"
     
     send_command(sf_proc, position_cmd)
     send_command(fa_proc, position_cmd)
