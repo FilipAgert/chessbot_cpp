@@ -2,6 +2,7 @@
 #include "integer_representation.h"
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <moveorder.h>
 
 #include <board.h>
@@ -77,14 +78,15 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
 
     time_manager->start_time_management();
     int max_depth = 256;
-    uint64_t hash = ZobroistHasher::get().hash_board(board);
     assert(board.board_BB_match());
     int preveval = 0;
     for (int depth = 1; depth < max_depth; depth++) {
         seldepth = 0;
         if (!time_manager->get_should_start_new_iteration())
             break;
-        aspiration_search<is_white>(preveval, depth);
+        auto [eval, nt] = aspiration_search<is_white>(preveval, depth);
+        if (nt == timeout)
+            break;
         // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         InfoMsg new_msg;
         new_msg.nodes = this->nodes_evaluated;
@@ -93,6 +95,8 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         new_msg.pv = trans_table->get_pv<is_white>(board, depth);
         new_msg.seldepth = seldepth;
         new_msg.hashfill = trans_table->load_factor();
+        new_msg.score = eval;
+        info_queue.push(new_msg);
         if (new_msg.pv.size() > 0) {
             bestmove = new_msg.pv[0];
             if (bestmove.source == bestmove.target) {
@@ -100,19 +104,8 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
             }
         }
 
-        std::optional<TranspositionEntry> entry = trans_table->get(hash);
-        std::optional<int> eval = {};
-        if (entry) {
-            new_msg.score = entry.value().eval;
-            preveval = entry.value().eval;
-            info_queue.push(new_msg);
-            eval = std::make_optional(new_msg.score);
-        } else {
-            std::cout << "Err: could not get entry for hash. Depth: " << depth << std::endl;
-            break;
-        }
-
-        std::optional<int> moves_to_mate = eval ? EvalState::moves_to_mate(eval.value()) : 0;
+        preveval = eval;
+        std::optional<int> moves_to_mate = EvalState::moves_to_mate(eval);
         if (moves_to_mate) {
             break;
         }
@@ -121,16 +114,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
     time_manager->stop_and_join();  // Join time manager thread to this one.
 }
 
-std::pair<int, int> Game::aspiration_window(int alpha, int beta, uint8_t nodetype) {
-    int diff = beta - alpha;
-    if (nodetype == lb) {  // increase beta
-        beta = beta + diff / 2;
-    } else if (nodetype == ub) {
-        alpha = alpha - diff / 2;
-    }
-    return {alpha, beta};
-}
-template <bool is_white> void Game::aspiration_search(int preveval, int depth) {
+template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int preveval, int depth) {
     int delta = 50;
     int alpha, beta;
     if (depth == 1 || ! settings_.aspiration_enable) {
@@ -140,14 +124,14 @@ template <bool is_white> void Game::aspiration_search(int preveval, int depth) {
         alpha = preveval - delta;
         beta = preveval + delta;
     }
-    uint8_t nodetype = invalid;
+    uint8_t nt = invalid;
     int best_score = preveval;
 
     while (true) {
         std::pair<int, uint8_t> res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         best_score = res.first;
-        nodetype = res.second;
-        if (nodetype == timeout)
+        nt = res.second;
+        if (nt == timeout)
             break;
         if (best_score > alpha && best_score < beta)
             break;
@@ -161,6 +145,7 @@ template <bool is_white> void Game::aspiration_search(int preveval, int depth) {
         if (alpha == -INF && beta == -INF)
             break;
     }
+    return {best_score, nt};
 }
 template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     seldepth = std::max(ply, seldepth);
