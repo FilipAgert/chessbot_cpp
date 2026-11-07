@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <bitboard.h>
+#include <config.h>
 #include <board.h>
 #include <cassert>
 #include <cmath>
@@ -160,7 +161,7 @@ class ZobroistHasher {
 };
 struct transposition_table {
     static constexpr size_t entry_size = sizeof(transposition_entry);
-    static constexpr int size_MB = 16;
+    static constexpr int size_MB = TT_SIZE_MB;
     static constexpr int nbits = [] constexpr {
         constexpr size_t num_entries = size_MB * 1000000 / entry_size;
         int msb = 0;

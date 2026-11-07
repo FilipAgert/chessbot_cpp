@@ -15,6 +15,8 @@ constexpr int STANDARD_TIME = 60 * 1000;  // 60 seconds. 60 * 5 * 1000;  // 5 mi
 constexpr int STANDARD_TINC = 0;          // 0 seconds additional per move.
 constexpr int STANDARD_TIME_BUFFER = 10;  // 50 ms buffer to aim for.
 constexpr int STANDARD_TIME_FRAC = 25;    // use 1/40th of remanining itme
+
+constexpr int TT_SIZE_MB=128;
                                           
 
 #endif
