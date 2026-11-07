@@ -1,4 +1,5 @@
 // Copyright 2025 Filip Agert
+#include "integer_representation.h"
 #include <algorithm>
 #include <array>
 #include <moveorder.h>
@@ -130,23 +131,35 @@ std::pair<int, int> Game::aspiration_window(int alpha, int beta, uint8_t nodetyp
     return {alpha, beta};
 }
 template <bool is_white> void Game::aspiration_search(int preveval, int depth) {
-    constexpr int init_window = 50;
+    int delta = 50;
     int alpha, beta;
     if (depth == 1 || ! settings_.aspiration_enable) {
         alpha = -INF;
         beta = INF;
     } else {
-        alpha = preveval - init_window;
-        beta = preveval + init_window;
+        alpha = preveval - delta;
+        beta = preveval + delta;
     }
     uint8_t nodetype = invalid;
+    int best_score = preveval;
 
-    while (nodetype != exact && nodetype != timeout) {
+    while (true) {
         std::pair<int, uint8_t> res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
+        best_score = res.first;
         nodetype = res.second;
-        std::pair<int, int> new_window = aspiration_window(alpha, beta, nodetype);
-        alpha = new_window.first;
-        beta = new_window.second;
+        if (nodetype == timeout)
+            break;
+        if (best_score > alpha && best_score < beta)
+            break;
+        
+        if (best_score <= alpha){
+            alpha = std::max(-INF, alpha-delta);
+        } else if (best_score >= beta){
+            beta = std::min(INF, beta+delta);
+        }
+        delta *= 2;
+        if (alpha == -INF && beta == -INF)
+            break;
     }
 }
 template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
@@ -230,7 +243,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
                     trans_table->store(zob_hash, best_curr_move, bestscore, lb, depth);
                 }
             }
-            return {0, timeout};
+            return {eval, timeout};
         }
         if (eval > bestscore) {
             bestscore = eval;
