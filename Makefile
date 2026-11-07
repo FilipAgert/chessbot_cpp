@@ -9,28 +9,26 @@ EXE?=filipbot
 TEST_EXE = testsuite
 MAGIC_EXE = gen_magics
 
-#compile in parallel
-NPROCS:= $(SHELL grep -c 'processor' /proc/cpuinfo)
-MAKEFLAGS+= -j4
+# compile in parallel
+NPROCS := $(shell grep -c 'processor' /proc/cpuinfo)
+MAKEFLAGS += -j4
 
-type?=dev
+type ?= dev
 ifeq ($(type), release)
-	FLAGS = -Wall -std=c++23 -O3 -DNDEBUG -march=native
+    FLAGS = -Wall -std=c++23 -O3 -DNDEBUG -march=native
 else ifeq ($(type), dev)
-	FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast -march=native
+    FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast -march=native
 else ifeq ($(type), perft)
-	FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG -march=native
+    FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG -march=native
 else
-	$(error Invalid value for type: '$(type)'. Must be 'release', 'dev' or 'perft'.)
+    $(error Invalid value for type: '$(type)'. Must be 'release', 'dev' or 'perft'.)
 endif
-
 
 LIBS = -lgtest -lgtest_main -pthread  # Google Test and pthread libs
 
-
-# commands for linking.
+# Commands for linking.
 CCL = g++ -o
-# Commands for compilation.
+# Commands for compilation (removed redundant -c here)
 CC = g++ $(FLAGS) -MMD -MP -c
 
 # objects
@@ -43,30 +41,37 @@ TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.
 all: $(DEXE)/$(EXE)
 
 # Link the main executable
-$(DEXE)/$(EXE): $(OBJECTS) $(MAIN_OBJ)
+$(DEXE)/$(EXE): $(OBJECTS) $(MAIN_OBJ) | bin
 	$(CCL) $@ $(MAIN_OBJ) $(OBJECTS) $(LIBS)
 
-$(DEXE)/$(MAGIC_EXE): $(OBJECTS) $(MAGIC_OBJ)
+$(DEXE)/$(MAGIC_EXE): $(OBJECTS) $(MAGIC_OBJ) | bin
 	$(CCL) $@ $(MAGIC_OBJ) $(OBJECTS) $(LIBS)
+
 # Test executable target
-$(DEXE)/$(TEST_EXE): $(TEST_OBJECTS) $(OBJECTS)
+$(DEXE)/$(TEST_EXE): $(TEST_OBJECTS) $(OBJECTS) | bin
 	$(CCL) $@ $(TEST_OBJECTS) $(OBJECTS) $(LIBS)
 
-# Compile test object files (from ./test folder)
-$(DOBJ)/%.o: $(DTEST)/%.cpp Makefile
-	$(CC) -I$(DINC) -c $< -o $@
+# Compile test object files (from ./tests folder)
+$(DOBJ)/%.o: $(DTEST)/%.cpp Makefile | build
+	$(CC) -I$(DINC) $< -o $@
 
+# Compile source object files (from ./src folder - includes main.cpp and gen_magic_nums.cpp)
+$(DOBJ)/%.o: $(DSRC)/%.cpp Makefile | build
+	$(CC) -I$(DINC) $< -o $@
 
-DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d)
+# Include dependency files for ALL objects
+DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d) $(MAIN_OBJ:.o=.d) $(MAGIC_OBJ:.o=.d)
 -include $(DEPS)
 
-# Compile source object files (from ./src folder)
-$(DOBJ)/%.o: $(DSRC)/%.cpp Makefile
-	$(CC) -I$(DINC) -c $< -o $@
+build:
+	mkdir -p $(DOBJ)
 
-# Clean up build artifacts
+bin:
+	mkdir -p $(DEXE)
+
+# Clean up build artifacts safely
 clean:
-	rm -rf $(DOBJ)/*.o $(DEXE)/$(EXE) $(DOBJ)/*.d
+	rm -rf $(DOBJ) $(DEXE)/$(EXE) $(DEXE)/$(TEST_EXE) $(DEXE)/$(MAGIC_EXE)
 
 # Run the main executable
 run:
@@ -76,11 +81,10 @@ run:
 # Compile tests
 test: $(DEXE)/$(TEST_EXE)
 
-filter?="*"
+filter ?= "*"
 # runtests
 runtest: $(DEXE)/$(TEST_EXE)
 	./$(DEXE)/$(TEST_EXE) --gtest_filter="$(filter)"
 
 magic: $(DEXE)/$(MAGIC_EXE)
 	./$(DEXE)/$(MAGIC_EXE)
-
