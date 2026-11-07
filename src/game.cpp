@@ -200,7 +200,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
                                       // e.g. no moves available on this state.
             make_move<is_white>(entry.bestmove);
             int extension = calculate_extension<!is_white>(entry.bestmove, 0, num_extensions);
-            std::pair<int, uint8_t> result = alpha_beta<false, !is_white>(depth - 1, ply + 1, -beta, -alpha, num_extensions + extension);
+            std::pair<int, uint8_t> result = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
             int eval = -result.first;
             undo_move<is_white>();
             if (time_manager->get_should_stop()) {
