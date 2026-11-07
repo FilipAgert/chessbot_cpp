@@ -71,7 +71,7 @@ class StateStack {
     }
 };
 
-struct transposition_entry {
+struct TranspositionEntry {
     static constexpr int keep_hashbits = 48;
     static constexpr int shift_hash = 64 - 48;
     uint64_t hash : keep_hashbits = 0;
@@ -90,7 +90,7 @@ struct transposition_entry {
     bool is_lb() { return nodetype == lb; }
     bool is_ub() { return nodetype == ub; }
 };
-constexpr transposition_entry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
+constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 
 class ZobroistHasher {
  private:
@@ -159,8 +159,8 @@ class ZobroistHasher {
      */
     template <bool forward> void update_hash(uint64_t &hash, const Move move) {}
 };
-struct transposition_table {
-    static constexpr size_t entry_size = sizeof(transposition_entry);
+struct TranspositionTable {
+    static constexpr size_t entry_size = sizeof(TranspositionEntry);
     static constexpr int size_MB = TT_SIZE_MB;
     static constexpr int nbits = [] constexpr {
         constexpr size_t num_entries = size_MB * 1000000 / entry_size;
@@ -178,11 +178,11 @@ struct transposition_table {
 
         return numbits;
     }();
-    static_assert(nbits > transposition_entry::shift_hash, "Must have more bits in table than the hash shift.");
+    static_assert(nbits > TranspositionEntry::shift_hash, "Must have more bits in table than the hash shift.");
     static constexpr int table_size = 1ULL << nbits;
     static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
     static constexpr int actual_size_MB = (table_size * entry_size) / 1000000;
-    std::array<transposition_entry, table_size> arr;  // array holding the data.
+    std::array<TranspositionEntry, table_size> arr;  // array holding the data.
     size_t hits = 0;                                  // how many times did we access the table and find the board inside?
     size_t misses = 0;                                // how many times did we access the table and not find the board?
     size_t collisions = 0;                            // how many times did we have a hash collision?
@@ -201,11 +201,11 @@ struct transposition_table {
      *
      * @param[in] hash hash of board.
      */
-    std::optional<transposition_entry> get(uint64_t hash);
+    std::optional<TranspositionEntry> get(uint64_t hash);
 
     inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
         assert(bestmove.source != bestmove.target);
-        uint64_t shifted_hash = (hash >> transposition_entry::shift_hash);
+        uint64_t shifted_hash = (hash >> TranspositionEntry::shift_hash);
         size_t key = get_key(hash);
         writes++;
         if (arr[key].nodetype != invalid) {
@@ -220,9 +220,9 @@ struct transposition_table {
      * @param[in] depth depth this state occured at
      * @return True if the current depth is smaller than or equal the entries depth.
      */
-    static bool is_useable_entry(const transposition_entry entry, const int depth) { return depth <= entry.depth; }
+    static bool is_useable_entry(const TranspositionEntry entry, const int depth) { return depth <= entry.depth; }
     void clear() {
-        std::fill(arr.begin(), arr.end(), transposition_entry{0, invalid, 0, 0, Move()});
+        std::fill(arr.begin(), arr.end(), TranspositionEntry{0, invalid, 0, 0, Move()});
         writes = 0;
         overwrites = 0;
     }
@@ -240,7 +240,7 @@ struct transposition_table {
         std::stack<restore_move_info> restore_stack;
         for (int i = 0; i <= depth; i++) {
             uint64_t hash = ZobroistHasher::get().hash_board(board);
-            std::optional<transposition_entry> entry = get(hash);
+            std::optional<TranspositionEntry> entry = get(hash);
             if (entry) {
                 if (entry.value().is_valid_move()) {
                     auto it = std::find(pv_line.begin(), pv_line.end(), entry.value().bestmove);  // check if move already found.

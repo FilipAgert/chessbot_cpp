@@ -165,7 +165,7 @@ class Game {
     std::shared_ptr<TimeManager> time_manager;
     Game() = default;
     static constexpr int INF = 10000000;
-    std::unique_ptr<transposition_table> trans_table = std::make_unique<transposition_table>();
+    std::unique_ptr<TranspositionTable> trans_table = std::make_unique<TranspositionTable>();
     /**
      * @brief Main game logic loop for thinking about a position.
      *

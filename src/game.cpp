@@ -98,7 +98,7 @@ template <bool is_white> void Game::think_loop(const time_control rem_time) {
             }
         }
 
-        std::optional<transposition_entry> entry = trans_table->get(hash);
+        std::optional<TranspositionEntry> entry = trans_table->get(hash);
         std::optional<int> eval = {};
         if (entry) {
             new_msg.score = entry.value().eval;
@@ -163,7 +163,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     }
 
     uint64_t zob_hash = ZobroistHasher::get().hash_board(board);
-    std::optional<transposition_entry> maybe_entry = trans_table->get(zob_hash);
+    std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
     std::optional<Move> first_move = {};
     int movelb = 0;
     Move best_curr_move;
@@ -171,7 +171,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     int bestscore = -INF;
     uint8_t nodetype = ub;
     if (maybe_entry) {
-        transposition_entry entry = maybe_entry.value();
+        TranspositionEntry entry = maybe_entry.value();
         if (trans_table->is_useable_entry(entry, depth)) {
             // If exact, return score
             int eval = entry.eval;
