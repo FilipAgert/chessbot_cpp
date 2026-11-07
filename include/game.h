@@ -53,7 +53,7 @@ class Game {
      * @param rem_time: Time control structure from input.
      *
      */
-    void start_thinking(const time_control rem_time);
+    void start_thinking(const TimeControl rem_time);
 
     /**
      * @brief Alpha beta pruning. This is quite complicated. alpha is the maximal guaranteed score
@@ -172,7 +172,7 @@ class Game {
      *
      */
     bool one_depth_complete;
-    template <bool is_white> void think_loop(const time_control rem_time);
+    template <bool is_white> void think_loop(const TimeControl rem_time);
 
     /**
      * @brief Returns new aspiration window given the old one and the nodetype of the search (lb or ub)

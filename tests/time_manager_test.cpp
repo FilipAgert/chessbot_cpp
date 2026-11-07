@@ -8,7 +8,7 @@ TEST(TimeManagerTest, ontime) {
     int remtime = 1000;
     int timeinc = 50;
     int remtime_frac = 20;
-    time_control rem_time = time_control(remtime, remtime, timeinc, timeinc);
+    TimeControl rem_time = TimeControl(remtime, remtime, timeinc, timeinc);
     TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true);
     auto start = std::chrono::high_resolution_clock::now();
     int target = remtime / remtime_frac + timeinc - buffer;  // Here is where we want to go.
@@ -39,7 +39,7 @@ TEST(TimeManagerTest, thread_stop_test) {
     int remtime = 1000;
     int timeinc = 50;
     int remtime_frac = 20;
-    time_control rem_time = time_control(remtime, timeinc, remtime, timeinc);
+    TimeControl rem_time = TimeControl(remtime, timeinc, remtime, timeinc);
     TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true);
 
     auto start = std::chrono::high_resolution_clock::now();

@@ -22,7 +22,7 @@ bool Game::set_fen(std::string FEN) {
     trans_table->clear();
     return success;
 }
-void Game::start_thinking(const time_control rem_time) {
+void Game::start_thinking(const TimeControl rem_time) {
     reset_infos();
     bool is_white = board.get_turn_color() == pieces::white;
     if (is_white)
@@ -43,7 +43,7 @@ void Game::reset_state_stack() {
     state_stack.push(board_hash);
 }
 
-template <bool is_white> void Game::think_loop(const time_control rem_time) {
+template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
     if (this->check_repetition()) {
         InfoMsg new_msg;
         new_msg.stringmsg = true;

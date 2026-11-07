@@ -5,7 +5,7 @@
 #include <chrono>
 #include <thread>
 using namespace std::chrono;
-struct time_control {
+struct TimeControl {
     int wtime, btime, winc, binc;
 };
 class TimeManager {
@@ -60,7 +60,7 @@ class TimeManager {
      */
     void stop_and_join();
 
-    TimeManager(time_control rem_time, int buffer, int remtime_frac, bool is_white);
+    TimeManager(TimeControl rem_time, int buffer, int remtime_frac, bool is_white);
 
     ~TimeManager();
 };

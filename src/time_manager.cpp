@@ -76,7 +76,7 @@ int TimeManager::calculate_time_elapsed_ms() const {
     return duration.count();
 }
 
-TimeManager::TimeManager(time_control rem_time, int buffer, int remtime_frac, bool is_white) {
+TimeManager::TimeManager(TimeControl rem_time, int buffer, int remtime_frac, bool is_white) {
     this->remtime = is_white ? rem_time.wtime : rem_time.btime;
     this->enemy_remtime = is_white ? rem_time.btime : rem_time.wtime;
     this->inc = is_white ? rem_time.winc : rem_time.binc;

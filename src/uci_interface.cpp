@@ -136,7 +136,7 @@ void UCIInterface::process_go_command(std::string command) {
             }
         }
     }
-    time_control rem_time = time_control({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc});
+    TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc});
     Game::instance().start_thinking(rem_time);  // Enter ponder loop
     UCIInterface::send_info_if_has();
     UCIInterface::send_bestmove();
