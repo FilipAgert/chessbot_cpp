@@ -56,11 +56,11 @@ uint64_t ZobroistHasher::hash_board(const Board &board) {
     hash_turn(hash, board);
     return hash;
 }
-std::optional<transposition_entry> transposition_table::get(uint64_t hash) {
+std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
     size_t key = get_key(hash);
-    transposition_entry curr = arr[key];
-    std::optional<transposition_entry> maybe;
-    if (curr.hash == (hash >> transposition_entry::shift_hash) && curr.nodetype != invalid) {
+    TranspositionEntry curr = arr[key];
+    std::optional<TranspositionEntry> maybe;
+    if (curr.hash == (hash >> TranspositionEntry::shift_hash) && curr.nodetype != invalid) {
         hits++;
         maybe = std::make_optional(curr);
     } else {
@@ -72,4 +72,4 @@ std::optional<transposition_entry> transposition_table::get(uint64_t hash) {
     }
     return maybe;
 }
-int transposition_table::load_factor() const { return writes > 0 ? (overwrites * 1000) / writes : 0; }
+int TranspositionTable::load_factor() const { return writes > 0 ? (overwrites * 1000) / writes : 0; }
