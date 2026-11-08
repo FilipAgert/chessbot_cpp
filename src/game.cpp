@@ -1,5 +1,6 @@
 // Copyright 2025 Filip Agert
 #include "integer_representation.h"
+#include "movegen.h"
 #include "tables.h"
 #include <algorithm>
 #include <array>
@@ -268,19 +269,18 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         return {EvalState::eval(board), exact};
     }
 
-    int eval = EvalState::eval(board);
-    seldepth = std::max(ply, seldepth);
-
-    // This assumes that there is at least one move that can match, or increase the current score.
-    // So best_value is a lower bound.
-    if (eval >= beta)
-        return {beta, lb};
-    alpha = std::max(alpha, eval);
-
-    // Handle if king is checked or no moves can be made.
-    assert(ply < 64);
-    int num_moves = board.get_moves<quiesence_search, is_white>(move_arr[ply]);
+    const bool in_check = board.king_checked<is_white>();
+    if (!in_check){
+        int eval = EvalState::eval(board);
+        if (eval >= beta){
+            return {beta, lb};
+        }
+        alpha = std::max(alpha, eval);
+    }
+    int num_moves = in_check ?  board.get_moves<normal_search, is_white>(move_arr[ply]) : board.get_moves<quiesence_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
+    if (in_check && num_moves == 0)
+        return {-EvalState::MATE_SCORE +ply, exact};
 
     MoveOrder::apply_move_sort<is_white>(move_arr[ply], num_moves, board);
     // Normal move generation.
