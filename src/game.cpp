@@ -157,7 +157,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
 }
 
 template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int preveval, int depth) {
-    int delta = 25;
+    int delta = Parameters::ASPIRATION_WINDOW;
     int alpha = -INF;
     int beta = INF;
     if (depth > 1 && settings_.aspiration_enable) {
