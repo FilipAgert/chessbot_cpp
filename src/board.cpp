@@ -175,7 +175,7 @@ void Board::clear_board() {
 }
 
 bool does_move_check(const Move candidate, const uint8_t king_color) {
-    NotImplemented();
+    throw NotImplemented();
     // Can do a bitboard only implementation. Need to: Remove captured piece. Handle en passant.
     return false;
 }
