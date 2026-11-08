@@ -166,6 +166,7 @@ class Game {
     int seldepth = 0;
     std::shared_ptr<TimeManager> time_manager;
     Game() = default;
+    Move root_best = Move();
     static constexpr int INF = 10000000;
     bool must_finish; // if must finish this search or not.
     // table needs to be a pointer since its so large in memory.

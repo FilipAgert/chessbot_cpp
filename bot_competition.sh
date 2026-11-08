@@ -1,4 +1,4 @@
-#!/bin/bash
+
 
 DEFAULT_ENGINE_1="filipbot"
 DEFAULT_ENGINE_2="filipbot_base"
@@ -37,4 +37,4 @@ ENGINE2_CMD="$ENGINE_PATH/$ENGINE2_CMD"
 
 # Execute fastchess with the determined engine commands and names
 echo "Running SPRT: Engine 1 ($ENGINE1_NAME) vs Engine 2 ($ENGINE2_NAME)"
-fastchess -engine cmd=$ENGINE1_CMD name=$ENGINE1_NAME -engine cmd=$ENGINE2_CMD name=$ENGINE2_NAME -each tc=0.5+0.02 -rounds 5000 -repeat -concurrency 4 -openings file=opening_books/8moves_v3.pgn format=pgn order=random -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 -log file="out.log"
+fastchess -engine cmd=$ENGINE1_CMD name=$ENGINE1_NAME -engine cmd=$ENGINE2_CMD name=$ENGINE2_NAME -each tc=10+0.1 -rounds 5000 -repeat -concurrency 4 -openings file=opening_books/8moves_v3.pgn format=pgn order=random -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 -log file="out.log"
