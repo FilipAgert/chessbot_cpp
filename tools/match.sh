@@ -15,6 +15,7 @@ fastchess \
   -engine cmd="$ENGINE2_CMD" name="$2" \
   -each tc="$TC" \
   -rounds 5000 -repeat -concurrency 4 \
+  -recover \
   -openings file=opening_books/8moves_v3.pgn format=pgn order=random \
   -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
   -log file="results/${ENGINE1_NAME}_vs_${ENGINE2_NAME}.log"
