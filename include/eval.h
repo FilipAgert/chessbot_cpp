@@ -51,6 +51,7 @@ class EvalState {
      * @return true if ply is grt or equal 100.
      */
     static bool forced_draw_ply(Board &board);
+    static bool is_lategame(Board &board);
 
  private:
     static int eval_material(Board &board);
@@ -74,7 +75,6 @@ class EvalState {
     constexpr static float eval_game_phase(const int num_pieces) { return 1. - (num_pieces - 1.) / 15.; }
     
 
-    static bool is_lategame(Board &board);
 
     /**
      * @brief Score for pawn structure. Passed pawns, unprotected pawns, blocking pawns, etc.

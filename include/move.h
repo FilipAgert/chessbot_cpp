@@ -36,8 +36,8 @@ struct Move {
     uint8_t source : 6 = 0;
     uint8_t target : 6 = 0;
 
-    inline constexpr bool is_promotion() { return moveflag::is_promotion(flag); }
-    inline constexpr Piece_t get_promotion() {
+    inline constexpr bool is_promotion() const { return moveflag::is_promotion(flag); }
+    inline constexpr Piece_t get_promotion() const {
         if (flag == moveflag::MOVEFLAG_promote_queen)
             return pieces::queen;
         else if (flag == moveflag::MOVEFLAG_promote_knight)

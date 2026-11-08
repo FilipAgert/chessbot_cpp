@@ -828,13 +828,30 @@ struct Board {
         }
         return mobility;
     }
+    template<bool is_white> bool has_pawn_promotion() const{
+        BB possible_pawn_promos = movegen::pawn_moves<is_white>(get_piece_bb<pieces::pawn, is_white>() & get_pawn_pre_promote_rank<is_white>(), occupancy<is_white>(), occupancy<!is_white>(), 0x0);
+        return possible_pawn_promos > 0;
+    } 
 
  protected:
+    // gets rank that pawn promotes on.
     template <bool is_white> int get_pawn_promote_rank() const {
         if constexpr (is_white)
             return 7;
         else
             return 0;
+    }
+    /**
+     * @brief Get the the rank of pawn promotion one square before
+     * 
+     * @tparam is_white 
+     * @return int 
+     */
+    template <bool is_white> int get_pawn_pre_promote_rank() const {
+        if constexpr (is_white)
+            return 6;
+        else
+            return 1;
     }
     /**
      * @brief From a bitboard of attacked squares, generate all moves and add to array
@@ -1239,5 +1256,6 @@ struct Board {
             __builtin_unreachable();
         }
     }
+    
 };
 #endif

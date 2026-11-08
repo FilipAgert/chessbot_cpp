@@ -4,6 +4,8 @@
 #include <board.h>
 #include <constants.h>
 #include "config.h"
+#include "eval.h"
+#include "parameters.h"
 #include <memory>
 #include <move.h>
 #include <notation_interface.h>
@@ -191,6 +193,14 @@ class Game {
      * @param[in] depth Depth of search.
      */
     template <bool is_white> std::pair<int, uint8_t> aspiration_search(int preveval, int depth);
+
+    template<bool is_white> bool delta_futility_pruning(int standing_pat, int alpha) const{
+       int big_delta = PieceValue::queen + Parameters::DELTA_THRESHHOLD; 
+       if(board.has_pawn_promotion<is_white>()){
+        big_delta += PieceValue::queen - PieceValue::pawn;
+       }
+       return standing_pat + big_delta < alpha;
+    }
 };
 
 #endif

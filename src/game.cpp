@@ -20,6 +20,7 @@
 #include <move.h>
 #include <optional>
 #include <string>
+#include "parameters.h"
 #include <time_manager.h>
 #include <utility>
 bool Game::set_fen(std::string FEN) {
@@ -330,13 +331,24 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     }
 
     const bool in_check = board.king_checked<is_white>();
+    const bool is_endgame = EvalState::is_lategame(board);
+    int standing_pat;
     if (!in_check){
-        int eval = EvalState::eval(board);
-        if (eval >= beta){
+        standing_pat = EvalState::eval(board);
+        if (standing_pat >= beta){
             return {beta, lb};
         }
-        alpha = std::max(alpha, eval);
+        
+        //delta futility pruning
+        //prune branch if we cannot improve score even with best capture and promotion.
+        if (delta_futility_pruning<is_white>(standing_pat, alpha)){
+            return {alpha, ub};
+        }
+
+        alpha = std::max(alpha, standing_pat);
     }
+
+
     int num_moves = in_check ?  board.get_moves<full_search, is_white>(move_arr[ply]) : board.get_moves<quiesence_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (in_check && num_moves == 0)
@@ -352,8 +364,21 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
             if (scores[j] > scores[best]) best = j;
         std::swap(moves[i], moves[best]);
         std::swap(scores[i], scores[best]);     
+        const Move & move = moves[i];
+        //delta pruning:
+        // check if delta threshhold is reached
+        if ((!in_check) && !(is_endgame)){
+            int extra = PieceValue::piecevals[board.get_piece_at(move.target).get_type()];
+            extra += PieceValue::piecevals[move.get_promotion()]; // doesn't detract pawn value if promotion...
+            extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? PieceValue::pawn : 0;
+            
+            // worth checking branch!
+            if (!(standing_pat + extra + Parameters::DELTA_THRESHHOLD > alpha))
+                continue;
+        }
+        // end delta pruning
 
-        make_move<is_white>(move_arr[ply][i]);
+        make_move<is_white>(move);
         std::pair<int, uint8_t> res = quiesence<!is_white>(ply + 1, -beta, -alpha);
         int eval = -res.first;
         undo_move<is_white>();
@@ -361,8 +386,8 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
             return {0, timeout};
         }
         if (eval >= beta){
-            if (board.is_move_quiet(moves[i]))
-                insert_killer(moves[i], killers);
+            if (board.is_move_quiet(move))
+                insert_killer(move, killers);
             return {beta, lb};
         }
         alpha = std::max(eval, alpha);

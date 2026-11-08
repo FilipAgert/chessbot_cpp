@@ -32,21 +32,6 @@ High priority
     Re-searching:
         If the reduced move returns a score above alpha re-search at full depth.
 
-## Quiesence search
-
-- Delta pruning
-    Test if a capture + a safety margin (delta) is enough to raise alpha.
-    E.g. if we just lost a rook, we do not bother to check to capture pawn. just maybe another piece.
-    Switch off in late-game.
-    Switch off if checked.
-    Can test if ANY possible move can improve alpha. (E.g. capture a queen + promote to a queen (if applicable w. pawns))
-    If not, dont even generate moves (just return alpha)
-
-- Standing pat in quiesence search: assuming we are not in zugzwang, (very rarely we are), standing pat may give an early exit to quiesence.
-    If the current board state eval >= beta, we can return beta.
-    Disallow if checked.
-    Switch off in late-game - higher likelihood to be zugzwang.
-
 ## Move ordering
 
 Medium priority
