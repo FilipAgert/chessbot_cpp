@@ -46,6 +46,20 @@ void Game::reset_state_stack() {
     state_stack.push(board_hash);
 }
 
+constexpr int MATE_SCORE = 30000;
+constexpr int MATE_BOUND = MATE_SCORE - 256;  // anything beyond this is a mate score
+
+inline int score_to_tt(int score, int ply) {
+    if (score >  MATE_BOUND) return score + ply;
+    if (score < -MATE_BOUND) return score - ply;
+    return score;
+}
+inline int score_from_tt(int score, int ply) {
+    if (score >  MATE_BOUND) return score - ply;
+    if (score < -MATE_BOUND) return score + ply;
+    return score;
+}
+
 template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
     if (this->check_repetition()) {
         InfoMsg new_msg;
@@ -164,7 +178,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         if constexpr (!is_root){
             if (trans_table->is_useable_entry(entry, depth)) {
                 // If exact, return score
-                int eval = entry.eval;
+                int eval = score_from_tt(entry.eval, ply);
                 if (entry.is_exact()) {  // if exact value
                     return {eval, exact};
                 } else if (entry.is_lb()) {
@@ -188,7 +202,6 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     int num_moves = board.get_moves<normal_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (num_moves == 0) {
-        const int MATE_SCORE = 30000;
         if (board.king_checked<is_white>()) {
             return {-MATE_SCORE + ply, exact};
         } else {
@@ -212,7 +225,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         if (time_manager->get_should_stop()) {
             if constexpr (is_root) {
                 if (atleast_one_move_searched) {
-                    trans_table->store(zob_hash, best_curr_move, bestscore, lb, depth);
+                    trans_table->store(zob_hash, best_curr_move, score_to_tt(bestscore, ply), lb, depth);
                 }
             }
             return {0, timeout};
@@ -223,7 +236,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             atleast_one_move_searched = true;
         }
         if (eval >= beta) {  // FAIL HIGH.
-            trans_table->store(zob_hash, best_curr_move, beta, lb,
+            trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
                                depth);  // Can update hash to curr depth.
             return {beta, lb};          // This move is too good. The minimising player (beta) will never
 
@@ -234,7 +247,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             nodetype = exact;
         }
     }
-    trans_table->store(zob_hash, best_curr_move, alpha, nodetype, depth);
+    trans_table->store(zob_hash, nodetype == exact ? best_curr_move : Move(), score_to_tt(alpha, ply), nodetype, depth);
     return {alpha, nodetype};
 }
 
