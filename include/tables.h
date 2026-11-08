@@ -204,7 +204,6 @@ struct TranspositionTable {
     std::optional<TranspositionEntry> get(uint64_t hash);
 
     inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
-        assert(bestmove.source != bestmove.target);
         uint64_t shifted_hash = (hash >> TranspositionEntry::shift_hash);
         size_t key = get_key(hash);
         writes++;
