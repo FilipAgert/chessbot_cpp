@@ -267,6 +267,12 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
                 int bonus = depth*depth;
                 //TODO: can penalize all previous quiet moves.
                 history.update<is_white>(board.get_piece_at(moves[i].source).get_type() , moves[i].target,  bonus);
+                for (int j = static_cast<int>(i) - 1; j>=0; j--){
+                    if (!board.is_move_capture(moves[j])){
+                        // penalize old moves.
+                        history.update<is_white>(board.get_piece_at(moves[j].source).get_type() , moves[j].target,  -bonus);
+                    }
+                }
             }
             return {beta, lb};          // This move is too good. The minimising player (beta) will never
 

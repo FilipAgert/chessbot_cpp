@@ -42,7 +42,7 @@ struct History{
     template <bool is_white>
     inline int get(Piece_t piece, uint8_t to) const {
         const HistoryArr& h = arr<is_white>();
-        assert(piece > 0 && piece < 6);
+        assert(piece > 0 && piece <= 6);
         return h[piece-1][to];
     }
     
@@ -50,7 +50,7 @@ struct History{
     inline void update(Piece_t piece, uint8_t to, int bonus){
         HistoryArr& h = arr<is_white>();
         int clamped_bonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
-        assert(piece > 0 && piece < 6);
+        assert(piece > 0 && piece <= 6);
         h[piece-1][to] += clamped_bonus - h[piece-1][to]*abs(clamped_bonus) / MAX_HISTORY;
     }
 
