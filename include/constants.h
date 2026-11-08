@@ -7,5 +7,6 @@ inline bool const debug_mode = false;
 inline uint8_t const err_val8 = 0b11111111;
 
 inline std::size_t const max_legal_moves = 256;
+inline std::size_t const NUM_KILLER_MOVES = 2;
 // maximum amount of legal moves in one turn
 #endif

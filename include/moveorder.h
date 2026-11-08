@@ -11,6 +11,7 @@
 namespace MoveOrder {
 constexpr int TT_MOVE_SCORE = 2'000'000'000;
 constexpr int CAPTURE_SCORE = 10'000;
+constexpr int KILLER_MOVE_SCORE = 10000;
 void partial_move_sort(std::array<Move, max_legal_moves> &moves,
                        std::array<int, max_legal_moves> &scores, size_t start, size_t num_moves,
                        bool ascending);
@@ -67,13 +68,16 @@ template <bool is_white> int move_heuristics(Move &move, Board &board, BB enemy_
  * @return true 
  * @return false 
  */
-template<bool is_white> void move_heuristics(std::array<Move, max_legal_moves>&moves, std::array<int, max_legal_moves>&scores, size_t num_moves, Board&board, std::optional<Move> tt_move, const History& history){
+bool in_killers(const Move& move, const std::array<Move, NUM_KILLER_MOVES>& killers);
+template<bool is_white> void move_heuristics(std::array<Move, max_legal_moves>&moves, std::array<int, max_legal_moves>&scores, size_t num_moves, Board&board, std::optional<Move> tt_move, const History& history, const std::array<Move, NUM_KILLER_MOVES>& killers){
     BB enemy_pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
     for (size_t m = 0; m < num_moves; m++) {
         int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb, history);
         scores[m] = move_score;
         if (tt_move && moves[m] == *tt_move){
             scores[m] = TT_MOVE_SCORE;
+        } else if (in_killers(moves[m], killers)){
+            scores[m] = KILLER_MOVE_SCORE;
         }
     }
 }

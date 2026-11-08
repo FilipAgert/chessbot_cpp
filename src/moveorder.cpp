@@ -23,3 +23,7 @@ void MoveOrder::partial_move_sort(std::array<Move, max_legal_moves> &moves,
     std::copy(sorted_moves.begin() + start, sorted_moves.begin() + num_moves,
               moves.begin() + start);
 }
+
+bool MoveOrder::in_killers(const Move& move, const std::array<Move, NUM_KILLER_MOVES>& killers){
+    return (move == killers[0]) || (move == killers[1]);
+}

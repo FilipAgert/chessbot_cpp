@@ -42,7 +42,25 @@ void Game::reset_infos() {
     moves_generated = 0;
     nodes_evaluated = 0;
     bestmove = Move();
+    reset_killers();
     history.reset_history();
+}
+
+void Game::reset_killers(){
+    static constexpr std::array<Move, NUM_KILLER_MOVES> empty = [](){
+        std::array<Move, NUM_KILLER_MOVES> mp;
+        for(size_t i = 0; i < NUM_KILLER_MOVES; i++){
+            mp[i] = Move();
+        }
+        return mp;
+    }();
+    killer_moves.fill(empty);
+}
+void insert_killer(Move move, std::array<Move, NUM_KILLER_MOVES> &killers){
+    if (killers[0] != move && killers[1] != move){
+        std::swap(killers[0],killers[1]);
+        killers[0] = move;
+    }
 }
 
 
@@ -224,7 +242,8 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     }
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
-    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history);
+    std::array<Move, NUM_KILLER_MOVES>& killers = killer_moves[ply];
+    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history, killers);
 
 
 
@@ -263,6 +282,8 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
                                depth);  // Can update hash to curr depth.
                                         
+            if (board.is_move_quiet(moves[i]))
+                insert_killer(moves[i], killers);
             if (!board.is_move_capture(moves[i])){
                 int bonus = depth*depth;
                 //TODO: can penalize all previous quiet moves.
@@ -323,8 +344,8 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
 
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
-    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {}, history);
-    // Normal move generation.
+    std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
+    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {},history,  killers);
     for (int i = 0; i < num_moves; i++) {
         int best = i;
         for (int j = i + 1; j < num_moves; j++)
@@ -340,6 +361,8 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
             return {0, timeout};
         }
         if (eval >= beta){
+            if (board.is_move_quiet(moves[i]))
+                insert_killer(moves[i], killers);
             return {beta, lb};
         }
         alpha = std::max(eval, alpha);

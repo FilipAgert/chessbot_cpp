@@ -152,6 +152,7 @@ class Game {
     static constexpr int MAX_PLY=128;
     std::array<std::array<Move, max_legal_moves>, MAX_PLY> move_arr;
     std::array<std::array<int, max_legal_moves>, MAX_PLY> move_heuristic_score;
+    std::array<std::array<Move, NUM_KILLER_MOVES>, MAX_PLY> killer_moves;
     std::stack<Move> move_stack;
     std::stack<RestoreMoveInfo> restore_info_stack;
     History history;
