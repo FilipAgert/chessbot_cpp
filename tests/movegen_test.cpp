@@ -87,7 +87,7 @@ TEST(Movegentest, checktest) {
     Board board;
     board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_moves<normal_search, false>(moves);
+    size_t num_moves = board.get_moves<full_search, false>(moves);
 
     size_t expected = 2;
     if (expected != num_moves) {
@@ -103,7 +103,7 @@ TEST(Movegentest, mated) {
     std::string fen = "8/7k/8/1P2Q1B1/8/P1K5/8/1B6 b - - 165 83";
     board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_moves<normal_search, false>(moves);
+    size_t num_moves = board.get_moves<full_search, false>(moves);
 
     size_t expected = 1;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 1. Actual found moves is" << num_moves;
@@ -114,7 +114,7 @@ TEST(Movegentest, promo_BUG) {
     std::string fen = "8/1R3QP1/8/8/8/6PP/8/k3K3 w - - 1 1";
     board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_moves<normal_search, true>(moves);
+    size_t num_moves = board.get_moves<full_search, true>(moves);
 
     size_t expected = 41;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 41. Actual found moves is" << num_moves;
@@ -209,7 +209,7 @@ TEST(Movegentest, gen_moves) {
     std::string starting_fen = NotationInterface::starting_FEN();
     board.read_fen(starting_fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_moves<normal_search, true>(moves);
+    size_t num_moves = board.get_moves<full_search, true>(moves);
 
     size_t expected = 20;  // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 20. Actual found moves is" << num_moves;
@@ -220,7 +220,7 @@ TEST(Movegentest, double_check) {
     board.read_fen(fen);
     // Only valid king moves are a3 or a5.
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {"a4a5", "a4a3"};
     std::vector<std::string> generated_moves;
@@ -237,7 +237,7 @@ TEST(Movegentest, capture_check) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {// Castling: NONE allowed because King is in check.
 
@@ -285,7 +285,7 @@ TEST(bbgentest, fen1) {
     std::string fen = "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1";
     board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_moves<normal_search, false>(moves);
+    size_t num_moves = board.get_moves<full_search, false>(moves);
     std::vector<std::string> expected_moves = {"a7a6", "b7b6", "c7c6", "d7d6", "e7e6", "f7f6", "g7g6", "h7h6", "a7a5", "b7b5",
                                                "c7c5", "d7d5", "e7e5", "f7f5", "g7g5", "h7h5", "b8a6", "b8c6", "g8f6", "g8h6"};
     std::vector<std::string> generated_moves;
@@ -307,7 +307,7 @@ TEST(castle_test, Disallowed_White_NoFlag) {
     std::string fen = "r3k2r/8/8/8/8/8/8/R3K2R w - - 0 1";
     board.read_fen(fen);
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {// King moves (e1)
                                                "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
@@ -334,7 +334,7 @@ TEST(castle_test, Allowed_White_Kingside_Queenside) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     // Expected moves include O-O (e1g1) and O-O-O (e1c1), plus King/Rook normal moves
     std::vector<std::string> expected_moves = {         // Castling Moves
@@ -365,7 +365,7 @@ TEST(castle_test, Disallowed_White_Kingside_Blocked) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {// Castling: Only Queenside allowed (e1c1)
                                                "e1c1",
@@ -392,7 +392,7 @@ TEST(castle_test, Disallowed_White_Queenside_Blocked1) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     // Expected: O-O (e1g1) is allowed. O-O-O (e1c1) is NOT allowed.
     std::vector<std::string> expected_moves = {
@@ -431,7 +431,7 @@ TEST(castle_test, Disallowed_White_Queenside_Blocked) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     // Expected: O-O (e1g1) is allowed. O-O-O (e1c1) is NOT allowed.
     std::vector<std::string> expected_moves = {
@@ -469,7 +469,7 @@ TEST(castle_test, Disallowed_Black_Kingside_Blocked) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, false>(moves_array);
+    size_t num_moves = board.get_moves<full_search, false>(moves_array);
 
     std::vector<std::string> expected_moves = {// Castling: Only Queenside allowed
                                                "e8c8",
@@ -496,7 +496,7 @@ TEST(castle_test, Disallowed_Black_Queenside_Blocked) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, false>(moves_array);
+    size_t num_moves = board.get_moves<full_search, false>(moves_array);
 
     std::vector<std::string> expected_moves = {// Castling: Only Kingside allowed
                                                "e8g8",
@@ -523,7 +523,7 @@ TEST(castle_test, Disallowed_Black_Both_Blocked) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, false>(moves_array);
+    size_t num_moves = board.get_moves<full_search, false>(moves_array);
 
     std::vector<std::string> expected_moves = {// Castling: Only Kingside allowed
                                                // King Moves
@@ -550,7 +550,7 @@ TEST(castle_test, Disallowed_White_bothsides_ThruCheck1) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {// King Moves (d1 is attacked, so King cannot move there normally either)
                                                "e1d2", "e1e2", "e1f2",
@@ -573,7 +573,7 @@ TEST(castle_test, Disallowed_White_bothsides_ThruCheck2) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {// King moves
                                                "e1e2", "e1d1", "e1f1",
@@ -596,7 +596,7 @@ TEST(castle_test, allowed_White_bothsides_next2check) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {// King moves
                                                "e1e2", "e1d1", "e1f1", "e1d2", "e1f2",
@@ -623,7 +623,7 @@ TEST(castle_test, Disallowed_Black_StartInCheck) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, false>(moves_array);
+    size_t num_moves = board.get_moves<full_search, false>(moves_array);
 
     // Expected: No O-O (e8g8). King must move to a safe square.
     std::vector<std::string> expected_moves = {// King Escape Moves
@@ -647,7 +647,7 @@ TEST(castle_test, Disallowed_White_ToCheck) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     // Expected: No O-O (e1g1). King can move to e2, d1, f1, etc.
     std::vector<std::string> expected_moves = {// King Moves (g1 is NOT included)
@@ -673,7 +673,7 @@ TEST(castle_test, Disallowed_White_ThruCheck) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     // Expected: No O-O (e1g1). King can move to e2, d1, f1, etc.
     std::vector<std::string> expected_moves = {// King Moves (g1 is NOT included)
@@ -700,7 +700,7 @@ TEST(castle_test, Disallowed_Black_both_ThruCheck1) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, false>(moves_array);
+    size_t num_moves = board.get_moves<full_search, false>(moves_array);
 
     std::vector<std::string> expected_moves = {// Castling: Queenside OK (e8c8). Kingside Disallowed.
                                                // King Moves (f8 is attacked)
@@ -724,7 +724,7 @@ TEST(castle_test, Disallowed_Black_both_ThruCheck2) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, false>(moves_array);
+    size_t num_moves = board.get_moves<full_search, false>(moves_array);
 
     std::vector<std::string> expected_moves = {// Castling: Queenside OK (e8c8). Kingside Disallowed.
                                                // King Moves (f8 is attacked)
@@ -748,7 +748,7 @@ TEST(castle_test, allowed_Black_both_enemyclose) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, false>(moves_array);
+    size_t num_moves = board.get_moves<full_search, false>(moves_array);
 
     std::vector<std::string> expected_moves = {"e8d8", "e8e7", "e8f8", "e8d7", "e8f7", "e8g8", "e8c8",
                                                // Rook a8
@@ -771,7 +771,7 @@ TEST(castle_test, Disallowed_White_StartInCheck) {
     board.read_fen(fen);
 
     std::array<Move, max_legal_moves> moves_array;
-    size_t num_moves = board.get_moves<normal_search, true>(moves_array);
+    size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     std::vector<std::string> expected_moves = {
         // Castling: NONE allowed because King is in check.
@@ -794,7 +794,7 @@ TEST(castle_test, kingside_white) {
     std::string fen = "8/8/8/8/8/8/7P/4K2R w K - 0 1";
     board.read_fen(fen);
     std::array<Move, max_legal_moves> moves;
-    size_t num_moves = board.get_moves<normal_search, true>(moves);
+    size_t num_moves = board.get_moves<full_search, true>(moves);
     std::vector<std::string> expected_moves = {"e1f1", "e1g1", "h1g1", "h1f1", "h2h3", "h2h4", "e1d1", "e1d2", "e1e2", "e1f2"};
     std::vector<std::string> generated_moves;
     for (size_t i = 0; i < num_moves; ++i) {

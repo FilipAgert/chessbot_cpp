@@ -557,7 +557,7 @@ struct Board {
      * @param moves array containing moves
      * @return * size_t: number of legal moves in array.
      */
-    template <search_type stype, bool is_white> size_t get_moves(std::array<Move, max_legal_moves> &moves) {
+    template <SearchType stype, bool is_white> size_t get_moves(std::array<Move, max_legal_moves> &moves) {
         BB king_attackers = king_checkers<is_white>();
         uint8_t count = BitBoard::bitcount(king_attackers);
         if (count == 0) {
@@ -573,7 +573,7 @@ struct Board {
             return get_moves<stype, double_check, is_white>(moves, king_attackers);
         }
     }
-    template <search_type stype, check_type ctype, bool is_white> size_t get_moves(std::array<Move, max_legal_moves> &moves, BB king_attackers) {
+    template <SearchType stype, check_type ctype, bool is_white> size_t get_moves(std::array<Move, max_legal_moves> &moves, BB king_attackers) {
         uint8_t kingsq = BitBoard::lsb(get_piece_bb<pieces::king, is_white>());
         uint8_t color = is_white ? pieces::white : pieces::black;
         BB friendly_bb = occupancy<is_white>();
@@ -844,7 +844,7 @@ struct Board {
      * calling this routine
      * @param[in] from from square.
      */
-    template <bool is_white, Piece_t type, search_type stype> void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) {
+    template <bool is_white, Piece_t type, SearchType stype> void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) {
         constexpr uint8_t friendly_longsq = is_white ? 0 : 56;
         constexpr uint8_t friendly_shortsq = is_white ? 7 : 63;
         BitLoop(to_bb) {
@@ -853,10 +853,10 @@ struct Board {
             if constexpr (type == pieces::pawn) {
                 if (NotationInterface::row(lsb) == get_pawn_promote_rank<is_white>()) {
                     constexpr uint8_t col = is_white ? pieces::white : pieces::black;
-                    if constexpr (stype.normal_search){
+                    if constexpr (stype.gen_all_promotions()){
                         for (uint8_t ptype : pieces::promote_types)
                             moves[num_moves++] = Move(from, lsb, Piece(ptype | col));
-                    } else{
+                    } else if constexpr (stype.gen_queen_promotions()){
                         moves[num_moves++] = Move(from, lsb, Piece(pieces::queen|col)); 
                     }
 
@@ -914,7 +914,7 @@ struct Board {
      * @param[in] castleinfo int containing info about a castle
      * @param[in] turn_color color of player
      */
-    template <Piece_t ptype, search_type stype, check_type ctype, bool is_white>
+    template <Piece_t ptype, SearchType stype, check_type ctype, bool is_white>
     void gen_add_all_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &piece_bb, const uint64_t friendly_bb, const uint64_t enemy_bb,
                            const pininfo pi, const uint64_t ep_bb, const BB king_attacker) {
         BB checker_mask = ~0;
@@ -984,7 +984,7 @@ struct Board {
      * @return bitboard containing ones in the squares where this piece (or
      * pieces) can move to.
      */
-    template <Piece_t ptype, search_type s_type, bool is_white> BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo) const {
+    template <Piece_t ptype, SearchType s_type, bool is_white> BB to_squares(uint8_t sq, BB friendly_bb, BB enemy_bb, BB ep_bb, uint8_t castleinfo) const {
         BB piece_bb = BitBoard::one_high(sq);
         constexpr uint8_t color = is_white ? pieces::white : pieces::black;
         BB to_squares;
@@ -1001,15 +1001,27 @@ struct Board {
         } else if constexpr (ptype == pieces::king) {
             to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb, get_atk_bb<!is_white, true>(), castleinfo, color);
         }
-        if constexpr (s_type.quiesence_search) {  // Only search for captures
-                                                  // in Quiesence.
-            if constexpr (ptype != pieces::pawn) {
-                to_squares &= enemy_bb;
+        BB filtered = 0x0;
+        if constexpr (s_type.gen_quiet()){
+            // contains all moves which are not captures or promotions.
+            if constexpr (ptype != pieces::pawn) 
+                filtered |= (~enemy_bb) & to_squares;
+            else
+                filtered |= ((~(enemy_bb | topbot |ep_bb)) & to_squares);
+        }
+        if constexpr (s_type.gen_captures()){
+            if constexpr(ptype == pieces::pawn){
+                filtered |= ((enemy_bb|ep_bb) & (~topbot)) & to_squares;
+                // do not allow promotion to last rank even if its a capture.
             } else{
-                to_squares &= (enemy_bb | topbot); // so we generate promotions too.
+                filtered |= enemy_bb & to_squares;
             }
         }
-        return to_squares;
+        if constexpr((ptype == pieces::pawn) && (s_type.gen_all_promotions() || s_type.gen_queen_promotions())){
+            filtered |= topbot & to_squares;
+            //pushes and captures to last rank.
+        }
+        return filtered;
     }
     /**
      * @brief Handles moving piece on bitboard.

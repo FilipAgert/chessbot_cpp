@@ -63,7 +63,7 @@ TEST(TransTest, moveOrderTest) {
     state.read_fen(NotationInterface::starting_FEN());
     Move bestmove = Move("a2a4");
     std::array<Move, max_legal_moves> moves;
-    size_t nummoves = state.get_moves<normal_search, true>(moves);
+    size_t nummoves = state.get_moves<full_search, true>(moves);
     MoveOrder::apply_move_sort<true>(moves, nummoves, bestmove, state);
     ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
     bestmove = Move("b2b4");

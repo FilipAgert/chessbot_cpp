@@ -2,6 +2,7 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 #include <bitboard.h>
+#include <cstdint>
 #include <notation_interface.h>
 struct pininfo {
     uint8_t kingloc;
@@ -10,9 +11,29 @@ struct pininfo {
     BB rook_pinners;
     BB bishop_pinners;
 };
-struct search_type {
-    bool normal_search : 1;
-    bool quiesence_search : 1;
+struct SearchType {
+    uint8_t data;
+    static constexpr uint8_t Quiet = 0b00000001; // does not alter material
+    static constexpr uint8_t Captures = 0b00000010; // ep capture included.
+    static constexpr uint8_t QueenPromotion = 0b00000100; 
+    static constexpr uint8_t OtherPromotion = 0b00001000;
+    static constexpr uint8_t AllPromotion = QueenPromotion | OtherPromotion;
+    static constexpr uint8_t All = Quiet | Captures | AllPromotion;
+    constexpr inline bool gen_quiet() const{
+        return (data & Quiet) == Quiet;
+    }
+    constexpr inline bool dont_gen_quiet() const {
+        return (data & Quiet) == 0;
+    }
+    constexpr inline bool gen_captures() const {
+        return (data & Captures) == Captures;
+    }
+    constexpr inline bool gen_all_promotions() const {
+        return (data & AllPromotion) == AllPromotion;
+    }
+    constexpr inline bool gen_queen_promotions() const {
+        return (data & QueenPromotion) == QueenPromotion;
+    }
 };
 struct check_type {
     bool no_check : 1;
@@ -21,8 +42,12 @@ struct check_type {
     bool slider_check : 1;
 };
 
-constexpr search_type normal_search = {true, false};
-constexpr search_type quiesence_search = {false, true};
+constexpr SearchType full_search = {SearchType::All};
+constexpr SearchType full_search_qp = {SearchType::Quiet | SearchType::Captures | SearchType::QueenPromotion}; 
+// only queen promos
+constexpr SearchType quiesence_search = {SearchType::Captures | SearchType::QueenPromotion};
+constexpr SearchType quiet_search = {SearchType::Quiet};
+constexpr SearchType non_quiet_search = {SearchType::Captures | SearchType::AllPromotion};
 constexpr check_type no_check = {true, false, false, false};
 constexpr check_type single_check = {false, true, false, false};
 constexpr check_type slider_check = {false, true, false, true};

@@ -76,7 +76,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         info_queue.push(new_msg);
         return;
     } else {
-        int num_moves = board.get_moves<normal_search, is_white>(move_arr[0]);
+        int num_moves = board.get_moves<full_search, is_white>(move_arr[0]);
         if (num_moves == 0) {
             InfoMsg new_msg;
             new_msg.stringmsg = true;
@@ -210,7 +210,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     }
     // Handle if king is checked or no moves can be made.
 
-    int num_moves = board.get_moves<normal_search, is_white>(move_arr[ply]);
+    int num_moves = board.get_moves<full_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (num_moves == 0) {
         if (board.king_checked<is_white>()) {
@@ -301,7 +301,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         }
         alpha = std::max(alpha, eval);
     }
-    int num_moves = in_check ?  board.get_moves<normal_search, is_white>(move_arr[ply]) : board.get_moves<quiesence_search, is_white>(move_arr[ply]);
+    int num_moves = in_check ?  board.get_moves<full_search, is_white>(move_arr[ply]) : board.get_moves<quiesence_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (in_check && num_moves == 0)
         return {-EvalState::MATE_SCORE +ply, exact};

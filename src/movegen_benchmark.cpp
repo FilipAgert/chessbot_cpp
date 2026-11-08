@@ -24,9 +24,9 @@ int movegen_benchmark::gen_num_moves(Board state, int depth, int print_depth) {
 std::array<std::array<Move, max_legal_moves>, 32> movegen_benchmark::move_arr;
 template <bool is_white> int movegen_benchmark::recurse_moves(Board state, int print_depth, int curr_depth, int to_depth) {
     if (curr_depth == to_depth)
-        return state.get_moves<normal_search, is_white>(movegen_benchmark::move_arr[curr_depth]);
+        return state.get_moves<full_search, is_white>(movegen_benchmark::move_arr[curr_depth]);
 
-    int num_moves = state.get_moves<normal_search, is_white>(movegen_benchmark::move_arr[curr_depth]);
+    int num_moves = state.get_moves<full_search, is_white>(movegen_benchmark::move_arr[curr_depth]);
     int total_moves = 0;
     for (int i = 0; i < num_moves; i++) {
         RestoreMoveInfo info = state.do_move<is_white>(movegen_benchmark::move_arr[curr_depth][i]);
