@@ -268,6 +268,18 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     if (ply >= MAX_PLY - 1){
         return {EvalState::eval(board), exact};
     }
+    
+    uint64_t zob_hash = state_stack.top();
+    std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
+    if (maybe_entry) {
+        const TranspositionEntry &entry = maybe_entry.value();
+        if (trans_table->is_useable_entry(entry, 0)) {   // depth 0: any stored depth qualifies
+            int tt_score = score_from_tt(entry.eval, ply);
+            if (entry.is_exact()) return {tt_score, exact};
+            if (entry.is_lb() && tt_score >= beta) return {beta, lb};
+            if (entry.is_ub() && tt_score <= alpha) return {alpha, ub};
+        }
+    }
 
     const bool in_check = board.king_checked<is_white>();
     if (!in_check){
