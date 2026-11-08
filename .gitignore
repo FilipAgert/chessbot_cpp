@@ -7,7 +7,7 @@ callgrind*
 fastchess/
 opening_books/
 engines
-
+results
 *.json
 
 # Build folders
