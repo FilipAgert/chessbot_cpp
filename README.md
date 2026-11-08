@@ -157,6 +157,7 @@ Shitty evaluation. Piece/location tables and material value.
 - Alpha beta pruning.
 - Transposition table.
 - Evaluation window.
+- Delta pruning
 
 #### Move ordering
 
