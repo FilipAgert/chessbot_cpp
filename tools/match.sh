@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # usage: match.sh <new_rev> <base_rev> [tc]
 set -euo pipefail
-NEW=$(./tools/build_commit.sh "${1:?new}")
-BASE=$(./tools/build_commit.sh "${2:?base}")
+cd "$(git rev-parse --show-toplevel)"
+
+ENGINE1_CMD=$(./tools/build_commit.sh "${1:?new}")
+ENGINE2_CMD=$(./tools/build_commit.sh "${2:?base}")
+ENGINE1_NAME=$(git rev-parse --short=7 "$1")
+ENGINE2_NAME=$(git rev-parse --short=7 "$2")
 TC=${3:-10+0.1}
-N=$(git rev-parse --short=7 "$1"); B=$(git rev-parse --short=7 "$2")
 mkdir -p results
 
 fastchess \
