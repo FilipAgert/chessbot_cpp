@@ -257,10 +257,10 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             if (scores[j] > scores[best]) best = j;
         std::swap(moves[i], moves[best]);
         std::swap(scores[i], scores[best]);     
+        const Move& move = moves[i];
 
-
-        make_move<is_white>(moves[i]);
-        int extension = calculate_extension<!is_white>(moves[i], i, num_extensions);
+        make_move<is_white>(move);
+        int extension = calculate_extension<!is_white>(move, i, num_extensions);
         std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         int eval = -res.first;
         undo_move<is_white>();
@@ -274,22 +274,21 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         }
         if (eval > bestscore) {
             bestscore = eval;
-            best_curr_move = move_arr[ply][i];
+            best_curr_move = move;
             atleast_one_move_searched = true;
         }
         if constexpr (is_root){
-            if (eval > alpha) root_best = moves[i];
+            if (eval > alpha) root_best = move;
         }
         if (eval >= beta) {  // FAIL HIGH.
             trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
                                depth);  // Can update hash to curr depth.
                                         
-            if (board.is_move_quiet(moves[i]))
-                insert_killer(moves[i], killers);
-            if (!board.is_move_capture(moves[i])){
+            if (board.is_move_quiet(move))
+                insert_killer(move, killers);
+            if (!board.is_move_capture(move)){
                 int bonus = depth*depth;
-                //TODO: can penalize all previous quiet moves.
-                history.update<is_white>(board.get_piece_at(moves[i].source).get_type() , moves[i].target,  bonus);
+                history.update<is_white>(board.get_piece_at(move.source).get_type() , move.target,  bonus);
                 for (int j = static_cast<int>(i) - 1; j>=0; j--){
                     if (!board.is_move_capture(moves[j])){
                         // penalize old moves.
