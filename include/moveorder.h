@@ -9,8 +9,8 @@
 #include <optional>
 #include <utility>
 namespace MoveOrder {
-constexpr int TT_MOVE_SCORE = 1'000'000'000;
-constexpr int KILLER_MOVE_SCORE = 100'000'000;
+constexpr int TT_MOVE_SCORE = 2'000'000'000;
+constexpr int CAPTURE_SCORE = 10'000;
 void partial_move_sort(std::array<Move, max_legal_moves> &moves,
                        std::array<int, max_legal_moves> &scores, size_t start, size_t num_moves,
                        bool ascending);
@@ -40,14 +40,11 @@ template <bool is_white> int move_heuristics(Move &move, Board &board, BB enemy_
     int score = 0;
     Piece_t pt = board.get_piece_at(move.source).get_type();
     if (move.flag == moveflag::MOVEFLAG_pawn_ep_capture) {
-        score += PieceValue::piecevals[pieces::pawn] * 10 - PieceValue::piecevals[pieces::pawn];
+        score += CAPTURE_SCORE*(PieceValue::piecevals[pieces::pawn] * 10 - PieceValue::piecevals[pieces::pawn]);
     } else if (!board.is_square_empty(move.target)) {
-        score += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10
-            - PieceValue::piecevals[pt];
+        score += CAPTURE_SCORE*(PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10
+            - PieceValue::piecevals[pt] + PieceValue::piecevals[move.get_promotion()]);
         
-        if(move.is_promotion()) {
-            score+=PieceValue::piecevals[move.get_promotion()] * 10;
-        }
     } else{
         score += history.get<is_white>(pt,  move.target);
     }
@@ -76,7 +73,7 @@ template<bool is_white> void move_heuristics(std::array<Move, max_legal_moves>&m
         int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb, history);
         scores[m] = move_score;
         if (tt_move && moves[m] == *tt_move){
-            scores[m] += TT_MOVE_SCORE;
+            scores[m] = TT_MOVE_SCORE;
         }
     }
 }

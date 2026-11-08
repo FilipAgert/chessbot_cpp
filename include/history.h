@@ -16,7 +16,7 @@ struct History{
         }
         return arr;
     }();
-    constexpr static int MAX_HISTORY = 100'000;
+    constexpr static int MAX_HISTORY = 10'000;
 
     template<bool is_white>
     inline HistoryArr& arr(){
