@@ -57,6 +57,8 @@ struct Board {
     uint8_t get_en_passant_square() const { return en_passant_square; }
     uint8_t get_castling() const { return castleinfo; }
     int get_full_moves() const { return full_moves; }
+    bool is_move_quiet(const Move& move ) const;
+    bool is_move_capture(const Move& move ) const;
     uint8_t get_check() const { return check; }
     bool board_BB_match();
     /**

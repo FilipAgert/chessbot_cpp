@@ -1,4 +1,5 @@
 // Copyright 2025 Filip Agert
+#include "move.h"
 #include <board.h>
 #include <cassert>
 #include <exceptions.h>
@@ -153,7 +154,12 @@ bool Board::board_BB_match() {
 bool Board::is_square_empty(uint8_t square) const { return this->get_piece_at(square) == none_piece; }
 
 uint8_t Board::get_square_color(uint8_t square) const { return this->get_piece_at(square).get_color(); }
-
+bool Board::is_move_quiet(const Move& move) const{
+    return is_square_empty(move.target) && (move.flag != moveflag::MOVEFLAG_pawn_ep_capture) && (!moveflag::is_promotion(move.flag));
+}
+bool Board::is_move_capture(const Move& move) const{
+    return is_square_empty(move.target) && (move.flag != moveflag::MOVEFLAG_pawn_ep_capture);
+}
 void Board::clear_board() {
     for (size_t i = 0; i < 64; i++) {
         this->game_board[i] = Piece();

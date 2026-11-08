@@ -1,12 +1,16 @@
 #ifndef MOVEORDER_H
 #define MOVEORDER_H
 
+#include "constants.h"
 #include "eval.h"
+#include <history.h>
 #include <board.h>
 #include <move.h>
 #include <optional>
 #include <utility>
 namespace MoveOrder {
+constexpr int TT_MOVE_SCORE = 1'000'000'000;
+constexpr int KILLER_MOVE_SCORE = 100'000'000;
 void partial_move_sort(std::array<Move, max_legal_moves> &moves,
                        std::array<int, max_legal_moves> &scores, size_t start, size_t num_moves,
                        bool ascending);
@@ -32,33 +36,47 @@ inline void partial_move_sort(std::array<Move, max_legal_moves> &moves,
  * @param[in] board board
  * @return score of move to sort by
  */
-template <bool is_white> int move_heuristics(Move &move, Board &board, BB enemy_pawn_atk_bb) {
+template <bool is_white> int move_heuristics(Move &move, Board &board, BB enemy_pawn_atk_bb, const History& history) {
     int score = 0;
+    Piece_t pt = board.get_piece_at(move.source).get_type();
     if (move.flag == moveflag::MOVEFLAG_pawn_ep_capture) {
         score += PieceValue::piecevals[pieces::pawn] * 10 - PieceValue::piecevals[pieces::pawn];
     } else if (!board.is_square_empty(move.target)) {
         score += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10
-            - PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
+            - PieceValue::piecevals[pt];
+        
+        if(move.is_promotion()) {
+            score+=PieceValue::piecevals[move.get_promotion()] * 10;
+        }
+    } else{
+        score += history.get<is_white>(pt,  move.target);
     }
-    if (move.is_promotion()) {
-        score += PieceValue::piecevals[move.get_promotion()] *10;
-    }
+    // if (move.is_promotion()) {
+    //     score += PieceValue::piecevals[move.get_promotion()] *10;
+    // } commented out since we take history for all non-captures.
 
-    if ((BitBoard::one_high(move.target) & enemy_pawn_atk_bb) > 0) {
-        score -= PieceValue::piecevals[board.get_piece_at(move.source)
-                                                .get_type()];  // penalize if target square is on a
-                                                               // square defended by a pawn.
-    }
+    // if ((BitBoard::one_high(move.target) & enemy_pawn_atk_bb) > 0) {
+    //     score -= PieceValue::piecevals[pt];  // penalize if target square is on a
+    //                                                            // square defended by a pawn.
+    // }
 
     return score;
 }
-template<bool is_white> void move_heuristics(std::array<Move, max_legal_moves>&moves, std::array<int, max_legal_moves>&scores, size_t num_moves, Board&board, std::optional<Move> tt_move){
+/**
+ * @brief Gets true if move is in killer moves.
+ * 
+ * @param move 
+ * @param killers 
+ * @return true 
+ * @return false 
+ */
+template<bool is_white> void move_heuristics(std::array<Move, max_legal_moves>&moves, std::array<int, max_legal_moves>&scores, size_t num_moves, Board&board, std::optional<Move> tt_move, const History& history){
     BB enemy_pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
     for (size_t m = 0; m < num_moves; m++) {
-        int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb);
+        int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb, history);
         scores[m] = move_score;
         if (tt_move && moves[m] == *tt_move){
-            scores[m] += 1000000;
+            scores[m] += TT_MOVE_SCORE;
         }
     }
 }

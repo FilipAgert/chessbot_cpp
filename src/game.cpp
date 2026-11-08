@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "integer_representation.h"
 #include "movegen.h"
+#include "piece.h"
 #include "tables.h"
 #include <algorithm>
 #include <array>
@@ -41,7 +42,9 @@ void Game::reset_infos() {
     moves_generated = 0;
     nodes_evaluated = 0;
     bestmove = Move();
+    history.reset_history();
 }
+
 
 void Game::reset_state_stack() {
     state_stack.reset();
@@ -221,7 +224,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     }
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
-    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move);
+    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history);
 
 
 
@@ -259,6 +262,12 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         if (eval >= beta) {  // FAIL HIGH.
             trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
                                depth);  // Can update hash to curr depth.
+                                        
+            if (!board.is_move_capture(moves[i])){
+                int bonus = depth*depth;
+                //TODO: can penalize all previous quiet moves.
+                history.update<is_white>(board.get_piece_at(moves[i].source).get_type() , moves[i].target,  bonus);
+            }
             return {beta, lb};          // This move is too good. The minimising player (beta) will never
 
             // allow the board to go here. we can return.
@@ -308,7 +317,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
 
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
-    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {});
+    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {}, history);
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
         int best = i;
@@ -324,8 +333,9 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         if (should_abort()) {
             return {0, timeout};
         }
-        if (eval >= beta)
+        if (eval >= beta){
             return {beta, lb};
+        }
         alpha = std::max(eval, alpha);
     }
 

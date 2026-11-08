@@ -7,6 +7,7 @@
 #include <memory>
 #include <move.h>
 #include <notation_interface.h>
+#include <history.h>
 #include <piece.h>
 #include <tables.h>
 #include <time_manager.h>
@@ -153,6 +154,7 @@ class Game {
     std::array<std::array<int, max_legal_moves>, MAX_PLY> move_heuristic_score;
     std::stack<Move> move_stack;
     std::stack<RestoreMoveInfo> restore_info_stack;
+    History history;
     /**
      * @brief Clear stack and pushes current board state onto it.
      *
@@ -171,6 +173,8 @@ class Game {
     bool must_finish; // if must finish this search or not.
     // table needs to be a pointer since its so large in memory.
     std::unique_ptr<TranspositionTable> trans_table = std::make_unique<TranspositionTable>();
+
+    void reset_killers();
     /**
      * @brief Main game logic loop for thinking about a position.
      *
