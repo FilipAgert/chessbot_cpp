@@ -7,7 +7,7 @@
 #include "config.h"
 #include "game.h"
 int main(int argc, char*argv[]) {
-    std::string config_file = "input/aspiration_off.cfg";
+    std::string config_file = "input/input.cfg";
     if (argc > 1){
         config_file = argv[1];
     }

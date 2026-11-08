@@ -51,11 +51,13 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         InfoMsg new_msg;
         new_msg.stringmsg = true;
         new_msg.string = "draw by threefold repetition detected";
+        info_queue.push(new_msg);
         return;
     } else if (EvalState::forced_draw_ply(board)) {
         InfoMsg new_msg;
         new_msg.stringmsg = true;
         new_msg.string = "draw by excess ply moves.";
+        info_queue.push(new_msg);
         return;
     } else {
         int num_moves = board.get_moves<normal_search, is_white>(move_arr[0]);
@@ -68,6 +70,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
             } else {
                 new_msg.string = "draw detected";
             }
+            info_queue.push(new_msg);
             return;
         }
     }
@@ -126,8 +129,12 @@ template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int pre
     }
     uint8_t nt = invalid;
     int best_score = preveval;
-
+    size_t num_attempts = 0;
     while (true) {
+        if (num_attempts > 3){
+            alpha = -INF;
+            beta = INF;
+        }
         std::pair<int, uint8_t> res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         best_score = res.first;
         nt = res.second;
@@ -142,8 +149,10 @@ template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int pre
             beta = std::min(INF, beta+delta);
         }
         delta *= 2;
-        if (alpha == -INF && beta == -INF)
+        if (alpha == -INF && beta == INF)
             break;
+        
+        num_attempts+=1;
     }
     return {best_score, nt};
 }
@@ -176,23 +185,25 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         if (entry.is_valid_move())
             first_move = std::make_optional(maybe_entry.value().bestmove);
 
-        if (trans_table->is_useable_entry(entry, depth)) {
-            // If exact, return score
-            int eval = entry.eval;
-            if (entry.is_exact()) {  // if exact value
-                return {eval, exact};
-            } else if (entry.is_lb()) {
-                if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than
-                    // any move opponent can make
-                    return {beta, lb};
-                else
-                    alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha./
-            } else if (entry.is_ub()) {
-                if (eval < alpha)  // if its an upper bound, and this upper bound is worse
-                                   // than any move we could make, dont need to search more.
-                    return {alpha, ub};
-                else
-                    beta = std::min(beta, eval);  // an upper bound can still tighten beta.
+        if constexpr (!is_root){
+            if (trans_table->is_useable_entry(entry, depth)) {
+                // If exact, return score
+                int eval = entry.eval;
+                if (entry.is_exact()) {  // if exact value
+                    return {eval, exact};
+                } else if (entry.is_lb()) {
+                    if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than
+                        // any move opponent can make
+                        return {beta, lb};
+                    else
+                        alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha./
+                } else if (entry.is_ub()) {
+                    if (eval < alpha)  // if its an upper bound, and this upper bound is worse
+                                       // than any move we could make, dont need to search more.
+                        return {alpha, ub};
+                    else
+                        beta = std::min(beta, eval);  // an upper bound can still tighten beta.
+                }
             }
         }
     }
@@ -228,7 +239,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
                     trans_table->store(zob_hash, best_curr_move, bestscore, lb, depth);
                 }
             }
-            return {eval, timeout};
+            return {0, timeout};
         }
         if (eval > bestscore) {
             bestscore = eval;
