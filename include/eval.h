@@ -72,6 +72,9 @@ class EvalState {
      * @return Game phase. 0 is early game and 1 is end game
      */
     constexpr static float eval_game_phase(const int num_pieces) { return 1. - (num_pieces - 1.) / 15.; }
+    
+
+    static bool is_lategame(Board &board);
 
     /**
      * @brief Score for pawn structure. Passed pawns, unprotected pawns, blocking pawns, etc.

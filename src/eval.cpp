@@ -83,6 +83,12 @@ std::optional<int> EvalState::moves_to_mate(int score) {
         return {};
     }
 }
+bool EvalState::is_lategame(Board &board){
+    float endgame = eval_game_phase(board.get_num_pieces()) *-0.5; // from [0 (early game) to 1 (lategame)]
+
+
+    return endgame > 0.6; // 6.4 pieces left per side on avg.
+}
 
 int EvalState::eval_pawn_structure(Board &board) {
     constexpr int maxforward = 4;
