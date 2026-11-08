@@ -55,6 +55,13 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
             }
             parts.push_back(str_pv);
         }
+        #ifndef NDEBUG
+        if(msg.reduction_times > 0){
+            parts.push_back("red cnt " + std::to_string(msg.reduction_times));
+            parts.push_back("% " + std::to_string(msg.reduction_average));
+            parts.push_back("research % " + std::to_string(msg.reduction_research));
+        }
+        #endif
     }
 
     std::string final_str = join(parts, ' ');

@@ -5,6 +5,7 @@
 #include <constants.h>
 #include "config.h"
 #include "eval.h"
+#include "moveorder.h"
 #include "parameters.h"
 #include <memory>
 #include <move.h>
@@ -33,6 +34,9 @@ struct InfoMsg {
     int hashfill = 0;
     bool stringmsg = false;
     std::string string;
+    float reduction_average;
+    float reduction_research;
+    int reduction_times;
 };
 class Game {
  public:
@@ -91,7 +95,7 @@ class Game {
      * @param[in] num_extensions number of extensions previously performed
      * @return move extensions
      */
-    template <bool is_white> int calculate_extension(const Move move, uint8_t movenum, int num_extensions) const;
+    int calculate_extension(const Move move, uint8_t movenum, int num_extensions, bool enemy_king_checked) const;
 
     /**
      * @brief Gets the current best known move to send to GUI.
@@ -148,12 +152,15 @@ class Game {
 
     void set_settings(ConfigSettings settings){
         settings_=settings;
+        precompute();
     }
+
+    void precompute();
  private:
     ConfigSettings settings_;
     static constexpr int MAX_PLY=128;
     std::array<std::array<Move, max_legal_moves>, MAX_PLY> move_arr;
-    std::array<std::array<int, max_legal_moves>, MAX_PLY> move_heuristic_score;
+    std::array<std::array<MoveOrder::MoveScore, max_legal_moves>, MAX_PLY> move_heuristic_score;
     std::array<std::array<Move, NUM_KILLER_MOVES>, MAX_PLY> killer_moves;
     std::stack<Move> move_stack;
     std::stack<RestoreMoveInfo> restore_info_stack;
@@ -168,6 +175,7 @@ class Game {
     Board board;
     uint64_t moves_generated;
     uint64_t nodes_evaluated;
+    uint64_t nodes_quiesence_evaluated;
     int seldepth = 0;
     std::shared_ptr<TimeManager> time_manager;
     Game() = default;
@@ -176,6 +184,11 @@ class Game {
     bool must_finish; // if must finish this search or not.
     // table needs to be a pointer since its so large in memory.
     std::unique_ptr<TranspositionTable> trans_table = std::make_unique<TranspositionTable>();
+
+    long int reductions_total;
+    long int reductions_cnt;
+    long int research_cnt;
+
 
     void reset_killers();
     /**
@@ -201,6 +214,10 @@ class Game {
        }
        return standing_pat + big_delta < alpha;
     }
+    constexpr static int reduction_depth_cap = 64;
+    std::array<std::array<int, max_legal_moves>, reduction_depth_cap> reductions;// move reductions.
+    int reduction(int depth, int i) const;
+    void precompute_reduction();
 };
 
 #endif

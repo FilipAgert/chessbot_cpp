@@ -24,13 +24,15 @@ High priority
     Do not use when in check, or when alpha/beta is close to mate value.
     Need to check that there exists a legal move.
 - Late move reductions (LMR) <https://chessprogramming.org/Late_Move_Reductions>
-    Search first moves (1 or 2) to full depth. If no moves fail high, reduce the depth of the remaining moves.
-    Do not reduce depth on:
-        Captures / promotions
-        When in check
-        Moves giving check
-    Re-searching:
-        If the reduced move returns a score above alpha re-search at full depth.
+    Implemented but needs tuning:
+  - Evaluation == 0 maybe can be removed
+  - i>=2 instead of 3
+  - killers get r-=1 instead of exclusion
+  
+## Quiesence
+
+- Null move pruning
+- SEE pruning of bad captures.
 
 ## Move ordering
 

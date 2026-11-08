@@ -42,6 +42,10 @@ void Game::start_thinking(const TimeControl rem_time) {
 void Game::reset_infos() {
     moves_generated = 0;
     nodes_evaluated = 0;
+    nodes_quiesence_evaluated = 0;
+    reductions_cnt = 0;
+    reductions_total =0;
+    research_cnt = 0;
     bestmove = Move();
     reset_killers();
     history.reset_history();
@@ -137,13 +141,16 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
             break;
         // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
         InfoMsg new_msg;
-        new_msg.nodes = this->nodes_evaluated;
+        new_msg.nodes = nodes_evaluated + nodes_quiesence_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
         new_msg.pv = trans_table->get_pv(board, depth);
         new_msg.seldepth = seldepth;
         new_msg.hashfill = trans_table->load_factor();
         new_msg.score = eval;
+        new_msg.reduction_average = (float(reductions_total) / float(reductions_cnt));
+        new_msg.reduction_research = (float(research_cnt) / float(reductions_cnt));
+        new_msg.reduction_times = reductions_cnt;
         info_queue.push(new_msg);
 
         preveval = eval;
@@ -235,15 +242,16 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
 
     int num_moves = board.get_moves<full_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
+    bool king_checked = board.king_checked<is_white>();
     if (num_moves == 0) {
-        if (board.king_checked<is_white>()) {
+        if (king_checked) {
             return {-EvalState::MATE_SCORE + ply, exact};
         } else {
             return {0, exact};
         }
     }
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
-    std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
+    std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES>& killers = killer_moves[ply];
     MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history, killers);
 
@@ -254,15 +262,46 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     for (uint8_t i = 0; i < num_moves; i++) {
         int best = i;
         for (int j = i + 1; j < num_moves; j++)
-            if (scores[j] > scores[best]) best = j;
+            if (scores[j].score > scores[best].score) best = j;
         std::swap(moves[i], moves[best]);
         std::swap(scores[i], scores[best]);     
         const Move& move = moves[i];
+        const MoveOrder::MoveScore& score = scores[i];
 
+        bool move_quiet = board.is_move_quiet(move);
         make_move<is_white>(move);
-        int extension = calculate_extension<!is_white>(move, i, num_extensions);
-        std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
-        int eval = -res.first;
+        bool enemy_king_checked = board.king_checked<!is_white>();
+        int extension = calculate_extension(move, i, num_extensions, enemy_king_checked);
+        int eval;
+        std::pair<int, uint8_t> res;
+        if (i == 0)
+            res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
+        else{
+            //PVS: Run null window search.
+            int r = 0;
+            // late move reduction:
+            if constexpr (!is_root){
+                if (depth >= 3 && i>= 3 && move_quiet && (!king_checked) && (!enemy_king_checked) && extension == 0 && (score.movetype != MoveOrder::MoveScore::Killer)){
+                    r = reductions[depth][i];
+                    r = std::min(depth+extension - 2, r); // clamp to assure we do not go into quiesence.
+                    reductions_total+=r;
+                    reductions_cnt++;
+                }
+            }
+            res = alpha_beta<false, !is_white>(depth -1 + extension - r, ply+1, -(alpha+1), -alpha, num_extensions+extension);
+            eval = -res.first;
+            // full search, null window
+            if (eval > alpha && r > 0){
+                res = alpha_beta<false, !is_white>(depth -1 + extension, ply+1, -(alpha+1), -alpha, num_extensions+extension);
+                eval = -res.first;
+                research_cnt++;
+            }
+
+            //pvs kicks in: Full window.
+            if ((eval > alpha) && (eval < beta))
+                res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
+        }
+        eval = -res.first;
         undo_move<is_white>();
         if (should_abort()) {
             if constexpr (is_root) {
@@ -284,7 +323,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
                                depth);  // Can update hash to curr depth.
                                         
-            if (board.is_move_quiet(move))
+            if (move_quiet)
                 insert_killer(move, killers);
             if (!board.is_move_capture(move)){
                 int bonus = depth*depth;
@@ -310,7 +349,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
 }
 
 template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int alpha, int beta) {
-    nodes_evaluated++;
+    nodes_quiesence_evaluated++;
     if (this->check_repetition())
         return {0, exact};  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
@@ -356,13 +395,13 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         return {-EvalState::MATE_SCORE +ply, exact};
 
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
-    std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
+    std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
     MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {},history,  killers);
     for (int i = 0; i < num_moves; i++) {
         int best = i;
         for (int j = i + 1; j < num_moves; j++)
-            if (scores[j] > scores[best]) best = j;
+            if (scores[j].score > scores[best].score) best = j;
         std::swap(moves[i], moves[best]);
         std::swap(scores[i], scores[best]);     
         const Move & move = moves[i];
@@ -397,12 +436,12 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     return {alpha, ub};
 }
 
-template <bool is_white> int Game::calculate_extension(const Move move, uint8_t movenum, int num_extensions) const {
+int Game::calculate_extension(const Move move, uint8_t movenum, int num_extensions, bool enemy_king_checked) const {
     constexpr int max_num_extensions = 16;
 
     int extension = 0;
     if (num_extensions < max_num_extensions) {
-        if (board.king_checked<is_white>())
+        if (enemy_king_checked)
             extension = 1;
     }
     // if (movenum > 3)
@@ -436,4 +475,19 @@ template <bool is_white> void Game::undo_move() {
     restore_info_stack.pop();
     board.undo_move<is_white>(info, move);
     state_stack.pop();
+}
+
+int Game::reduction(int depth, int i) const{
+    int r = std::floor(Parameters::REDUCTION_OFFSET + std::log(double(depth)) * std::log(double(i)) * Parameters::REDUCTION_MULT);    
+    return std::min(r, depth - 2);
+}
+void Game::precompute_reduction(){
+    for (size_t depth = 1; depth < reduction_depth_cap; depth++){
+        for (size_t i = 1; i < max_legal_moves; i++){
+            reductions[depth][i] = reduction(depth, i);
+        }
+    }
+}
+void Game::precompute(){
+    precompute_reduction();
 }
