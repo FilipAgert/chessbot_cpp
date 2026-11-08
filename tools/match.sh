@@ -11,7 +11,7 @@ fastchess \
   -engine cmd="$NEW"  name="$N" \
   -engine cmd="$BASE" name="$B" \
   -each proto=uci tc="$TC" option.Hash=64 \
-  -openings file=books/book.epd format=epd order=random \
+  -openings file=opening_books/8moves_v3.pgn format=pgn order=random \
   -games 2 -rounds 5000 -repeat \
   -concurrency 4 \
   -sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 \
