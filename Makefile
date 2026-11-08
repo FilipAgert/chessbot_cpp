@@ -41,26 +41,26 @@ TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.
 all: $(DEXE)/$(EXE)
 
 # Link the main executable
-$(DEXE)/$(EXE): $(OBJECTS) $(MAIN_OBJ) | bin
+$(DEXE)/$(EXE): $(OBJECTS) $(MAIN_OBJ) 
 	$(CCL) $@ $(MAIN_OBJ) $(OBJECTS) $(LIBS)
 
-$(DEXE)/$(MAGIC_EXE): $(OBJECTS) $(MAGIC_OBJ) | bin
+$(DEXE)/$(MAGIC_EXE): $(OBJECTS) $(MAGIC_OBJ) 
 	$(CCL) $@ $(MAGIC_OBJ) $(OBJECTS) $(LIBS)
 
 # Test executable target
-$(DEXE)/$(TEST_EXE): $(TEST_OBJECTS) $(OBJECTS) | bin
+$(DEXE)/$(TEST_EXE): $(TEST_OBJECTS) $(OBJECTS)
 	$(CCL) $@ $(TEST_OBJECTS) $(OBJECTS) $(LIBS)
 
 # Compile test object files (from ./tests folder)
-$(DOBJ)/%.o: $(DTEST)/%.cpp Makefile | build
+$(DOBJ)/%.o: $(DTEST)/%.cpp Makefile
 	$(CC) -I$(DINC) $< -o $@
 
 # Compile source object files (from ./src folder - includes main.cpp and gen_magic_nums.cpp)
-$(DOBJ)/%.o: $(DSRC)/%.cpp Makefile | build
+$(DOBJ)/%.o: $(DSRC)/%.cpp Makefile 
 	$(CC) -I$(DINC) $< -o $@
 
 # Include dependency files for ALL objects
-DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d) $(MAIN_OBJ:.o=.d) $(MAGIC_OBJ:.o=.d) | build
+DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d) $(MAIN_OBJ:.o=.d) $(MAGIC_OBJ:.o=.d)
 -include $(DEPS)
 
 build:
