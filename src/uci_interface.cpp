@@ -219,6 +219,7 @@ void UCIInterface::process_position_command(std::string command) {
 void UCIInterface::process_ponder_command() { UCIInterface::uci_response("Processing ponder command."); }
 void UCIInterface::send_bestmove() {
     Move bestmove = Game::instance().get_bestmove();
+    assert(bestmove.is_valid());
     UCIInterface::uci_response("bestmove " + bestmove.toString());
     // TODO: handle if there is no best move (mate).
 }
