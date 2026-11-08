@@ -1,4 +1,5 @@
 // Copyright 2025 Filip Agert
+#include "constants.h"
 #include "integer_representation.h"
 #include "movegen.h"
 #include "tables.h"
@@ -218,14 +219,25 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         }
     }
     // End mate and draws.
-
-    MoveOrder::apply_move_sort<is_white>(move_arr[ply], num_moves, first_move, board);
+    if (first_move) {
+        // score it high!
+    }
+    std::array<Move, max_legal_moves> &moves = move_arr[ply];
+    std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
+    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move);
 
 
 
     // Normal move generation.
     //
     for (uint8_t i = 0; i < num_moves; i++) {
+        int best = i;
+        for (int j = i + 1; j < num_moves; j++)
+            if (scores[j] > scores[best]) best = j;
+        std::swap(moves[i], moves[best]);
+        std::swap(scores[i], scores[best]);     
+
+
         make_move<is_white>(move_arr[ply][i]);
         int extension = calculate_extension<!is_white>(move_arr[ply][i], i, num_extensions);
         std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
@@ -294,9 +306,17 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     if (in_check && num_moves == 0)
         return {-EvalState::MATE_SCORE +ply, exact};
 
-    MoveOrder::apply_move_sort<is_white>(move_arr[ply], num_moves, board);
+    std::array<Move, max_legal_moves> &moves = move_arr[ply];
+    std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
+    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {});
     // Normal move generation.
     for (int i = 0; i < num_moves; i++) {
+        int best = i;
+        for (int j = i + 1; j < num_moves; j++)
+            if (scores[j] > scores[best]) best = j;
+        std::swap(moves[i], moves[best]);
+        std::swap(scores[i], scores[best]);     
+
         make_move<is_white>(move_arr[ply][i]);
         std::pair<int, uint8_t> res = quiesence<!is_white>(ply + 1, -beta, -alpha);
         int eval = -res.first;

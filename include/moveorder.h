@@ -25,6 +25,19 @@ inline void partial_move_sort(std::array<Move, max_legal_moves> &moves,
                               bool ascending) {
     partial_move_sort(moves, scores, 0, num_moves, ascending);
 }
+template<bool is_white> void move_heuristics(std::array<Move, max_legal_moves>&moves, std::array<int, max_legal_moves>&scores, size_t num_moves, Board&board, std::optional<Move> firstmove){
+    BB enemy_pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
+    bool firstmv = firstmove.has_value();
+    int src = firstmove.value_or(Move()).source;
+    int target = firstmove.value_or(Move()).target;
+    for (size_t m = 0; m < num_moves; m++) {
+        int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb);
+        scores[m] = move_score;
+        if (firstmv && moves[m].source == src && moves[m].target == target){
+            scores[m] += 1000000;
+        }
+    }
+}
 /**
  * @brief Rate move by Heuristics
  *
