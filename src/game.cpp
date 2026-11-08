@@ -104,9 +104,13 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         seldepth = 0;
         if (!time_manager->get_should_start_new_iteration())
             break;
+        root_best = Move();
         must_finish = (depth == 1);
         auto [eval, nt] = aspiration_search<is_white>(preveval, depth);
         must_finish = false;
+        if (root_best.is_valid())
+            bestmove = root_best;
+        
         if (nt == timeout)
             break;
         // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
@@ -119,14 +123,6 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         new_msg.hashfill = trans_table->load_factor();
         new_msg.score = eval;
         info_queue.push(new_msg);
-        if (new_msg.pv.size() > 0) {
-            bestmove = new_msg.pv[0];
-            assert(bestmove != Move());
-            assert(bestmove.is_valid());
-            if (bestmove.source == bestmove.target) {
-                std::cout << "Illegal move made." << std::endl;
-            }
-        }
 
         preveval = eval;
         std::optional<int> moves_to_mate = EvalState::moves_to_mate(eval);
@@ -256,6 +252,9 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             bestscore = eval;
             best_curr_move = move_arr[ply][i];
             atleast_one_move_searched = true;
+        }
+        if constexpr (is_root){
+            if (eval > alpha) root_best = moves[i];
         }
         if (eval >= beta) {  // FAIL HIGH.
             trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
