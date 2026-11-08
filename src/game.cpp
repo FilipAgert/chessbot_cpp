@@ -238,8 +238,8 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         std::swap(scores[i], scores[best]);     
 
 
-        make_move<is_white>(move_arr[ply][i]);
-        int extension = calculate_extension<!is_white>(move_arr[ply][i], i, num_extensions);
+        make_move<is_white>(moves[i]);
+        int extension = calculate_extension<!is_white>(moves[i], i, num_extensions);
         std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         int eval = -res.first;
         undo_move<is_white>();
