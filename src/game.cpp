@@ -176,6 +176,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int pre
     }
 }
 template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+    nodes_evaluated++;
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition()) {
         return {0, exact};  // Checks if position is a repeat.
@@ -185,7 +186,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     }
 
     if (depth <= 0) {
-        nodes_evaluated++;
+        nodes_evaluated--;
         return quiesence<is_white>(ply, alpha, beta);
     }
     
@@ -310,6 +311,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
 }
 
 template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int alpha, int beta) {
+    nodes_evaluated++;
     if (this->check_repetition())
         return {0, exact};  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
