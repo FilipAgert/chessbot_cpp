@@ -118,43 +118,19 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
 }
 
 template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int preveval, int depth) {
-    int delta = 50;
-    int alpha, beta;
-    if (depth == 1 || ! settings_.aspiration_enable) {
-        alpha = -INF;
-        beta = INF;
-    } else {
-        alpha = preveval - delta;
-        beta = preveval + delta;
-    }
-    uint8_t nt = invalid;
-    int best_score = preveval;
-    size_t num_attempts = 0;
+    int delta = 25;
+    int alpha = std::max(-INF, preveval - delta);
+    int beta  = std::min(INF,  preveval + delta);
+    int fails = 0;
     while (true) {
-        if (num_attempts > 3){
-            alpha = -INF;
-            beta = INF;
-        }
-        std::pair<int, uint8_t> res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
-        best_score = res.first;
-        nt = res.second;
-        if (nt == timeout)
-            break;
-        if (best_score > alpha && best_score < beta)
-            break;
-        
-        if (best_score <= alpha){
-            alpha = std::max(-INF, alpha-delta);
-        } else if (best_score >= beta){
-            beta = std::min(INF, beta+delta);
-        }
-        delta *= 2;
-        if (alpha == -INF && beta == INF)
-            break;
-        
-        num_attempts+=1;
+        auto res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
+        if (res.second == timeout) return res;
+        int score = res.first;
+        if (score > alpha && score < beta) return res;
+        if (score <= alpha) alpha = (++fails > 2) ? -INF : std::max(-INF, score - delta);
+        else                beta  = (++fails > 2) ? INF  : std::min(INF,  score + delta);
+        delta += delta / 2;
     }
-    return {best_score, nt};
 }
 template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     seldepth = std::max(ply, seldepth);
