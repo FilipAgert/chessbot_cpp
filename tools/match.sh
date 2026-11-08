@@ -11,8 +11,8 @@ TC=${3:-10+0.1}
 mkdir -p results
 
 fastchess \
-  -engine cmd="$ENGINE1_CMD" name="$ENGINE1_NAME" \
-  -engine cmd="$ENGINE2_CMD" name="$ENGINE2_NAME" \
+  -engine cmd="$ENGINE1_CMD" name="$1" \
+  -engine cmd="$ENGINE2_CMD" name="$2" \
   -each tc="$TC" \
   -rounds 5000 -repeat -concurrency 4 \
   -openings file=opening_books/8moves_v3.pgn format=pgn order=random \
