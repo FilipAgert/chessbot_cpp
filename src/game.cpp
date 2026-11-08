@@ -174,7 +174,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     int bestscore = -INF;
     uint8_t nodetype = ub;
     
-    uint64_t zob_hash = ZobroistHasher::get().hash_board(board);
+    uint64_t zob_hash = state_stack.top();
     std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
     std::optional<Move> first_move = {};
     if (maybe_entry) {
