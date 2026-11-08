@@ -89,6 +89,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
             info_queue.push(new_msg);
             return;
         }
+        bestmove = move_arr[0][0]; // legal move fallback.
     }
     int buffer = STANDARD_TIME_BUFFER;  // ms
     int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
@@ -103,7 +104,9 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         seldepth = 0;
         if (!time_manager->get_should_start_new_iteration())
             break;
+        must_finish = (depth == 1);
         auto [eval, nt] = aspiration_search<is_white>(preveval, depth);
+        must_finish = false;
         if (nt == timeout)
             break;
         // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
@@ -241,7 +244,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         int eval = -res.first;
         undo_move<is_white>();
-        if (time_manager->get_should_stop()) {
+        if (should_abort()) {
             if constexpr (is_root) {
                 if (atleast_one_move_searched && bestscore > alpha) {
                     trans_table->store(zob_hash, best_curr_move, score_to_tt(bestscore, ply), lb, depth);
@@ -319,7 +322,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         std::pair<int, uint8_t> res = quiesence<!is_white>(ply + 1, -beta, -alpha);
         int eval = -res.first;
         undo_move<is_white>();
-        if (time_manager->get_should_stop()) {
+        if (should_abort()) {
             return {0, timeout};
         }
         if (eval >= beta)

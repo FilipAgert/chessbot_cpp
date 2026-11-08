@@ -167,13 +167,15 @@ class Game {
     std::shared_ptr<TimeManager> time_manager;
     Game() = default;
     static constexpr int INF = 10000000;
+    bool must_finish; // if must finish this search or not.
     // table needs to be a pointer since its so large in memory.
     std::unique_ptr<TranspositionTable> trans_table = std::make_unique<TranspositionTable>();
     /**
      * @brief Main game logic loop for thinking about a position.
      *
      */
-    bool one_depth_complete;
+    inline bool should_abort() const { return !must_finish && time_manager->get_should_stop(); }
+
     template <bool is_white> void think_loop(const TimeControl rem_time);
 
     /**
