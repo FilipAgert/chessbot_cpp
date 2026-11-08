@@ -998,7 +998,11 @@ struct Board {
         }
         if constexpr (s_type.quiesence_search) {  // Only search for captures
                                                   // in Quiesence.
-            to_squares &= enemy_bb;
+            if constexpr (ptype != pieces::pawn) {
+                to_squares &= enemy_bb;
+            } else{
+                to_squares &= (enemy_bb | topbot); // so we generate promotions too.
+            }
         }
         return to_squares;
     }
