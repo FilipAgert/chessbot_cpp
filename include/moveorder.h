@@ -43,7 +43,7 @@ template <bool is_white> int move_heuristics(Move &move, Board &board) {
         heuristics += PieceValue::piecevals[move.get_promotion()];
     }
 
-    BB pawn_atk_bb = movegen::pawn_atk_bb<is_white>(board.get_piece_bb<pieces::pawn, is_white>());
+    BB pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
     if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
         heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
                                                 .get_type()];  // penalize if target square is on a
