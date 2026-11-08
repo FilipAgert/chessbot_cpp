@@ -14,12 +14,21 @@
 #include <array>
 #include <cstdint>
 #include <string>
-
+struct HashDelta {
+    uint8_t moved_piece = 0, placed_piece = 0;   // full piece value (color | type)
+    uint8_t from = 0, to = 0;
+    uint8_t captured_piece = 0, capture_sq = 0;  // 0 = no capture
+    uint8_t rook_piece = 0, rook_from = 0, rook_to = 0;  // rook_piece 0 = not castling
+    uint8_t old_castle = 0, new_castle = 0;
+    uint8_t old_ep = 0, new_ep = 0;              // squares, 0 = none
+};
 struct RestoreMoveInfo {
     uint8_t ply_moves = 0;
     uint8_t ep_square = 0;
     uint8_t castleinfo = 0;
     Piece_t captured = 0;
+    HashDelta delta;
+    
 };
 struct Board {
  private:
@@ -349,6 +358,7 @@ struct Board {
             remove_piece<white_to_move, pieces::pawn>(move.target);
             add_piece<white_to_move, pieces::rook>(move.target);
         }
+        info.delta = make_hash_delta<white_to_move,  moved,  flag,  captured>(move, old_ep, info.castleinfo);
         return info;
     }
 
@@ -402,7 +412,48 @@ struct Board {
             }
         }
     }
-    template <bool white_moved> void undo_move(const RestoreMoveInfo info, const Move move) {
+    template <Flag_t flag> static constexpr Piece_t promo_type() {
+        if constexpr (flag == moveflag::MOVEFLAG_promote_queen)  return pieces::queen;
+        else if constexpr (flag == moveflag::MOVEFLAG_promote_rook)   return pieces::rook;
+        else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) return pieces::bishop;
+        else if constexpr (flag == moveflag::MOVEFLAG_promote_knight) return pieces::knight;
+        else return pieces::none;
+    }
+
+    template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured>
+    constexpr inline HashDelta make_hash_delta(Move move, uint8_t old_ep, uint8_t old_castle) {
+        constexpr uint8_t us   = white_to_move ? pieces::white : pieces::black;
+        constexpr uint8_t them = white_to_move ? pieces::black : pieces::white;
+
+        HashDelta d;
+        d.from = move.source;
+        d.to = move.target;
+        d.moved_piece = us | moved;
+        d.placed_piece = d.moved_piece;
+        if constexpr (promo_type<flag>() != pieces::none)
+            d.placed_piece = us | promo_type<flag>();
+
+        if constexpr (captured != pieces::none) {
+            d.captured_piece = them | captured;
+            d.capture_sq = move.target;
+        }
+        if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
+            d.captured_piece = them | pieces::pawn;
+            d.capture_sq = white_to_move ? old_ep - 8 : old_ep + 8;
+        }
+        if constexpr (flag == moveflag::MOVEFLAG_long_castling || flag == moveflag::MOVEFLAG_short_castling) {
+            d.rook_piece = us | pieces::rook;
+            d.rook_from = get_castle_from_sq<white_to_move, pieces::rook, flag>();
+            d.rook_to   = get_castle_to_sq<white_to_move, pieces::rook, flag>();
+        }
+        d.old_castle = old_castle;
+        d.new_castle = castleinfo;          // already updated at this point
+        d.old_ep = old_ep;
+        d.new_ep = en_passant_square;       // already updated (0 unless double push)
+        return d;
+    }
+
+    template <bool white_moved> void undo_move(const RestoreMoveInfo &info, const Move move) {
         ply_moves = info.ply_moves;
         castleinfo = info.castleinfo;
         if (info.ep_square != 0) {
@@ -449,7 +500,7 @@ struct Board {
         }
     }
 
-    inline constexpr void undo_move(RestoreMoveInfo info, const Move move) {
+    inline constexpr void undo_move(const RestoreMoveInfo& info, const Move move) {
         if (turn_color == pieces::white)
             undo_move<false>(info, move);
         else

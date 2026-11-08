@@ -1,5 +1,6 @@
 // Copyright 2025 Filip Agert
 #include "integer_representation.h"
+#include "tables.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -327,8 +328,8 @@ template <bool is_white> void Game::make_move(Move move) {
     RestoreMoveInfo info = board.do_move<is_white>(move);
     move_stack.push(move);
     restore_info_stack.push(info);
-    uint64_t state_hash = ZobroistHasher::get().hash_board(board);
-    state_stack.push(state_hash);
+    state_stack.push(state_stack.top() ^ ZobroistHasher::get().delta(info.delta));
+    assert(state_stack.top () == ZobroistHasher::get().hash_board(board));
 }
 
 template <bool is_white> void Game::undo_move() {

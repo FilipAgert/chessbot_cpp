@@ -150,6 +150,7 @@ class ZobroistHasher {
      * @return hash of board.
      */
     uint64_t hash_board(const Board &board);
+    uint64_t delta(const HashDelta &delta) const;
     /**
      * @brief Hash can be incremented by XORing the parts that changed. This is color and pieces
      * moved and castle information.
