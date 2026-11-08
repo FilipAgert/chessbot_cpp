@@ -1,47 +1,84 @@
-# Search
-- Quiesence search
-    Add king in check.
-- King in check search
-    - Captures
-    - King moves
-    - Blocking
-- King in double check search
-    - Only king moves
+# Toolkits
 
-- Move ordering by simple heuristic. Eg. attacking piece.
-# Board representation
-dont put bitboards in array. put them raw. No need for bitboard for king either.
+- Make a new executeable which directly runs searches. We can track depth reached, quiesence depth reached, total nodes evaluated and time taken.
+    Do this for a bunch of FENs.
+    This lets us track if e.g. a search change is helpful or not.
+    It is different from move generation tracking as this also takes into account the search.
+
+# Threads
+
+Low priority.
+
+- Have UCI thread seperate from game search thread. Have it constantly poll for info messages and e.g. be able to cancel a search if necessary.
+- Multithreading for search (low prio)
+
+# Search
+
+High priority
+
+- Save move generation if possible. We can try to use TT or killer moves first - if legal.
+    The savings may be negligble as the move generation is fairly quick.
+- Futility pruning <https://chessprogramming.org/Futility_Pruning>
+    Low priority.
+    Even in futility pruned, still search moves that check, captures.
+    Do not use when in check, or when alpha/beta is close to mate value.
+    Need to check that there exists a legal move.
+- Late move reductions (LMR) <https://chessprogramming.org/Late_Move_Reductions>
+    Search first moves (1 or 2) to full depth. If no moves fail high, reduce the depth of the remaining moves.
+    Do not reduce depth on:
+        Captures / promotions
+        When in check
+        Moves giving check
+    Re-searching:
+        If the reduced move returns a score above alpha re-search at full depth.
+
+## Quiesence search
+
+- Delta pruning
+    Test if a capture + a safety margin (delta) is enough to raise alpha.
+    E.g. if we just lost a rook, we do not bother to check to capture pawn. just maybe another piece.
+    Switch off in late-game.
+    Switch off if checked.
+    Can test if ANY possible move can improve alpha. (E.g. capture a queen + promote to a queen (if applicable w. pawns))
+    If not, dont even generate moves (just return alpha)
+
+- Standing pat in quiesence search: assuming we are not in zugzwang, (very rarely we are), standing pat may give an early exit to quiesence.
+    If the current board state eval >= beta, we can return beta.
+    Disallow if checked.
+    Switch off in late-game - higher likelihood to be zugzwang.
+
+## Move ordering
+
+Medium priority
+
+- Static exchange evaluation <https://chessprogramming.org/Static_Exchange_Evaluation>
+    Sees the likely exchange of material when chain taking.
+- Mate killers <https://chessprogramming.org/Mate_Killers>
+    Causing a beta-cutoff with value saying we will get a mate. These are ranked higher than killers.
+- Order even losing captures above all else. Currently we may give a negative score. This can be avoided. May not help though.
+
+# Evaluation
+
+Medium priority
+
+- Replace eval by neural network.
+
+1. Get a ton of lichess games - split into train and verification datasets.
+2. Take positions from these games as data & score it
+3. See result of game as evaluator.
+4. Symmetric in white/black - can reduce number of weights. Can probably contexpr this as well.
+
+# Move generation
+
+Low priority.
 
 To speedup move generation:
-1. Remove 8x8 board containing pieces
+
+1. Benchmark removing 8x8 board containing pieces
 Likely also for the generating bitboards etc.
 
-When doing a move, also add auto king check detection. This can be STORED in the board state. Why? To be accessed by e.g. eval.
-    This should detect: 1 check, 2 or more check.
+## Magic bitboards
 
-Can be used in movegeneration.
-If 1 check:
-    Capture offending piece
-    Blocking ray
-    King move
-If 2 check:
-    King move.
-
-Check for pinned king.
-    Generate a function xray rook and xray bishop attacks which is just a magic bitboard but it ignores the first occupancy square.
-    We the AND this with the enemy slider:
-    If its grt 0:
-    There is a piece in between us and the slider -> get a precomputed mask which is all squares between the enemy piece (inclusive) and the king piece (exclusive).
-    AND this with the friendly pieces to obtain location of pinned piece.
-    This pinned piece is ONLY allowed to move along the precomputed mask.
-
-This will allow us to reduce the do/undo move in move generation to the following cases:
-    EP capture>
-    King moves.
-    King in check.
-
-
-## Magic bitboards:
 Try to generate magic numbers which reduce the span of the upper bound in the hash region.
 I.e. try to minimize
 [start, stop].
