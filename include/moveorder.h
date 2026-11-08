@@ -32,25 +32,25 @@ inline void partial_move_sort(std::array<Move, max_legal_moves> &moves,
  * @param[in] board board
  * @return score of move to sort by
  */
-template <bool is_white> int move_heuristics(Move &move, Board &board) {
-    int heuristics = 0;
-    if (!board.is_square_empty(move.target)) {
-        heuristics += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10 -
-                      PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
+template <bool is_white> int move_heuristics(Move &move, Board &board, BB enemy_pawn_atk_bb) {
+    int score = 0;
+    if (move.flag == moveflag::MOVEFLAG_pawn_ep_capture) {
+        score += PieceValue::piecevals[pieces::pawn] * 10 - PieceValue::piecevals[pieces::pawn];
+    } else if (!board.is_square_empty(move.target)) {
+        score += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10
+            - PieceValue::piecevals[move];
     }
-
     if (move.is_promotion()) {
-        heuristics += PieceValue::piecevals[move.get_promotion()];
+        score += PieceValue::piecevals[move.get_promotion()] *10;
     }
 
-    BB pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
-    if ((BitBoard::one_high(move.target) & pawn_atk_bb) > 0) {
-        heuristics -= PieceValue::piecevals[board.get_piece_at(move.source)
+    if ((BitBoard::one_high(move.target) & enemy_pawn_atk_bb) > 0) {
+        score -= PieceValue::piecevals[board.get_piece_at(move.source)
                                                 .get_type()];  // penalize if target square is on a
                                                                // square defended by a pawn.
     }
 
-    return heuristics;
+    return score;
 }
 /**
  * @brief Sorts moves by heuristics.
@@ -61,8 +61,10 @@ template <bool is_white> int move_heuristics(Move &move, Board &board) {
 template <bool is_white>
 void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves, Board &board) {
     std::array<int, max_legal_moves> move_scores;
+
+    BB enemy_pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
     for (size_t m = 0; m < num_moves; m++) {
-        int move_score = move_heuristics<is_white>(moves[m], board);
+        int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb);
         move_scores[m] = move_score;
     }
     partial_move_sort(moves, move_scores, num_moves, false);
