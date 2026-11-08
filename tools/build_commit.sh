@@ -9,11 +9,23 @@ BIN="$OUT/engine"
 
 if [[ -x "$BIN" ]]; then echo "$BIN"; exit 0; fi   # cached
 
+
 WT="$ROOT/engines/.wt-$HASH"
+
+cleanup() {
+    git worktree remove --force "$WT" >/dev/null 2>&1 || true
+    git worktree prune >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+git worktree prune                      # drop stale registrations
+rm -rf "$WT"                            # drop leftover directory, if any
 mkdir -p "$OUT"
 git worktree add --detach "$WT" "$HASH" >&2
 (
   cd "$WT"
+  mkdir -p build
+  mkdir -p bin
   make type=release
   cp bin/filipbot "$BIN"
 )

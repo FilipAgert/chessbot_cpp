@@ -60,7 +60,7 @@ $(DOBJ)/%.o: $(DSRC)/%.cpp Makefile | build
 	$(CC) -I$(DINC) $< -o $@
 
 # Include dependency files for ALL objects
-DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d) $(MAIN_OBJ:.o=.d) $(MAGIC_OBJ:.o=.d)
+DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d) $(MAIN_OBJ:.o=.d) $(MAGIC_OBJ:.o=.d) | build
 -include $(DEPS)
 
 build:
