@@ -46,8 +46,7 @@ void Game::reset_state_stack() {
     state_stack.push(board_hash);
 }
 
-constexpr int MATE_SCORE = 30000;
-constexpr int MATE_BOUND = MATE_SCORE - 256;  // anything beyond this is a mate score
+constexpr int MATE_BOUND = EvalState::MATE_SCORE - 256;  // anything beyond this is a mate score
 
 inline int score_to_tt(int score, int ply) {
     if (score >  MATE_BOUND) return score + ply;
@@ -133,8 +132,12 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
 
 template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int preveval, int depth) {
     int delta = 25;
-    int alpha = std::max(-INF, preveval - delta);
-    int beta  = std::min(INF,  preveval + delta);
+    int alpha = -INF;
+    int beta = INF;
+    if (depth > 1 && settings_.aspiration_enable) {
+        alpha = std::max(-INF, preveval - delta);
+        beta  = std::min(INF,  preveval + delta);
+    }
     int fails = 0;
     while (true) {
         auto res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
@@ -158,6 +161,10 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     if (depth <= 0) {
         nodes_evaluated++;
         return quiesence<is_white>(ply, alpha, beta);
+    }
+    
+    if (ply >= MAX_PLY - 1){
+        return {EvalState::eval(board), exact};
     }
 
 
@@ -198,12 +205,12 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         }
     }
     // Handle if king is checked or no moves can be made.
-    assert(ply < 64);
+
     int num_moves = board.get_moves<normal_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (num_moves == 0) {
         if (board.king_checked<is_white>()) {
-            return {-MATE_SCORE + ply, exact};
+            return {-EvalState::MATE_SCORE + ply, exact};
         } else {
             return {0, exact};
         }
@@ -224,7 +231,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         undo_move<is_white>();
         if (time_manager->get_should_stop()) {
             if constexpr (is_root) {
-                if (atleast_one_move_searched) {
+                if (atleast_one_move_searched && bestscore > alpha) {
                     trans_table->store(zob_hash, best_curr_move, score_to_tt(bestscore, ply), lb, depth);
                 }
             }
@@ -256,6 +263,9 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         return {0, exact};  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
         return {0, exact};
+    if (ply >= MAX_PLY - 1){
+        return {EvalState::eval(board), exact};
+    }
 
     int eval = EvalState::eval(board);
     seldepth = std::max(ply, seldepth);
