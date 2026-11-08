@@ -3,12 +3,18 @@
 set -euo pipefail
 REV=${1:?rev}
 ROOT=$(git rev-parse --show-toplevel)
-HASH=$(git rev-parse --short=10 "$REV")
+
+# 1. Get the full hash for reliable git operations, and a short hash for folder naming
+FULL_HASH=$(git rev-parse "$REV")
+HASH="${FULL_HASH:0:10}"
+
 OUT="$ROOT/engines/$HASH"
 BIN="$OUT/engine"
 
-if [[ -x "$BIN" ]]; then echo "$BIN"; exit 0; fi   # cached
-
+if [[ -x "$BIN" ]]; then 
+    echo "$BIN"
+    exit 0 
+fi   # cached
 
 WT="$ROOT/engines/.wt-$HASH"
 
@@ -18,15 +24,22 @@ cleanup() {
 }
 trap cleanup EXIT
 
-git worktree prune                      # drop stale registrations
-rm -rf "$WT"                            # drop leftover directory, if any
+# 2. Safely clean up any leftover directory or stale registrations first
+if [[ -d "$WT" ]]; then
+    git worktree remove --force "$WT" >/dev/null 2>&1 || rm -rf "$WT"
+fi
+git worktree prune
+
 mkdir -p "$OUT"
-git worktree add --detach "$WT" "$HASH" >&2
+
+# 3. Use the FULL_HASH here so git worktree add never fails on the first try
+git worktree add --detach "$WT" "$FULL_HASH" >&2
+
 (
   cd "$WT"
   mkdir -p build bin
   make type=release
   cp bin/filipbot "$BIN"
 )
-git worktree remove --force "$WT" >&2
+
 echo "$BIN"
