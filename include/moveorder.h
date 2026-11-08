@@ -38,7 +38,7 @@ template <bool is_white> int move_heuristics(Move &move, Board &board, BB enemy_
         score += PieceValue::piecevals[pieces::pawn] * 10 - PieceValue::piecevals[pieces::pawn];
     } else if (!board.is_square_empty(move.target)) {
         score += PieceValue::piecevals[board.get_piece_at(move.target).get_type()] * 10
-            - PieceValue::piecevals[move];
+            - PieceValue::piecevals[board.get_piece_at(move.source).get_type()];
     }
     if (move.is_promotion()) {
         score += PieceValue::piecevals[move.get_promotion()] *10;
@@ -84,8 +84,9 @@ void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves,
         std::array<int, max_legal_moves> move_scores;
         int firstmoveidx = -1;
         Move first = firstmove.value();
+        BB enemy_pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
         for (size_t m = 0; m < num_moves; m++) {
-            int move_score = move_heuristics<is_white>(moves[m], board);
+            int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb);
             if (moves[m].source == first.source && moves[m].target == first.target)
                 firstmoveidx = m;
             move_scores[m] = move_score;
