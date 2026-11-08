@@ -24,8 +24,7 @@ mkdir -p "$OUT"
 git worktree add --detach "$WT" "$HASH" >&2
 (
   cd "$WT"
-  mkdir -p build
-  mkdir -p bin
+  mkdir -p build bin
   make type=release
   cp bin/filipbot "$BIN"
 )

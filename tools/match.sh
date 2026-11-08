@@ -8,12 +8,10 @@ N=$(git rev-parse --short=7 "$1"); B=$(git rev-parse --short=7 "$2")
 mkdir -p results
 
 fastchess \
-  -engine cmd="$NEW"  name="$N" \
-  -engine cmd="$BASE" name="$B" \
-  -each proto=uci tc="$TC" option.Hash=64 \
+  -engine cmd="$ENGINE1_CMD" name="$ENGINE1_NAME" \
+  -engine cmd="$ENGINE2_CMD" name="$ENGINE2_NAME" \
+  -each tc="$TC" \
+  -rounds 5000 -repeat -concurrency 4 \
   -openings file=opening_books/8moves_v3.pgn format=pgn order=random \
-  -games 2 -rounds 5000 -repeat \
-  -concurrency 4 \
-  -sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 \
-  -pgnout file="results/${N}_vs_${B}.pgn" \
-  | tee "results/${N}_vs_${B}.log"
+  -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
+  -log file="results/${ENGINE1_NAME}_vs_${ENGINE2_NAME}.log"
