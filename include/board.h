@@ -2,6 +2,7 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "integer_representation.h"
 #include "movegen.h"
 #include <bitboard.h>
 #include <cassert>
@@ -580,7 +581,7 @@ struct Board {
         BB to_squares = movegen::king_moves(kingsq, friendly_bb, friendly_bb | enemy_bb, get_atk_bb<!is_white, true>(), castleinfo,
                                             color);  // Already disqualifies squares that are attacked by the enemy so do not need to check for move legality.
         size_t num_moves = 0;
-        add_moves<is_white, pieces::king>(moves, num_moves, to_squares, kingsq);
+        add_moves<is_white, pieces::king, stype>(moves, num_moves, to_squares, kingsq);
         // No need to test for move legality.
         if constexpr (ctype.two_checks) {
             return num_moves;
@@ -843,7 +844,7 @@ struct Board {
      * calling this routine
      * @param[in] from from square.
      */
-    template <bool is_white, Piece_t type> void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) {
+    template <bool is_white, Piece_t type, search_type stype> void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) {
         constexpr uint8_t friendly_longsq = is_white ? 0 : 56;
         constexpr uint8_t friendly_shortsq = is_white ? 7 : 63;
         BitLoop(to_bb) {
@@ -852,8 +853,12 @@ struct Board {
             if constexpr (type == pieces::pawn) {
                 if (NotationInterface::row(lsb) == get_pawn_promote_rank<is_white>()) {
                     constexpr uint8_t col = is_white ? pieces::white : pieces::black;
-                    for (uint8_t ptype : pieces::promote_types)
-                        moves[num_moves++] = Move(from, lsb, Piece(ptype | col));
+                    if constexpr (stype.normal_search){
+                        for (uint8_t ptype : pieces::promote_types)
+                            moves[num_moves++] = Move(from, lsb, Piece(ptype | col));
+                    } else{
+                        moves[num_moves++] = Move(from, lsb, Piece(pieces::queen|col)); 
+                    }
 
                     // flag set automatically in move constructor.
                     continue;
@@ -961,7 +966,7 @@ struct Board {
             if constexpr (ctype.one_check || ctype.slider_check) {
                 to_sqs &= checker_mask;
             }
-            add_moves<is_white, ptype>(moves, num_moves, to_sqs, sq);
+            add_moves<is_white, ptype, stype>(moves, num_moves, to_sqs, sq);
         }
     }
 
