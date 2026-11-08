@@ -118,6 +118,8 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         info_queue.push(new_msg);
         if (new_msg.pv.size() > 0) {
             bestmove = new_msg.pv[0];
+            assert(bestmove != Move());
+            assert(bestmove.is_valid());
             if (bestmove.source == bestmove.target) {
                 std::cout << "Illegal move made." << std::endl;
             }
@@ -217,10 +219,6 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         } else {
             return {0, exact};
         }
-    }
-    // End mate and draws.
-    if (first_move) {
-        // score it high!
     }
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<int, max_legal_moves> &scores = move_heuristic_score[ply];
