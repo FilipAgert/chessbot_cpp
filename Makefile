@@ -39,7 +39,6 @@ MAIN_OBJ = $(DOBJ)/main.o
 MAGIC_OBJ = $(DOBJ)/gen_magic_nums.o
 TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o $(DOBJ)/movegen_test.o $(DOBJ)/time_manager_test.o $(DOBJ)/tables_test.o $(DOBJ)/config_parser_test.o
 
-mkdir -p build bin
 # Target
 all: $(DEXE)/$(EXE)
 
