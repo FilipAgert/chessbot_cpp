@@ -19,8 +19,10 @@
 #include <memory>
 #include <move.h>
 #include <optional>
+#include <stop_token>
 #include <string>
 #include "parameters.h"
+#include <thread>
 #include <time_manager.h>
 #include <utility>
 bool Game::set_fen(std::string FEN) {
@@ -30,13 +32,27 @@ bool Game::set_fen(std::string FEN) {
     trans_table->clear();
     return success;
 }
+
+void Game::abort_search_and_wait(){
+    if (search_thread_.joinable()){
+        stop_requested_ = true;
+        search_thread_.join();
+    }
+    search_finished = true;
+    stop_requested_=false;
+}
 void Game::start_thinking(const TimeControl rem_time) {
-    reset_infos();
-    bool is_white = board.get_turn_color() == pieces::white;
-    if (is_white)
-        think_loop<true>(rem_time);
-    else
-        think_loop<false>(rem_time);
+    abort_search_and_wait();
+
+    search_finished = false;
+    search_thread_ = std::jthread([this, rem_time](std::stop_token stoken){
+        reset_infos();
+        bool is_white = board.get_turn_color() == pieces::white;
+        if (is_white)
+            think_loop<true>(rem_time);
+        else
+            think_loop<false>(rem_time);
+    });
 }
 
 void Game::reset_infos() {
@@ -46,7 +62,7 @@ void Game::reset_infos() {
     reductions_cnt = 0;
     reductions_total =0;
     research_cnt = 0;
-    bestmove = Move();
+    set_bestmove(Move());
     reset_killers();
     history.reset_history();
 }
@@ -88,18 +104,34 @@ inline int score_from_tt(int score, int ply) {
     return score;
 }
 
+InfoMsg Game::info_queue_front(){
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    return info_queue.front(); 
+}
+void Game::info_queue_pop(){
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    info_queue.pop(); 
+}
+bool Game::info_queue_empty(){
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    return info_queue.empty();
+}
+void Game::push_msg(InfoMsg&& msg){
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    info_queue.push(msg);
+}
 template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
     if (this->check_repetition()) {
         InfoMsg new_msg;
         new_msg.stringmsg = true;
         new_msg.string = "draw by threefold repetition detected";
-        info_queue.push(new_msg);
+        push_msg(std::move(new_msg));
         return;
     } else if (EvalState::forced_draw_ply(board)) {
         InfoMsg new_msg;
         new_msg.stringmsg = true;
         new_msg.string = "draw by excess ply moves.";
-        info_queue.push(new_msg);
+        push_msg(std::move(new_msg));
         return;
     } else {
         int num_moves = board.get_moves<full_search, is_white>(move_arr[0]);
@@ -112,10 +144,10 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
             } else {
                 new_msg.string = "draw detected";
             }
-            info_queue.push(new_msg);
+            push_msg(std::move(new_msg));
             return;
         }
-        bestmove = move_arr[0][0]; // legal move fallback.
+        set_bestmove(move_arr[0][0]);
     }
     int buffer = STANDARD_TIME_BUFFER;  // ms
     int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
@@ -135,7 +167,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         auto [eval, nt] = aspiration_search<is_white>(preveval, depth);
         must_finish = false;
         if (root_best.is_valid())
-            bestmove = root_best;
+            set_bestmove(root_best);
         
         if (nt == timeout)
             break;
@@ -151,7 +183,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         new_msg.reduction_average = (float(reductions_total) / float(reductions_cnt));
         new_msg.reduction_research = (float(research_cnt) / float(reductions_cnt));
         new_msg.reduction_times = reductions_cnt;
-        info_queue.push(new_msg);
+        push_msg(std::move(new_msg));
 
         preveval = eval;
         std::optional<int> moves_to_mate = EvalState::moves_to_mate(eval);
@@ -161,6 +193,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
     }
 
     time_manager->stop_and_join();  // Join time manager thread to this one.
+    search_finished=true;
 }
 
 template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int preveval, int depth) {
@@ -456,7 +489,15 @@ bool Game::check_repetition() {
     bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
     return atleast2;
 }
-Move Game::get_bestmove() const { return bestmove; }
+Move Game::get_bestmove() const { 
+    std::lock_guard<std::mutex> lock(bestmove_mutex);
+    return bestmove;
+ }
+
+void Game::set_bestmove(Move move){
+    std::lock_guard<std::mutex> lock(bestmove_mutex);
+    bestmove = move;
+}
 
 std::string Game::get_fen() const { return board.fen_from_state(); }
 

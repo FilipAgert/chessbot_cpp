@@ -19,7 +19,6 @@ void UCIInterface::process_uci_command() {
 void UCIInterface::process_isready_command() { UCIInterface::uci_response("readyok"); }
 void UCIInterface::process_quit_command() {
     UCIInterface::uci_response("Exiting...");
-    exit(0);
 }
 
 void UCIInterface::process_new_game_command() { UCIInterface::uci_response("New game started."); }
@@ -69,8 +68,8 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     UCIInterface::uci_response(final_str);
 }
 void UCIInterface::send_info_if_has() {
-    for (; !Game::instance().info_queue.empty(); Game::instance().info_queue.pop()) {
-        InfoMsg info = Game::instance().info_queue.front();
+    for (; !Game::instance().info_queue_empty(); Game::instance().info_queue_pop()) {
+        InfoMsg info = Game::instance().info_queue_front();
         UCIInterface::send_info_msg(info);
     }
 }
@@ -145,8 +144,8 @@ void UCIInterface::process_go_command(std::string command) {
     }
     TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc});
     Game::instance().start_thinking(rem_time);  // Enter ponder loop
-    UCIInterface::send_info_if_has();
-    UCIInterface::send_bestmove();
+    // UCIInterface::send_info_if_has();
+    // UCIInterface::send_bestmove();
 }
 
 std::optional<int> UCIInterface::try_process_int(std::string intstring) {
@@ -162,7 +161,7 @@ std::optional<int> UCIInterface::try_process_int(std::string intstring) {
 void UCIInterface::process_position_command(std::string command) {
     // Example: "position startpos moves e2e4 e7e5"
     // Initialize board:
-
+    Game::instance().abort_search_and_wait();
     size_t pos = 0;
     while (pos < command.size()) {
         while (pos < command.size() && command[pos] == ' ')
@@ -347,4 +346,8 @@ void UCIInterface::process_repeat_command() {
         process_position_command("startpos");
         process_self_command("500");
     }
+}
+
+void UCIInterface::process_stop_command(){
+    Game::instance().abort_search_and_wait();
 }

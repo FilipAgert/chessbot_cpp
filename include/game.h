@@ -148,7 +148,6 @@ class Game {
      */
     void reset_infos();
 
-    std::queue<InfoMsg> info_queue;
 
     void set_settings(ConfigSettings settings){
         settings_=settings;
@@ -156,7 +155,19 @@ class Game {
     }
 
     void precompute();
- private:
+    void info_queue_pop();
+    InfoMsg info_queue_front();
+    bool info_queue_empty();
+    void abort_search_and_wait();
+    std::atomic<bool> search_finished{false};
+private:
+    std::atomic<bool> stop_requested_{false};
+    std::jthread search_thread_;
+
+    std::queue<InfoMsg> info_queue;
+    void push_msg(InfoMsg&& msg);
+    mutable std::mutex queue_mutex;
+
     ConfigSettings settings_;
     static constexpr int MAX_PLY=128;
     std::array<std::array<Move, max_legal_moves>, MAX_PLY> move_arr;
@@ -171,7 +182,9 @@ class Game {
      */
     void reset_state_stack();
     StateStack state_stack;
+    mutable std::mutex bestmove_mutex;
     Move bestmove;
+    void set_bestmove(Move move);
     Board board;
     uint64_t moves_generated;
     uint64_t nodes_evaluated;
@@ -195,7 +208,9 @@ class Game {
      * @brief Main game logic loop for thinking about a position.
      *
      */
-    inline bool should_abort() const { return !must_finish && time_manager->get_should_stop(); }
+    inline bool should_abort() const { 
+        return stop_requested_ || (!must_finish && time_manager->get_should_stop()); 
+    }
 
     template <bool is_white> void think_loop(const TimeControl rem_time);
 

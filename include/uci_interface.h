@@ -44,6 +44,7 @@ class UCIInterface {
     static void process_go_command(std::string command);
     static void process_position_command(std::string command);
     static void process_fen_command(std::string command);
+    static void process_stop_command();
     /**
      * @brief Enters benchmarking mode. This evaluates to a certain depth all possible moves.
      * @param[in] command: String with three parts: <fentype> <depth> <threads>
