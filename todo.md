@@ -9,7 +9,6 @@
 
 Low priority.
 
-- Have UCI thread seperate from game search thread. Have it constantly poll for info messages and e.g. be able to cancel a search if necessary.
 - Multithreading for search (low prio)
 
 # Search
