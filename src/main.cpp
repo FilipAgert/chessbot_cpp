@@ -35,14 +35,16 @@ int main(int argc, char*argv[]) {
     ConfigSettings settings = parser.get_settings();
     Game::instance().set_settings(settings);
     
-    ThreadSafeCommandQueue input_queue;
+    static ThreadSafeCommandQueue input_queue;
 
     // 1. Spawn a background thread whose ONLY job is to block on std::cin
-    std::thread input_thread([&input_queue]() {
+    std::thread input_thread([]() {
         std::string line;
         while (std::getline(std::cin, line)) {
             input_queue.push(line);
+            if (line=="quit")break;
         }
+        input_queue.push("quit");
     });
     input_thread.detach(); // Let it run independently
 
@@ -86,8 +88,9 @@ int main(int argc, char*argv[]) {
             } else if (command == "bench") {
                 UCIInterface::process_bench_command(body);
             } else if (command == "quit") {
-                running=false;
                 UCIInterface::process_quit_command();
+                std::cout.flush();
+                std::_Exit(0);
             } else if (command == "self") {
                 UCIInterface::process_self_command(body);
             } else if (command == "repeat") {

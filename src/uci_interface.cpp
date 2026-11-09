@@ -1,4 +1,5 @@
 #include "uci_interface.h"
+#include "game.h"
 #include <chrono>
 #include <config.h>
 #include <cstdlib>
@@ -19,6 +20,7 @@ void UCIInterface::process_uci_command() {
 void UCIInterface::process_isready_command() { UCIInterface::uci_response("readyok"); }
 void UCIInterface::process_quit_command() {
     UCIInterface::uci_response("Exiting...");
+    Game::instance().abort_search_and_wait(); // quit the game thread.
 }
 
 void UCIInterface::process_new_game_command() { UCIInterface::uci_response("New game started."); }
