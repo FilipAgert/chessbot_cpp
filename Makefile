@@ -17,7 +17,7 @@ type ?= dev
 ifeq ($(type), release)
     FLAGS = -Wall -std=c++23 -O3 -DNDEBUG -march=native
 else ifeq ($(type), dev)
-    FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast -march=native
+    FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast -march=native -fsanitize=address
 else ifeq ($(type), perft)
     FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG -march=native
 else
@@ -27,7 +27,7 @@ endif
 LIBS = -lgtest -lgtest_main -pthread  # Google Test and pthread libs
 
 # Commands for linking.
-CCL = g++ -o
+CCL = g++ $(FLAGS) -o
 # Commands for compilation (removed redundant -c here)
 CC = g++ $(FLAGS) -MMD -MP -c
 
@@ -71,7 +71,7 @@ bin:
 
 # Clean up build artifacts safely
 clean:
-	rm -rf $(DOBJ) $(DEXE)/$(EXE) $(DEXE)/$(TEST_EXE) $(DEXE)/$(MAGIC_EXE)
+	rm -rf $(DOBJ)/* $(DEXE)/$(EXE) $(DEXE)/$(TEST_EXE) $(DEXE)/$(MAGIC_EXE)
 
 # Run the main executable
 run:
