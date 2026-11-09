@@ -21,6 +21,7 @@ const Flag_t MOVEFLAG_promote_rook = 8;
 const Flag_t MOVEFLAG_promote_knight = 9;
 const Flag_t MOVEFLAG_short_castling = 10;
 const Flag_t MOVEFLAG_long_castling = 11;
+const Flag_t MOVEFLAG_null_move = 12;
 template <Flag_t flag> static constexpr bool is_promotion() {
     if constexpr ((flag == MOVEFLAG_promote_queen) || (flag == MOVEFLAG_promote_bishop) || (flag == MOVEFLAG_promote_knight) || (flag == MOVEFLAG_promote_rook))
         return true;
@@ -110,7 +111,7 @@ struct Move {
             out += 'n';
         return out;
     }
-    constexpr inline bool is_valid() { return (source != target); }
+    constexpr inline bool is_valid() { return (flag != moveflag::MOVEFLAG_null_move ? source != target : true); }
     constexpr inline bool operator==(const Move &other) const { return (source == other.source) && (target == other.target) && (flag == other.flag); }
     constexpr Move() {}
 };

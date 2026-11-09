@@ -163,7 +163,7 @@ struct Board {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         [[assume(moved >= 1 && moved <= 6)]];
-        [[assume(move.flag >= 0 && move.flag <= 11)]];
+        [[assume(move.flag >= 0 && move.flag <= 12)]];
         switch (moved) {
         case pieces::pawn:
             switch (move.flag) {
@@ -283,83 +283,87 @@ struct Board {
      */
     template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured> RestoreMoveInfo constexpr inline do_move(Move move) {
         RestoreMoveInfo info = {ply_moves, en_passant_square, castleinfo, captured};
-        if constexpr (captured != pieces::none)
-            this->ply_moves = 0;
-        else if constexpr (moved == pieces::pawn)
-            this->ply_moves = 0;
-        else
-            this->ply_moves += 1;
-
-        if constexpr (!white_to_move)
-            full_moves += 1;
-
         uint8_t old_ep = en_passant_square;
         en_passant = false;
         en_passant_square = 0;
         assert(turn_color == white_to_move ? pieces::white : pieces::black);
         change_turn();  // Changes turn color from white <-> black.
         //
-        assert(get_piece_at(move.source).get_color() == white_to_move ? pieces::white : pieces::black);
-
-        if constexpr (captured != pieces::none) {
-            remove_piece<!white_to_move, captured>(move.target);
-            // Only need to check if a rook was captured SINCE if a piece wasnt captured and
-            // we hit a rook square, the castleflag is already removed.
-            if constexpr (captured == pieces::rook)
-                remove_castle_flag_if_capture_rook<white_to_move>(move.target);
-        }
-
-        move_piece<white_to_move, moved>(move.source, move.target);
-
-        if constexpr (flag == moveflag::MOVEFLAG_remove_all_castle || flag == moveflag::MOVEFLAG_short_castling || flag == moveflag::MOVEFLAG_long_castling) {
-            if constexpr (white_to_move)
-                castleinfo &= ~castling::cast_white_mask;
+        if constexpr (flag != moveflag::MOVEFLAG_null_move){
+            if constexpr (captured != pieces::none)
+                this->ply_moves = 0;
+            else if constexpr (moved == pieces::pawn)
+                this->ply_moves = 0;
             else
-                castleinfo &= ~castling::cast_black_mask;
-        }
-        if constexpr (flag == moveflag::MOVEFLAG_remove_long_castle) {
-            if constexpr (white_to_move)
-                castleinfo &= ~castling::cast_white_queenside;
-            else
-                castleinfo &= ~castling::cast_black_queenside;
-        } else if constexpr (flag == moveflag::MOVEFLAG_remove_short_castle) {
-            if constexpr (white_to_move)
-                castleinfo &= ~castling::cast_white_kingside;
-            else
-                castleinfo &= ~castling::cast_black_kingside;
-        }
+                this->ply_moves += 1;
 
-        if constexpr (flag == moveflag::MOVEFLAG_long_castling || flag == moveflag::MOVEFLAG_short_castling) {
-            assert(abs(static_cast<int>(move.source) - static_cast<int>(move.target)) == 2);
-            move_piece<white_to_move, pieces::rook>(get_castle_from_sq<white_to_move, pieces::rook, flag>(),
-                                                    get_castle_to_sq<white_to_move, pieces::rook, flag>());
-        }
+            if constexpr (!white_to_move)
+                full_moves += 1;
+            assert(get_piece_at(move.source).get_color() == white_to_move ? pieces::white : pieces::black);
 
-        if constexpr (flag == moveflag::MOVEFLAG_pawn_double_push) {
-            en_passant = true;
-            en_passant_square = (move.source + move.target) / 2;
-        }
+            
 
-        if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
-            if constexpr (white_to_move) {  // if white to move, the enemy pawn is on square
-                                            // - 8
-                remove_piece<!white_to_move, pieces::pawn>(old_ep - 8);
-            } else {
-                remove_piece<!white_to_move, pieces::pawn>(old_ep + 8);
+            if constexpr (captured != pieces::none) {
+                remove_piece<!white_to_move, captured>(move.target);
+                // Only need to check if a rook was captured SINCE if a piece wasnt captured and
+                // we hit a rook square, the castleflag is already removed.
+                if constexpr (captured == pieces::rook)
+                    remove_castle_flag_if_capture_rook<white_to_move>(move.target);
             }
-        }
-        if constexpr (flag == moveflag::MOVEFLAG_promote_queen) {
-            remove_piece<white_to_move, pieces::pawn>(move.target);
-            add_piece<white_to_move, pieces::queen>(move.target);
-        } else if constexpr (flag == moveflag::MOVEFLAG_promote_knight) {
-            remove_piece<white_to_move, pieces::pawn>(move.target);
-            add_piece<white_to_move, pieces::knight>(move.target);
-        } else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) {
-            remove_piece<white_to_move, pieces::pawn>(move.target);
-            add_piece<white_to_move, pieces::bishop>(move.target);
-        } else if constexpr (flag == moveflag::MOVEFLAG_promote_rook) {
-            remove_piece<white_to_move, pieces::pawn>(move.target);
-            add_piece<white_to_move, pieces::rook>(move.target);
+
+            
+            move_piece<white_to_move, moved>(move.source, move.target);
+
+            if constexpr (flag == moveflag::MOVEFLAG_remove_all_castle || flag == moveflag::MOVEFLAG_short_castling || flag == moveflag::MOVEFLAG_long_castling) {
+                if constexpr (white_to_move)
+                    castleinfo &= ~castling::cast_white_mask;
+                else
+                    castleinfo &= ~castling::cast_black_mask;
+            }
+            if constexpr (flag == moveflag::MOVEFLAG_remove_long_castle) {
+                if constexpr (white_to_move)
+                    castleinfo &= ~castling::cast_white_queenside;
+                else
+                    castleinfo &= ~castling::cast_black_queenside;
+            } else if constexpr (flag == moveflag::MOVEFLAG_remove_short_castle) {
+                if constexpr (white_to_move)
+                    castleinfo &= ~castling::cast_white_kingside;
+                else
+                    castleinfo &= ~castling::cast_black_kingside;
+            }
+
+            if constexpr (flag == moveflag::MOVEFLAG_long_castling || flag == moveflag::MOVEFLAG_short_castling) {
+                assert(abs(static_cast<int>(move.source) - static_cast<int>(move.target)) == 2);
+                move_piece<white_to_move, pieces::rook>(get_castle_from_sq<white_to_move, pieces::rook, flag>(),
+                                                        get_castle_to_sq<white_to_move, pieces::rook, flag>());
+            }
+
+            if constexpr (flag == moveflag::MOVEFLAG_pawn_double_push) {
+                en_passant = true;
+                en_passant_square = (move.source + move.target) / 2;
+            }
+
+            if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
+                if constexpr (white_to_move) {  // if white to move, the enemy pawn is on square
+                                                // - 8
+                    remove_piece<!white_to_move, pieces::pawn>(old_ep - 8);
+                } else {
+                    remove_piece<!white_to_move, pieces::pawn>(old_ep + 8);
+                }
+            }
+            if constexpr (flag == moveflag::MOVEFLAG_promote_queen) {
+                remove_piece<white_to_move, pieces::pawn>(move.target);
+                add_piece<white_to_move, pieces::queen>(move.target);
+            } else if constexpr (flag == moveflag::MOVEFLAG_promote_knight) {
+                remove_piece<white_to_move, pieces::pawn>(move.target);
+                add_piece<white_to_move, pieces::knight>(move.target);
+            } else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) {
+                remove_piece<white_to_move, pieces::pawn>(move.target);
+                add_piece<white_to_move, pieces::bishop>(move.target);
+            } else if constexpr (flag == moveflag::MOVEFLAG_promote_rook) {
+                remove_piece<white_to_move, pieces::pawn>(move.target);
+                add_piece<white_to_move, pieces::rook>(move.target);
+            }
         }
         info.delta = make_hash_delta<white_to_move,  moved,  flag,  captured>(move, old_ep, info.castleinfo);
         return info;
@@ -429,6 +433,14 @@ struct Board {
         constexpr uint8_t them = white_to_move ? pieces::black : pieces::white;
 
         HashDelta d;
+        if constexpr (flag == moveflag::MOVEFLAG_null_move) {
+            d.old_castle = old_castle;
+            d.new_castle = castleinfo;
+            d.old_ep = old_ep;
+            d.new_ep = en_passant_square;
+            return d;
+        }
+
         d.from = move.source;
         d.to = move.target;
         d.moved_piece = us | moved;
@@ -471,7 +483,7 @@ struct Board {
         change_turn();
         Piece_t captured = info.captured;
 
-        [[assume(move.flag >= 0 && move.flag <= 11)]];
+        [[assume(move.flag >= 0 && move.flag <= 12)]];
         switch (move.flag) {
         case moveflag::MOVEFLAG_silent:
             undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
@@ -497,6 +509,10 @@ struct Board {
         case moveflag::MOVEFLAG_promote_rook:
             undo_move<white_moved, pieces::pawn, moveflag::MOVEFLAG_promote_rook>(move, captured);
             break;
+        case moveflag::MOVEFLAG_null_move:
+            if constexpr (!white_moved)
+                full_moves += 1;
+            break; // do nothing.
         default:
             undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
             break;
@@ -583,6 +599,12 @@ struct Board {
         BB to_squares = movegen::king_moves(kingsq, friendly_bb, friendly_bb | enemy_bb, get_atk_bb<!is_white, true>(), castleinfo,
                                             color);  // Already disqualifies squares that are attacked by the enemy so do not need to check for move legality.
         size_t num_moves = 0;
+        if constexpr (!stype.gen_captures()){
+            to_squares &= (!enemy_bb);
+        }
+        if constexpr (!stype.gen_quiet()){
+            to_squares &= enemy_bb;
+        }
         add_moves<is_white, pieces::king, stype>(moves, num_moves, to_squares, kingsq);
         // No need to test for move legality.
         if constexpr (ctype.two_checks) {

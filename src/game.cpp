@@ -63,6 +63,7 @@ void Game::reset_infos() {
     reductions_total =0;
     research_cnt = 0;
     set_bestmove(Move());
+    in_null = false;
     reset_killers();
     history.reset_history();
 }
@@ -271,11 +272,29 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             }
         }
     }
+    bool king_checked = board.king_checked<is_white>();
+    bool may_zugzwang = EvalState::can_zugzwang<is_white>(board);
+    
+    // null move pruning
+    // If we don't make a move, and the store is still beating beta, we are sure this branch is not worth searching
+    // (Since our score is way too high)
+    // Even doing nothing (worst possible move) is good.
+    const int reduction = Parameters::NULLMOVE_R;
+    if (!(king_checked | may_zugzwang) && (depth > reduction + 1) && !in_null){
+        in_null = true;
+        make_nullmove<is_white>();
+        std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - reduction - 1, ply+1, -beta, -(beta-1), num_extensions);
+        int eval = -res.first;
+        undo_move<is_white>();
+        in_null = false;
+        if (eval >= beta){// even doing nothing is good: prune
+            return {beta, lb};
+        }
+    }
     // Handle if king is checked or no moves can be made.
 
     int num_moves = board.get_moves<full_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
-    bool king_checked = board.king_checked<is_white>();
     if (num_moves == 0) {
         if (king_checked) {
             return {-EvalState::MATE_SCORE + ply, exact};
@@ -404,28 +423,28 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     }
 
     const bool in_check = board.king_checked<is_white>();
-    const bool is_endgame = EvalState::is_lategame(board);
-    int standing_pat;
-    if (!in_check){
-        standing_pat = EvalState::eval(board);
-        if (standing_pat >= beta){
+    const bool may_zugwang = EvalState::can_zugzwang<is_white>(board);
+    int standing_pat = EvalState::eval(board);
+    if(!in_check){
+        if (!may_zugwang && standing_pat >= beta){
             return {beta, lb};
         }
-        
+    
         //delta futility pruning
         //prune branch if we cannot improve score even with best capture and promotion.
         if (delta_futility_pruning<is_white>(standing_pat, alpha)){
             return {alpha, ub};
         }
-
         alpha = std::max(alpha, standing_pat);
     }
 
 
+
     int num_moves = in_check ?  board.get_moves<full_search, is_white>(move_arr[ply]) : board.get_moves<quiesence_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
-    if (in_check && num_moves == 0)
+    if (num_moves == 0 && in_check)
         return {-EvalState::MATE_SCORE +ply, exact};
+
 
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
@@ -440,10 +459,11 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         const Move & move = moves[i];
         //delta pruning:
         // check if delta threshhold is reached
-        if ((!in_check) && !(is_endgame)){
+        if ((!in_check) && !(may_zugwang)){
             int extra = PieceValue::piecevals[board.get_piece_at(move.target).get_type()];
             extra += PieceValue::piecevals[move.get_promotion()]; // doesn't detract pawn value if promotion...
             extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? PieceValue::pawn : 0;
+            assert(extra > 0);
             
             // worth checking branch!
             if (!(standing_pat + extra + Parameters::DELTA_THRESHHOLD > alpha))
@@ -501,6 +521,15 @@ void Game::set_bestmove(Move move){
 
 std::string Game::get_fen() const { return board.fen_from_state(); }
 
+
+template<bool is_white> void Game::make_nullmove(){
+    Move nullmove = Move(0,0,moveflag::MOVEFLAG_null_move);
+    RestoreMoveInfo info = board.do_move<is_white, pieces::none, moveflag::MOVEFLAG_null_move, pieces::none>(nullmove);
+    move_stack.push(nullmove);
+    restore_info_stack.push(info);
+    state_stack.push(state_stack.top() ^ ZobroistHasher::get().delta(info.delta));
+    assert(state_stack.top () == ZobroistHasher::get().hash_board(board));
+}
 template <bool is_white> void Game::make_move(Move move) {
     RestoreMoveInfo info = board.do_move<is_white>(move);
     move_stack.push(move);

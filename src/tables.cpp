@@ -58,14 +58,18 @@ uint64_t ZobroistHasher::hash_board(const Board &board) {
 };
 // Maps a full piece value (color | type) to the index used in piece_numbers.
 static constexpr uint8_t key_of(uint8_t piece) {
+    if (piece == pieces::none)
+        return 0;
     uint8_t col_offset = ((piece & pieces::color_mask) == pieces::black) ? 6 : 0;
     return col_offset + (piece & pieces::piece_mask) - 1;
 }
 
-uint64_t ZobroistHasher::delta(const HashDelta&d) const{
+uint64_t ZobroistHasher::delta(const HashDelta &d) const {
     uint64_t h = black_number;  // turn flips every move
-    h ^= piece_numbers[key_of(d.moved_piece)][d.from];
-    h ^= piece_numbers[key_of(d.placed_piece)][d.to];
+    if (d.moved_piece)
+        h ^= piece_numbers[key_of(d.moved_piece)][d.from];
+    if (d.placed_piece)
+        h ^= piece_numbers[key_of(d.placed_piece)][d.to];
     if (d.captured_piece)
         h ^= piece_numbers[key_of(d.captured_piece)][d.capture_sq];
     if (d.rook_piece) {

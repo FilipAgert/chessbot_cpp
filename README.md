@@ -158,6 +158,8 @@ Shitty evaluation. Piece/location tables and material value.
 - Transposition table.
 - Evaluation window.
 - Delta pruning
+- Nullmove pruning
+- Late move reduction
 
 #### Move ordering
 

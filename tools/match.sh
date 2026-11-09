@@ -7,7 +7,7 @@ ENGINE1_CMD=$(./tools/build_commit.sh "${1:?new}")
 ENGINE2_CMD=$(./tools/build_commit.sh "${2:?base}")
 ENGINE1_NAME=$(git rev-parse --short=7 "$1")
 ENGINE2_NAME=$(git rev-parse --short=7 "$2")
-TC=${3:-10+0.1}
+TC=${3:-3+0.1}
 mkdir -p results
 
 fastchess \
@@ -17,5 +17,5 @@ fastchess \
   -rounds 5000 -repeat -concurrency 4 \
   -recover \
   -openings file=opening_books/8moves_v3.pgn format=pgn order=random \
-  -sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 \
+  -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 \
   -log file="results/${ENGINE1_NAME}_vs_${ENGINE2_NAME}.log"

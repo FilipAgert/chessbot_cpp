@@ -122,6 +122,7 @@ class Game {
      * @tparam is_white true if white
      * @param[in] move move
      */
+    template <bool is_white> void make_nullmove();
     template <bool is_white> void make_move(Move move);
     template <bool is_white> void undo_move();
     /**
@@ -201,6 +202,8 @@ private:
     long int reductions_total;
     long int reductions_cnt;
     long int research_cnt;
+
+    bool in_null = false; // if in null-move or not.
 
 
     void reset_killers();

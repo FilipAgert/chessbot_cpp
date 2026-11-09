@@ -1,6 +1,7 @@
 // Copyrinht 2025 Filip Agert
 #ifndef EVAL_H
 #define EVAL_H
+#include "piece.h"
 #include <algorithm>
 #include <array>
 #include <board.h>
@@ -51,7 +52,10 @@ class EvalState {
      * @return true if ply is grt or equal 100.
      */
     static bool forced_draw_ply(Board &board);
-    static bool is_lategame(Board &board);
+    template<bool is_white>
+    static bool can_zugzwang(Board &board){
+        return board.occupancy<is_white>() == (board.get_piece_bb<pieces::king, is_white>() | board.get_piece_bb<pieces::pawn, is_white>());
+    }
 
  private:
     static int eval_material(Board &board);

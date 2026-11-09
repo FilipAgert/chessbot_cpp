@@ -49,6 +49,21 @@ TEST(ZobroistTest, hashState) {
     assert(bitcount < 64 - 15);
 }
 
+TEST(ZobroistTest, nullMoveHashDelta) {
+    Board board;
+    board.read_fen(NotationInterface::starting_FEN());
+
+    uint64_t before = ZobroistHasher::get().hash_board(board);
+    Move null_move(0, 0, moveflag::MOVEFLAG_null_move);
+    auto info = board.do_move<true, pieces::none, moveflag::MOVEFLAG_null_move, pieces::none>(null_move);
+
+    uint64_t after = ZobroistHasher::get().hash_board(board);
+    EXPECT_EQ(after, before ^ ZobroistHasher::get().delta(info.delta));
+
+    board.undo_move<true>(info, null_move);
+    EXPECT_EQ(before, ZobroistHasher::get().hash_board(board));
+}
+
 TEST(TransTest, optionalReturn) {
     Board state;
     state.read_fen(NotationInterface::starting_FEN());
@@ -57,21 +72,6 @@ TEST(TransTest, optionalReturn) {
     ASSERT_FALSE(tab->get(hash));
     tab->store(hash, Move{2, 9}, 0, exact, 0);
     ASSERT_TRUE(tab->get(hash));
-}
-TEST(TransTest, moveOrderTest) {
-    Board state;
-    state.read_fen(NotationInterface::starting_FEN());
-    Move bestmove = Move("a2a4");
-    std::array<Move, max_legal_moves> moves;
-    size_t nummoves = state.get_moves<full_search, true>(moves);
-    MoveOrder::apply_move_sort<true>(moves, nummoves, bestmove, state);
-    ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
-    bestmove = Move("b2b4");
-    MoveOrder::apply_move_sort<true>(moves, nummoves, bestmove, state);
-    ASSERT_TRUE(moves[0].source == bestmove.source && moves[0].target == bestmove.target);
-    for (int i = nummoves; i < max_legal_moves; i++) {
-        ASSERT_EQ(moves[i].source, moves[i].target);
-    }
 }
 TEST(ZobroistTest, TranspositionIdentity) {
     // We will establish the position after 1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6

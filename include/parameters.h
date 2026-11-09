@@ -6,4 +6,6 @@ inline int const ASPIRATION_WINDOW = 25;
 inline const float REDUCTION_OFFSET = 0.75;
 inline const float REDUCTION_MULT = 1./2.25;
 
+inline int const NULLMOVE_R = 3;
+
 };
