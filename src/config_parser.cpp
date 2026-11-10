@@ -1,18 +1,20 @@
 #include "config_parser.h"
-bool ConfigParser::load(const std::string& filename){
+bool ConfigParser::load(const std::string &filename) {
     std::ifstream file(filename);
-    if (!file.is_open()) return false;
+    if (!file.is_open())
+        return false;
 
     std::string line, currentSection = "default";
     while (std::getline(file, line)) {
         // Basic trimming and comment skipping
         line.erase(0, line.find_first_not_of(" \t\r\n"));
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || line[0] == '#')
+            continue;
 
         // Handle [Section]
         if (line[0] == '[' && line.back() == ']') {
             currentSection = line.substr(1, line.size() - 2);
-        } 
+        }
         // Handle key value
         else {
             size_t spacePos = line.find_first_of(" \t=");
@@ -25,9 +27,10 @@ bool ConfigParser::load(const std::string& filename){
     }
     return true;
 }
-std::string ConfigParser::read_string(const std::string& key) {
+std::string ConfigParser::read_string(const std::string &key) {
     size_t slashPos = key.find('/');
-    if (slashPos == std::string::npos) return ""; // Invalid format
+    if (slashPos == std::string::npos)
+        return "";  // Invalid format
 
     std::string section = key.substr(0, slashPos);
     std::string subkey = key.substr(slashPos + 1);
@@ -37,9 +40,10 @@ std::string ConfigParser::read_string(const std::string& key) {
     }
     return "NOT_FOUND";
 }
-int ConfigParser::read_int(const std::string& key, int default_val) {
+int ConfigParser::read_int(const std::string &key, int default_val) {
     size_t slashPos = key.find('/');
-    if (slashPos == std::string::npos) return default_val; // Invalid format
+    if (slashPos == std::string::npos)
+        return default_val;  // Invalid format
 
     std::string section = key.substr(0, slashPos);
     std::string subkey = key.substr(slashPos + 1);
@@ -50,13 +54,11 @@ int ConfigParser::read_int(const std::string& key, int default_val) {
     return default_val;
 }
 
-ConfigSettings ConfigParser::get_settings(){
+ConfigSettings ConfigParser::get_settings() {
     ConfigSettings settings;
-    if (read_string("aspiration/enable") == "yes"){
+    if (read_string("aspiration/enable") == "yes") {
         settings.aspiration_enable = true;
     }
-    
-
 
     return settings;
 }

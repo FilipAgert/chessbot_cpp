@@ -13,27 +13,17 @@ struct pininfo {
 };
 struct SearchType {
     uint8_t data;
-    static constexpr uint8_t Quiet = 0b00000001; // does not alter material
-    static constexpr uint8_t Captures = 0b00000010; // ep capture included.
-    static constexpr uint8_t QueenPromotion = 0b00000100; 
+    static constexpr uint8_t Quiet = 0b00000001;     // does not alter material
+    static constexpr uint8_t Captures = 0b00000010;  // ep capture included.
+    static constexpr uint8_t QueenPromotion = 0b00000100;
     static constexpr uint8_t OtherPromotion = 0b00001000;
     static constexpr uint8_t AllPromotion = QueenPromotion | OtherPromotion;
     static constexpr uint8_t All = Quiet | Captures | AllPromotion;
-    constexpr inline bool gen_quiet() const{
-        return (data & Quiet) == Quiet;
-    }
-    constexpr inline bool dont_gen_quiet() const {
-        return (data & Quiet) == 0;
-    }
-    constexpr inline bool gen_captures() const {
-        return (data & Captures) == Captures;
-    }
-    constexpr inline bool gen_all_promotions() const {
-        return (data & AllPromotion) == AllPromotion;
-    }
-    constexpr inline bool gen_queen_promotions() const {
-        return (data & QueenPromotion) == QueenPromotion;
-    }
+    constexpr inline bool gen_quiet() const { return (data & Quiet) == Quiet; }
+    constexpr inline bool dont_gen_quiet() const { return (data & Quiet) == 0; }
+    constexpr inline bool gen_captures() const { return (data & Captures) == Captures; }
+    constexpr inline bool gen_all_promotions() const { return (data & AllPromotion) == AllPromotion; }
+    constexpr inline bool gen_queen_promotions() const { return (data & QueenPromotion) == QueenPromotion; }
 };
 struct check_type {
     bool no_check : 1;
@@ -43,7 +33,7 @@ struct check_type {
 };
 
 constexpr SearchType full_search = {SearchType::All};
-constexpr SearchType full_search_qp = {SearchType::Quiet | SearchType::Captures | SearchType::QueenPromotion}; 
+constexpr SearchType full_search_qp = {SearchType::Quiet | SearchType::Captures | SearchType::QueenPromotion};
 // only queen promos
 constexpr SearchType quiesence_search = {SearchType::Captures | SearchType::QueenPromotion};
 constexpr SearchType quiet_search = {SearchType::Quiet};

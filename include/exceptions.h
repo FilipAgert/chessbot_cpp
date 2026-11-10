@@ -11,8 +11,7 @@ class NotImplemented : public std::logic_error {
  private:
     std::string _text;
 
-    NotImplemented(const char *message, const char *function)
-        : std::logic_error("Not Implemented") {
+    NotImplemented(const char *message, const char *function) : std::logic_error("Not Implemented") {
         _text = message;
         _text += " : ";
         _text += function;

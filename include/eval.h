@@ -52,8 +52,7 @@ class EvalState {
      * @return true if ply is grt or equal 100.
      */
     static bool forced_draw_ply(Board &board);
-    template<bool is_white>
-    static bool can_zugzwang(Board &board){
+    template <bool is_white> static bool can_zugzwang(Board &board) {
         return board.occupancy<is_white>() == (board.get_piece_bb<pieces::king, is_white>() | board.get_piece_bb<pieces::pawn, is_white>());
     }
 
@@ -77,8 +76,6 @@ class EvalState {
      * @return Game phase. 0 is early game and 1 is end game
      */
     constexpr static float eval_game_phase(const int num_pieces) { return 1. - (num_pieces - 1.) / 15.; }
-    
-
 
     /**
      * @brief Score for pawn structure. Passed pawns, unprotected pawns, blocking pawns, etc.

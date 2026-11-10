@@ -43,7 +43,7 @@ void ZobroistHasher::hash_ep(uint64_t &hash, const Board &board) const {
         hash ^= ep_numbers[ep_file];
     }
 }
-uint64_t ZobroistHasher::hash_board(const Board &board) const{
+uint64_t ZobroistHasher::hash_board(const Board &board) const {
     uint64_t hash = 0;
     hash_both_piece<pieces::king>(hash, board);
     hash_both_piece<pieces::queen>(hash, board);
@@ -77,8 +77,10 @@ uint64_t ZobroistHasher::delta(const HashDelta &d) const {
         h ^= piece_numbers[rk][d.rook_from] ^ piece_numbers[rk][d.rook_to];
     }
     h ^= castle_numbers[d.old_castle] ^ castle_numbers[d.new_castle];
-    if (d.old_ep) h ^= ep_numbers[NotationInterface::col(d.old_ep)];
-    if (d.new_ep) h ^= ep_numbers[NotationInterface::col(d.new_ep)];
+    if (d.old_ep)
+        h ^= ep_numbers[NotationInterface::col(d.old_ep)];
+    if (d.new_ep)
+        h ^= ep_numbers[NotationInterface::col(d.new_ep)];
     return h;
 }
 void ZobroistHasher::hash_castle(uint64_t &hash, const Board &board) const { hash ^= castle_numbers[board.get_castling()]; }
@@ -95,10 +97,10 @@ std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
     if (curr.depth_pref.hash == shifted && curr.depth_pref.nodetype != invalid) {
         hits++;
         maybe = std::make_optional(curr.depth_pref);
-    } else if (curr.always_replace.hash == shifted && curr.always_replace.nodetype != invalid){
+    } else if (curr.always_replace.hash == shifted && curr.always_replace.nodetype != invalid) {
         hits++;
         maybe = std::make_optional(curr.always_replace);
-    } else{
+    } else {
         maybe = {};
         misses++;
         if ((curr.depth_pref.hash | curr.always_replace.hash) > 0) {
@@ -106,9 +108,8 @@ std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
         }
     }
     return maybe;
-}    
-std::vector<Move>TranspositionTable::get_pv(Board &board, int depth)
-{
+}
+std::vector<Move> TranspositionTable::get_pv(Board &board, int depth) {
     std::vector<Move> pv_line;
     std::stack<RestoreMoveInfo> restore_stack;
     for (int i = 0; i <= depth; i++) {
@@ -143,22 +144,21 @@ std::vector<Move>TranspositionTable::get_pv(Board &board, int depth)
 int TranspositionTable::load_factor() const { return writes > 0 ? (overwrites * 1000) / writes : 0; }
 
 void TranspositionTable::clear() {
-std::fill(arr.begin(), arr.end(), TranspositionBucket{TranspositionEntry{0, invalid, 0, 0, Move()}, TranspositionEntry{0, invalid, 0, 0, Move()}});
-writes = 0;
-overwrites = 0;
-hits = 0;                                  // how many times did we access the table and find the board inside?
-misses = 0;                                // how many times did we access the table and not find the board?
-collisions = 0;                            // how many times did we have a hash collision?
+    std::fill(arr.begin(), arr.end(), TranspositionBucket{TranspositionEntry{0, invalid, 0, 0, Move()}, TranspositionEntry{0, invalid, 0, 0, Move()}});
+    writes = 0;
+    overwrites = 0;
+    hits = 0;        // how many times did we access the table and find the board inside?
+    misses = 0;      // how many times did we access the table and not find the board?
+    collisions = 0;  // how many times did we have a hash collision?
 }
-
 
 void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
     uint64_t h = (hash >> TranspositionEntry::shift_hash);
     size_t key = get_key(hash);
     writes++;
-    TranspositionBucket& bucket = arr[key];
-    TranspositionEntry& dp = bucket.depth_pref;
-    TranspositionEntry& ar = bucket.always_replace;
+    TranspositionBucket &bucket = arr[key];
+    TranspositionEntry &dp = bucket.depth_pref;
+    TranspositionEntry &ar = bucket.always_replace;
     bool dp_valid = dp.nodetype != nodetype::invalid;
     bool ar_valid = ar.nodetype != nodetype::invalid;
     // 1. Fill up buckets (Do not if same hash on both)
@@ -166,31 +166,33 @@ void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t n
     // depth empty,  2 empty
     // depth full,   2 empty
     // depth full,   2 full
-    
-    
+
     TranspositionEntry ne{h, nodetype, depth, eval, bestmove};
-    // benchmark never demoting. 
-    if(dp_valid && dp.hash == h){
-        if (depth >= dp.depth){
-            if(!ne.is_valid_move()) ne.bestmove = dp.bestmove;
+    // benchmark never demoting.
+    if (dp_valid && dp.hash == h) {
+        if (depth >= dp.depth) {
+            if (!ne.is_valid_move())
+                ne.bestmove = dp.bestmove;
             dp = ne;
         }
-        return; // deeper depth already exist for this state.
-    } 
+        return;  // deeper depth already exist for this state.
+    }
 
-    if (!dp_valid || depth >= dp.depth){
+    if (!dp_valid || depth >= dp.depth) {
         if (dp_valid) {
-            if (ar_valid && ar.hash != dp.hash) overwrites++;
+            if (ar_valid && ar.hash != dp.hash)
+                overwrites++;
             ar = dp;
             // move into always replace slot.
-        } else if (ar_valid && ar.hash == h){
+        } else if (ar_valid && ar.hash == h) {
             ar.nodetype = invalid;
-            //invalidate.
+            // invalidate.
         }
 
         dp = ne;
-    } else{
-        if (ar_valid && ar.hash != h) overwrites++;
+    } else {
+        if (ar_valid && ar.hash != h)
+            overwrites++;
         ar = ne;
     }
 }

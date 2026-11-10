@@ -35,8 +35,7 @@ TEST(BoardTest, doUndoMovePromotion) {
     std::string fen = "8/P7/8/8/8/8/8/8 w - - 0 1";
     board.read_fen(fen);
 
-    Move move = Move(NotationInterface::idx_from_string("a7"),
-                     NotationInterface::idx_from_string("a8"), Piece('Q'));
+    Move move = Move(NotationInterface::idx_from_string("a7"), NotationInterface::idx_from_string("a8"), Piece('Q'));
 
     ASSERT_EQ(move.flag, moveflag::MOVEFLAG_promote_queen);
 

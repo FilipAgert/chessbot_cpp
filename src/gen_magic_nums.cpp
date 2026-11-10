@@ -47,8 +47,7 @@ int get_magic_minval(uint64_t occmask, int shift) {
     return exp;
 }
 
-std::optional<std::pair<uint64_t, size_t>> find_magic_nbr(int maxiter, int sq, int bits, bool rook,
-                                                          std::array<uint64_t, max_size> &occ_bbs,
+std::optional<std::pair<uint64_t, size_t>> find_magic_nbr(int maxiter, int sq, int bits, bool rook, std::array<uint64_t, max_size> &occ_bbs,
                                                           std::array<uint64_t, max_size> &atk_bbs) {
     int m = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
     int arrsz = 1 << m;  // size of mask and atk arrays
@@ -67,8 +66,7 @@ std::optional<std::pair<uint64_t, size_t>> find_magic_nbr(int maxiter, int sq, i
                   0xFFFFFFFFFFFFFFFF);  // The atk tables can never be zero and thus this is fine to
                                         // initialize.
 
-        while ((magic >> magic_minval) ==
-               0ULL)  // assert that the magic number must be greater than the minimum value.
+        while ((magic >> magic_minval) == 0ULL)  // assert that the magic number must be greater than the minimum value.
             magic = (get_next_magic());
 
         bool is_magic = true;
@@ -127,8 +125,7 @@ void find_dense(bool rook) {
 
         if (magic_candidate) {
             magics[sq] = {magic_candidate.value().first, target_bits};
-            std::cout << "found magic\n " << sq << " " << target_bits << " "
-                      << magic_candidate.value().first << "\n";
+            std::cout << "found magic\n " << sq << " " << target_bits << " " << magic_candidate.value().first << "\n";
         } else {
             std::cout << "did not find magic: " << sq << "\r";
         }
@@ -161,17 +158,14 @@ void find_lower_range(bool rook) {
         int maxiter = 100000;
         int outer = 2000;
         for (int i = 0; i < outer; i++) {
-            std::optional<std::pair<uint64_t, size_t>> magic_candidate =
-                find_magic_nbr(maxiter, sq, m, rook, occ_bbs, atk_bbs);
+            std::optional<std::pair<uint64_t, size_t>> magic_candidate = find_magic_nbr(maxiter, sq, m, rook, occ_bbs, atk_bbs);
 
             if (magic_candidate) {
                 int upper = magic_candidate.value().second;
                 if (upper < magics[sq].second) {
                     magics[sq] = magic_candidate.value();
                     if (upper + 1 != int(1 << target_bits)) {
-                        std::cout << "found magic with better hash range: " << upper + 1
-                                  << " when the standard value is: " << int(1 << target_bits)
-                                  << "\r";
+                        std::cout << "found magic with better hash range: " << upper + 1 << " when the standard value is: " << int(1 << target_bits) << "\r";
                     }
                 }
             }
@@ -181,8 +175,7 @@ void find_lower_range(bool rook) {
     std::cout << "Square   range     standard         magic\n";
     for (int sq = 0; sq < 64; sq++) {
         int target_bits = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
-        std::cout << sq << " " << magics[sq].second + 1 << " " << int(1 << target_bits) << " "
-                  << magics[sq].first << "\n";
+        std::cout << sq << " " << magics[sq].second + 1 << " " << int(1 << target_bits) << " " << magics[sq].first << "\n";
     }
 }
 

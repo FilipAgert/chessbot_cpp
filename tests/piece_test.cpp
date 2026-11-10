@@ -23,7 +23,7 @@ TEST(PieceTest, GetString) {
 
 TEST(PieceTest, print_val) {
     Piece p = Piece(white | rook);  // Set type to 'white rook'
-    
+
     testing::internal::CaptureStdout();  // Capture the output
     p.print_val();
     std::string output = testing::internal::GetCapturedStdout();  // Get the captured output
@@ -32,8 +32,8 @@ TEST(PieceTest, print_val) {
 }
 
 TEST(PieceTest, Piece_from_char) {
-    Piece p = Piece('K');  // Create a Piece from character 'K'
-    ASSERT_EQ(p.get_type(), king);  // Check if the type is 'king'
+    Piece p = Piece('K');             // Create a Piece from character 'K'
+    ASSERT_EQ(p.get_type(), king);    // Check if the type is 'king'
     ASSERT_EQ(p.get_color(), white);  // Check if the color is 'white'
 }
 TEST(PieceTest, piece_col_from_char) {
@@ -42,14 +42,14 @@ TEST(PieceTest, piece_col_from_char) {
     ASSERT_EQ(Piece::piece_col_from_char('X'), none);   // Check if 'X' is none
 }
 TEST(PieceTest, piece_type_from_char) {
-    ASSERT_EQ(Piece::piece_type_from_char('K'), king);   // Check if 'K' is king
-    ASSERT_EQ(Piece::piece_type_from_char('k'), king);   // Check if 'k' is none
-    ASSERT_EQ(Piece::piece_type_from_char('X'), none);   // Check if 'X' is none
+    ASSERT_EQ(Piece::piece_type_from_char('K'), king);  // Check if 'K' is king
+    ASSERT_EQ(Piece::piece_type_from_char('k'), king);  // Check if 'k' is none
+    ASSERT_EQ(Piece::piece_type_from_char('X'), none);  // Check if 'X' is none
 }
 TEST(PieceTest, are_colors_equal) {
     Piece p1(white | rook);
     Piece p2(white | bishop);  // Set type to 'white bishop'
-    
+
     ASSERT_TRUE(Piece::are_colors_equal(p1, p2));  // Check if colors are equal
 
     Piece p3(black | rook);
@@ -59,7 +59,7 @@ TEST(PieceTest, are_colors_equal) {
 TEST(PieceTest, are_types_equal) {
     Piece p1(white | rook);
     Piece p2(white | bishop);  // Set type to 'white bishop'
-    
+
     ASSERT_FALSE(Piece::are_types_equal(p1, p2));  // Check if types are not equal
 
     Piece p3(white | rook);
@@ -76,30 +76,30 @@ TEST(PieceTest, equality_operator) {
     Piece p1(white | rook);
     Piece p2(white | rook);
     Piece p3(black | bishop);  // Set type to 'black bishop'
-    
-    ASSERT_TRUE(p1 == p2);  // Check if p1 is equal to p2
+
+    ASSERT_TRUE(p1 == p2);   // Check if p1 is equal to p2
     ASSERT_FALSE(p1 == p3);  // Check if p1 is not equal to p3
 }
 TEST(PieceTest, default_constructor) {
     Piece p;
-    ASSERT_EQ(p.get_type(), none);  // Check if the default value is none
+    ASSERT_EQ(p.get_type(), none);   // Check if the default value is none
     ASSERT_EQ(p.get_color(), none);  // Check if the default color is none
 }
 TEST(PieceTest, constructor_with_value) {
-    Piece p(white | knight);  // Set type to 'white knight'
+    Piece p(white | knight);          // Set type to 'white knight'
     ASSERT_EQ(p.get_type(), knight);  // Check if the type is 'knight'
     ASSERT_EQ(p.get_color(), white);  // Check if the color is 'white'
 }
 TEST(PieceTest, set_value) {
     Piece p;
-    p.set_value( (black | queen));  // Set type to 'black queen'
-    
-    ASSERT_EQ(p.get_type(), queen);  // Check if the type is 'queen'
+    p.set_value((black | queen));  // Set type to 'black queen'
+
+    ASSERT_EQ(p.get_type(), queen);   // Check if the type is 'queen'
     ASSERT_EQ(p.get_color(), black);  // Check if the color is 'black'
 }
 TEST(PieceTest, set_value_invalid) {
     Piece p(none);
-    
-    ASSERT_EQ(p.get_type(), none);  // Check if the type is 'none'
+
+    ASSERT_EQ(p.get_type(), none);   // Check if the type is 'none'
     ASSERT_EQ(p.get_color(), none);  // Check if the color is 'none'
 }

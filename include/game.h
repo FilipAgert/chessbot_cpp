@@ -1,16 +1,16 @@
 // Copyright 2025 Filip Agert
 #ifndef GAME_H
 #define GAME_H
-#include <board.h>
-#include <constants.h>
 #include "config.h"
 #include "eval.h"
 #include "moveorder.h"
 #include "parameters.h"
+#include <board.h>
+#include <constants.h>
+#include <history.h>
 #include <memory>
 #include <move.h>
 #include <notation_interface.h>
-#include <history.h>
 #include <piece.h>
 #include <tables.h>
 #include <time_manager.h>
@@ -149,9 +149,8 @@ class Game {
      */
     void reset_infos();
 
-
-    void set_settings(ConfigSettings settings){
-        settings_=settings;
+    void set_settings(ConfigSettings settings) {
+        settings_ = settings;
         precompute();
     }
 
@@ -161,16 +160,17 @@ class Game {
     bool info_queue_empty();
     void abort_search_and_wait();
     std::atomic<bool> search_finished{false};
-private:
+
+ private:
     std::atomic<bool> stop_requested_{false};
     std::jthread search_thread_;
 
     std::queue<InfoMsg> info_queue;
-    void push_msg(InfoMsg&& msg);
+    void push_msg(InfoMsg &&msg);
     mutable std::mutex queue_mutex;
 
     ConfigSettings settings_;
-    static constexpr int MAX_PLY=128;
+    static constexpr int MAX_PLY = 128;
     std::array<std::array<Move, max_legal_moves>, MAX_PLY> move_arr;
     std::array<std::array<MoveOrder::MoveScore, max_legal_moves>, MAX_PLY> move_heuristic_score;
     std::array<std::array<Move, NUM_KILLER_MOVES>, MAX_PLY> killer_moves;
@@ -195,7 +195,7 @@ private:
     Game() = default;
     Move root_best = Move();
     static constexpr int INF = 10000000;
-    bool must_finish; // if must finish this search or not.
+    bool must_finish;  // if must finish this search or not.
     // table needs to be a pointer since its so large in memory.
     std::unique_ptr<TranspositionTable> trans_table = std::make_unique<TranspositionTable>();
 
@@ -203,17 +203,14 @@ private:
     long int reductions_cnt;
     long int research_cnt;
 
-    bool in_null = false; // if in null-move or not.
-
+    bool in_null = false;  // if in null-move or not.
 
     void reset_killers();
     /**
      * @brief Main game logic loop for thinking about a position.
      *
      */
-    inline bool should_abort() const { 
-        return stop_requested_ || (!must_finish && time_manager->get_should_stop()); 
-    }
+    inline bool should_abort() const { return stop_requested_ || (!must_finish && time_manager->get_should_stop()); }
 
     template <bool is_white> void think_loop(const TimeControl rem_time);
 
@@ -225,15 +222,15 @@ private:
      */
     template <bool is_white> std::pair<int, uint8_t> aspiration_search(int preveval, int depth);
 
-    template<bool is_white> bool delta_futility_pruning(int standing_pat, int alpha) const{
-       int big_delta = PieceValue::queen + Parameters::DELTA_THRESHHOLD; 
-       if(board.has_pawn_promotion<is_white>()){
-        big_delta += PieceValue::queen - PieceValue::pawn;
-       }
-       return standing_pat + big_delta < alpha;
+    template <bool is_white> bool delta_futility_pruning(int standing_pat, int alpha) const {
+        int big_delta = PieceValue::queen + Parameters::DELTA_THRESHHOLD;
+        if (board.has_pawn_promotion<is_white>()) {
+            big_delta += PieceValue::queen - PieceValue::pawn;
+        }
+        return standing_pat + big_delta < alpha;
     }
     constexpr static int reduction_depth_cap = 64;
-    std::array<std::array<int, max_legal_moves>, reduction_depth_cap> reductions;// move reductions.
+    std::array<std::array<int, max_legal_moves>, reduction_depth_cap> reductions;  // move reductions.
     int reduction(int depth, int i) const;
     void precompute_reduction();
 };

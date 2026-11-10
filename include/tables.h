@@ -5,16 +5,16 @@
 #include "integer_representation.h"
 #include <algorithm>
 #include <bitboard.h>
-#include <config.h>
 #include <board.h>
 #include <cassert>
 #include <cmath>
+#include <config.h>
 #include <cstdint>
+#include <eval.h>
 #include <piece.h>
 #include <random>
 #include <stack>
 #include <vector>
-#include <eval.h>
 /**
  * @brief Class for storing the occured game states for checking 3 move repetion draws.
  */
@@ -116,7 +116,7 @@ class ZobroistHasher {
     }
     void hash_ep(uint64_t &hash, const Board &board) const;
     void hash_castle(uint64_t &hash, const Board &board) const;
-    void hash_turn(uint64_t &hash, const Board &board) const; 
+    void hash_turn(uint64_t &hash, const Board &board) const;
 
     uint64_t rand_uint64_t();
     /**
@@ -157,7 +157,7 @@ struct TranspositionEntry {
 };
 constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 
-struct TranspositionBucket{
+struct TranspositionBucket {
     TranspositionEntry depth_pref;
     TranspositionEntry always_replace;
 };
@@ -217,7 +217,7 @@ struct TranspositionTable {
     static bool is_useable_entry(const TranspositionEntry entry, const int depth) { return depth <= entry.depth; }
     /**
      * @brief Clears the table.
-     * 
+     *
      */
     void clear();
 
@@ -231,10 +231,10 @@ struct TranspositionTable {
 
     /**
      * @brief Gets the principal variation for as long as the table has it.
-     * 
-     * @param board 
-     * @param depth 
-     * @return std::vector<Move> 
+     *
+     * @param board
+     * @param depth
+     * @return std::vector<Move>
      */
     std::vector<Move> get_pv(Board &board, int depth);
 };

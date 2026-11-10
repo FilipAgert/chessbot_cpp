@@ -20,7 +20,7 @@ void UCIInterface::process_uci_command() {
 void UCIInterface::process_isready_command() { UCIInterface::uci_response("readyok"); }
 void UCIInterface::process_quit_command() {
     UCIInterface::uci_response("Exiting...");
-    Game::instance().abort_search_and_wait(); // quit the game thread.
+    Game::instance().abort_search_and_wait();  // quit the game thread.
 }
 
 void UCIInterface::process_new_game_command() { UCIInterface::uci_response("New game started."); }
@@ -56,13 +56,13 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
             }
             parts.push_back(str_pv);
         }
-        #ifndef NDEBUG
-        if(msg.reduction_times > 0){
+#ifndef NDEBUG
+        if (msg.reduction_times > 0) {
             parts.push_back("red cnt " + std::to_string(msg.reduction_times));
             parts.push_back("avg " + std::to_string(msg.reduction_average));
-            parts.push_back("research % " + std::to_string(100*msg.reduction_research));
+            parts.push_back("research % " + std::to_string(100 * msg.reduction_research));
         }
-        #endif
+#endif
     }
 
     std::string final_str = join(parts, ' ');
@@ -350,6 +350,4 @@ void UCIInterface::process_repeat_command() {
     }
 }
 
-void UCIInterface::process_stop_command(){
-    Game::instance().abort_search_and_wait();
-}
+void UCIInterface::process_stop_command() { Game::instance().abort_search_and_wait(); }

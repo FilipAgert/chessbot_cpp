@@ -1,9 +1,6 @@
 #include <history.h>
 
-
-History::History(){
-    reset_history();
-}
+History::History() { reset_history(); }
 
 void History::reset_history() {
     white_history.fill(EMPTY);

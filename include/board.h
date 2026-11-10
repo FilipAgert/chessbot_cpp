@@ -16,12 +16,12 @@
 #include <cstdint>
 #include <string>
 struct HashDelta {
-    uint8_t moved_piece = 0, placed_piece = 0;   // full piece value (color | type)
+    uint8_t moved_piece = 0, placed_piece = 0;  // full piece value (color | type)
     uint8_t from = 0, to = 0;
-    uint8_t captured_piece = 0, capture_sq = 0;  // 0 = no capture
+    uint8_t captured_piece = 0, capture_sq = 0;          // 0 = no capture
     uint8_t rook_piece = 0, rook_from = 0, rook_to = 0;  // rook_piece 0 = not castling
     uint8_t old_castle = 0, new_castle = 0;
-    uint8_t old_ep = 0, new_ep = 0;              // squares, 0 = none
+    uint8_t old_ep = 0, new_ep = 0;  // squares, 0 = none
 };
 struct RestoreMoveInfo {
     uint8_t ply_moves = 0;
@@ -29,7 +29,6 @@ struct RestoreMoveInfo {
     uint8_t castleinfo = 0;
     Piece_t captured = 0;
     HashDelta delta;
-    
 };
 struct Board {
  private:
@@ -57,8 +56,8 @@ struct Board {
     uint8_t get_en_passant_square() const { return en_passant_square; }
     uint8_t get_castling() const { return castleinfo; }
     int get_full_moves() const { return full_moves; }
-    bool is_move_quiet(const Move& move ) const;
-    bool is_move_capture(const Move& move ) const;
+    bool is_move_quiet(const Move &move) const;
+    bool is_move_capture(const Move &move) const;
     uint8_t get_check() const { return check; }
     bool board_BB_match();
     /**
@@ -289,7 +288,7 @@ struct Board {
         assert(turn_color == white_to_move ? pieces::white : pieces::black);
         change_turn();  // Changes turn color from white <-> black.
         //
-        if constexpr (flag != moveflag::MOVEFLAG_null_move){
+        if constexpr (flag != moveflag::MOVEFLAG_null_move) {
             if constexpr (captured != pieces::none)
                 this->ply_moves = 0;
             else if constexpr (moved == pieces::pawn)
@@ -301,8 +300,6 @@ struct Board {
                 full_moves += 1;
             assert(get_piece_at(move.source).get_color() == white_to_move ? pieces::white : pieces::black);
 
-            
-
             if constexpr (captured != pieces::none) {
                 remove_piece<!white_to_move, captured>(move.target);
                 // Only need to check if a rook was captured SINCE if a piece wasnt captured and
@@ -311,10 +308,10 @@ struct Board {
                     remove_castle_flag_if_capture_rook<white_to_move>(move.target);
             }
 
-            
             move_piece<white_to_move, moved>(move.source, move.target);
 
-            if constexpr (flag == moveflag::MOVEFLAG_remove_all_castle || flag == moveflag::MOVEFLAG_short_castling || flag == moveflag::MOVEFLAG_long_castling) {
+            if constexpr (flag == moveflag::MOVEFLAG_remove_all_castle || flag == moveflag::MOVEFLAG_short_castling ||
+                          flag == moveflag::MOVEFLAG_long_castling) {
                 if constexpr (white_to_move)
                     castleinfo &= ~castling::cast_white_mask;
                 else
@@ -365,7 +362,7 @@ struct Board {
                 add_piece<white_to_move, pieces::rook>(move.target);
             }
         }
-        info.delta = make_hash_delta<white_to_move,  moved,  flag,  captured>(move, old_ep, info.castleinfo);
+        info.delta = make_hash_delta<white_to_move, moved, flag, captured>(move, old_ep, info.castleinfo);
         return info;
     }
 
@@ -420,16 +417,21 @@ struct Board {
         }
     }
     template <Flag_t flag> static constexpr Piece_t promo_type() {
-        if constexpr (flag == moveflag::MOVEFLAG_promote_queen)  return pieces::queen;
-        else if constexpr (flag == moveflag::MOVEFLAG_promote_rook)   return pieces::rook;
-        else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop) return pieces::bishop;
-        else if constexpr (flag == moveflag::MOVEFLAG_promote_knight) return pieces::knight;
-        else return pieces::none;
+        if constexpr (flag == moveflag::MOVEFLAG_promote_queen)
+            return pieces::queen;
+        else if constexpr (flag == moveflag::MOVEFLAG_promote_rook)
+            return pieces::rook;
+        else if constexpr (flag == moveflag::MOVEFLAG_promote_bishop)
+            return pieces::bishop;
+        else if constexpr (flag == moveflag::MOVEFLAG_promote_knight)
+            return pieces::knight;
+        else
+            return pieces::none;
     }
 
     template <bool white_to_move, Piece_t moved, Flag_t flag, Piece_t captured>
     constexpr inline HashDelta make_hash_delta(Move move, uint8_t old_ep, uint8_t old_castle) {
-        constexpr uint8_t us   = white_to_move ? pieces::white : pieces::black;
+        constexpr uint8_t us = white_to_move ? pieces::white : pieces::black;
         constexpr uint8_t them = white_to_move ? pieces::black : pieces::white;
 
         HashDelta d;
@@ -459,12 +461,12 @@ struct Board {
         if constexpr (flag == moveflag::MOVEFLAG_long_castling || flag == moveflag::MOVEFLAG_short_castling) {
             d.rook_piece = us | pieces::rook;
             d.rook_from = get_castle_from_sq<white_to_move, pieces::rook, flag>();
-            d.rook_to   = get_castle_to_sq<white_to_move, pieces::rook, flag>();
+            d.rook_to = get_castle_to_sq<white_to_move, pieces::rook, flag>();
         }
         d.old_castle = old_castle;
-        d.new_castle = castleinfo;          // already updated at this point
+        d.new_castle = castleinfo;  // already updated at this point
         d.old_ep = old_ep;
-        d.new_ep = en_passant_square;       // already updated (0 unless double push)
+        d.new_ep = en_passant_square;  // already updated (0 unless double push)
         return d;
     }
 
@@ -512,14 +514,14 @@ struct Board {
         case moveflag::MOVEFLAG_null_move:
             if constexpr (!white_moved)
                 full_moves += 1;
-            break; // do nothing.
+            break;  // do nothing.
         default:
             undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
             break;
         }
     }
 
-    inline constexpr void undo_move(const RestoreMoveInfo& info, const Move move) {
+    inline constexpr void undo_move(const RestoreMoveInfo &info, const Move move) {
         if (turn_color == pieces::white)
             undo_move<false>(info, move);
         else
@@ -599,10 +601,10 @@ struct Board {
         BB to_squares = movegen::king_moves(kingsq, friendly_bb, friendly_bb | enemy_bb, get_atk_bb<!is_white, true>(), castleinfo,
                                             color);  // Already disqualifies squares that are attacked by the enemy so do not need to check for move legality.
         size_t num_moves = 0;
-        if constexpr (!stype.gen_captures()){
+        if constexpr (!stype.gen_captures()) {
             to_squares &= (!enemy_bb);
         }
-        if constexpr (!stype.gen_quiet()){
+        if constexpr (!stype.gen_quiet()) {
             to_squares &= enemy_bb;
         }
         add_moves<is_white, pieces::king, stype>(moves, num_moves, to_squares, kingsq);
@@ -850,10 +852,11 @@ struct Board {
         }
         return mobility;
     }
-    template<bool is_white> bool has_pawn_promotion() const{
-        BB possible_pawn_promos = movegen::pawn_moves<is_white>(get_piece_bb<pieces::pawn, is_white>() & get_pawn_pre_promote_rank<is_white>(), occupancy<is_white>(), occupancy<!is_white>(), 0x0);
+    template <bool is_white> bool has_pawn_promotion() const {
+        BB possible_pawn_promos = movegen::pawn_moves<is_white>(get_piece_bb<pieces::pawn, is_white>() & get_pawn_pre_promote_rank<is_white>(),
+                                                                occupancy<is_white>(), occupancy<!is_white>(), 0x0);
         return possible_pawn_promos > 0;
-    } 
+    }
 
  protected:
     // gets rank that pawn promotes on.
@@ -865,9 +868,9 @@ struct Board {
     }
     /**
      * @brief Get the the rank of pawn promotion one square before
-     * 
-     * @tparam is_white 
-     * @return int 
+     *
+     * @tparam is_white
+     * @return int
      */
     template <bool is_white> int get_pawn_pre_promote_rank() const {
         if constexpr (is_white)
@@ -885,7 +888,8 @@ struct Board {
      * calling this routine
      * @param[in] from from square.
      */
-    template <bool is_white, Piece_t type, SearchType stype> void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) {
+    template <bool is_white, Piece_t type, SearchType stype>
+    void add_moves(std::array<Move, max_legal_moves> &moves, size_t &num_moves, uint64_t &to_bb, const uint8_t from) {
         constexpr uint8_t friendly_longsq = is_white ? 0 : 56;
         constexpr uint8_t friendly_shortsq = is_white ? 7 : 63;
         BitLoop(to_bb) {
@@ -894,11 +898,11 @@ struct Board {
             if constexpr (type == pieces::pawn) {
                 if (NotationInterface::row(lsb) == get_pawn_promote_rank<is_white>()) {
                     constexpr uint8_t col = is_white ? pieces::white : pieces::black;
-                    if constexpr (stype.gen_all_promotions()){
+                    if constexpr (stype.gen_all_promotions()) {
                         for (uint8_t ptype : pieces::promote_types)
                             moves[num_moves++] = Move(from, lsb, Piece(ptype | col));
-                    } else if constexpr (stype.gen_queen_promotions()){
-                        moves[num_moves++] = Move(from, lsb, Piece(pieces::queen|col)); 
+                    } else if constexpr (stype.gen_queen_promotions()) {
+                        moves[num_moves++] = Move(from, lsb, Piece(pieces::queen | col));
                     }
 
                     // flag set automatically in move constructor.
@@ -1043,24 +1047,24 @@ struct Board {
             to_squares = movegen::king_moves(sq, friendly_bb, friendly_bb | enemy_bb, get_atk_bb<!is_white, true>(), castleinfo, color);
         }
         BB filtered = 0x0;
-        if constexpr (s_type.gen_quiet()){
+        if constexpr (s_type.gen_quiet()) {
             // contains all moves which are not captures or promotions.
-            if constexpr (ptype != pieces::pawn) 
+            if constexpr (ptype != pieces::pawn)
                 filtered |= (~enemy_bb) & to_squares;
             else
-                filtered |= ((~(enemy_bb | topbot |ep_bb)) & to_squares);
+                filtered |= ((~(enemy_bb | topbot | ep_bb)) & to_squares);
         }
-        if constexpr (s_type.gen_captures()){
-            if constexpr(ptype == pieces::pawn){
-                filtered |= ((enemy_bb|ep_bb) & (~topbot)) & to_squares;
+        if constexpr (s_type.gen_captures()) {
+            if constexpr (ptype == pieces::pawn) {
+                filtered |= ((enemy_bb | ep_bb) & (~topbot)) & to_squares;
                 // do not allow promotion to last rank even if its a capture.
-            } else{
+            } else {
                 filtered |= enemy_bb & to_squares;
             }
         }
-        if constexpr((ptype == pieces::pawn) && (s_type.gen_all_promotions() || s_type.gen_queen_promotions())){
+        if constexpr ((ptype == pieces::pawn) && (s_type.gen_all_promotions() || s_type.gen_queen_promotions())) {
             filtered |= topbot & to_squares;
-            //pushes and captures to last rank.
+            // pushes and captures to last rank.
         }
         return filtered;
     }
@@ -1278,6 +1282,5 @@ struct Board {
             __builtin_unreachable();
         }
     }
-    
 };
 #endif

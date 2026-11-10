@@ -3,9 +3,8 @@
 #define CONFIG_H
 
 #include <string>
-struct ConfigSettings{
+struct ConfigSettings {
     bool aspiration_enable = false;
-    
 };
 inline std::string const ID_name = "chiral_ebt";
 inline std::string const ID_author = "filipa";
@@ -16,7 +15,6 @@ constexpr int STANDARD_TINC = 0;          // 0 seconds additional per move.
 constexpr int STANDARD_TIME_BUFFER = 10;  // 50 ms buffer to aim for.
 constexpr int STANDARD_TIME_FRAC = 25;    // use 1/40th of remanining itme
 
-constexpr int TT_SIZE_MB=128;
-                                          
+constexpr int TT_SIZE_MB = 128;
 
 #endif

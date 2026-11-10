@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <moveorder.h>
 
+#include "parameters.h"
 #include <board.h>
 #include <chrono>
 #include <climits>  // For infinity
@@ -21,7 +22,6 @@
 #include <optional>
 #include <stop_token>
 #include <string>
-#include "parameters.h"
 #include <thread>
 #include <time_manager.h>
 #include <utility>
@@ -33,19 +33,19 @@ bool Game::set_fen(std::string FEN) {
     return success;
 }
 
-void Game::abort_search_and_wait(){
-    if (search_thread_.joinable()){
+void Game::abort_search_and_wait() {
+    if (search_thread_.joinable()) {
         stop_requested_ = true;
         search_thread_.join();
     }
     search_finished = true;
-    stop_requested_=false;
+    stop_requested_ = false;
 }
 void Game::start_thinking(const TimeControl rem_time) {
     abort_search_and_wait();
 
     search_finished = false;
-    search_thread_ = std::jthread([this, rem_time](std::stop_token stoken){
+    search_thread_ = std::jthread([this, rem_time](std::stop_token stoken) {
         reset_infos();
         bool is_white = board.get_turn_color() == pieces::white;
         if (is_white)
@@ -60,7 +60,7 @@ void Game::reset_infos() {
     nodes_evaluated = 0;
     nodes_quiesence_evaluated = 0;
     reductions_cnt = 0;
-    reductions_total =0;
+    reductions_total = 0;
     research_cnt = 0;
     set_bestmove(Move());
     in_null = false;
@@ -68,23 +68,22 @@ void Game::reset_infos() {
     history.reset_history();
 }
 
-void Game::reset_killers(){
-    static constexpr std::array<Move, NUM_KILLER_MOVES> empty = [](){
+void Game::reset_killers() {
+    static constexpr std::array<Move, NUM_KILLER_MOVES> empty = []() {
         std::array<Move, NUM_KILLER_MOVES> mp;
-        for(size_t i = 0; i < NUM_KILLER_MOVES; i++){
+        for (size_t i = 0; i < NUM_KILLER_MOVES; i++) {
             mp[i] = Move();
         }
         return mp;
     }();
     killer_moves.fill(empty);
 }
-void insert_killer(Move move, std::array<Move, NUM_KILLER_MOVES> &killers){
-    if (killers[0] != move && killers[1] != move){
-        std::swap(killers[0],killers[1]);
+void insert_killer(Move move, std::array<Move, NUM_KILLER_MOVES> &killers) {
+    if (killers[0] != move && killers[1] != move) {
+        std::swap(killers[0], killers[1]);
         killers[0] = move;
     }
 }
-
 
 void Game::reset_state_stack() {
     state_stack.reset();
@@ -95,29 +94,33 @@ void Game::reset_state_stack() {
 constexpr int MATE_BOUND = EvalState::MATE_SCORE - 256;  // anything beyond this is a mate score
 
 inline int score_to_tt(int score, int ply) {
-    if (score >  MATE_BOUND) return score + ply;
-    if (score < -MATE_BOUND) return score - ply;
+    if (score > MATE_BOUND)
+        return score + ply;
+    if (score < -MATE_BOUND)
+        return score - ply;
     return score;
 }
 inline int score_from_tt(int score, int ply) {
-    if (score >  MATE_BOUND) return score - ply;
-    if (score < -MATE_BOUND) return score + ply;
+    if (score > MATE_BOUND)
+        return score - ply;
+    if (score < -MATE_BOUND)
+        return score + ply;
     return score;
 }
 
-InfoMsg Game::info_queue_front(){
+InfoMsg Game::info_queue_front() {
     std::lock_guard<std::mutex> lock(queue_mutex);
-    return info_queue.front(); 
+    return info_queue.front();
 }
-void Game::info_queue_pop(){
+void Game::info_queue_pop() {
     std::lock_guard<std::mutex> lock(queue_mutex);
-    info_queue.pop(); 
+    info_queue.pop();
 }
-bool Game::info_queue_empty(){
+bool Game::info_queue_empty() {
     std::lock_guard<std::mutex> lock(queue_mutex);
     return info_queue.empty();
 }
-void Game::push_msg(InfoMsg&& msg){
+void Game::push_msg(InfoMsg &&msg) {
     std::lock_guard<std::mutex> lock(queue_mutex);
     info_queue.push(msg);
 }
@@ -169,7 +172,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         must_finish = false;
         if (root_best.is_valid())
             set_bestmove(root_best);
-        
+
         if (nt == timeout)
             break;
         // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
@@ -194,7 +197,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
     }
 
     time_manager->stop_and_join();  // Join time manager thread to this one.
-    search_finished=true;
+    search_finished = true;
 }
 
 template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int preveval, int depth) {
@@ -203,16 +206,20 @@ template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int pre
     int beta = INF;
     if (depth > 1 && settings_.aspiration_enable) {
         alpha = std::max(-INF, preveval - delta);
-        beta  = std::min(INF,  preveval + delta);
+        beta = std::min(INF, preveval + delta);
     }
     int fails = 0;
     while (true) {
         auto res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
-        if (res.second == timeout) return res;
+        if (res.second == timeout)
+            return res;
         int score = res.first;
-        if (score > alpha && score < beta) return res;
-        if (score <= alpha) alpha = (++fails > 2) ? -INF : std::max(-INF, score - delta);
-        else                beta  = (++fails > 2) ? INF  : std::min(INF,  score + delta);
+        if (score > alpha && score < beta)
+            return res;
+        if (score <= alpha)
+            alpha = (++fails > 2) ? -INF : std::max(-INF, score - delta);
+        else
+            beta = (++fails > 2) ? INF : std::min(INF, score + delta);
         delta += delta / 2;
     }
 }
@@ -230,18 +237,16 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         nodes_evaluated--;
         return quiesence<is_white>(ply, alpha, beta);
     }
-    
-    if (ply >= MAX_PLY - 1){
+
+    if (ply >= MAX_PLY - 1) {
         return {EvalState::eval(board), exact};
     }
-
-
 
     Move best_curr_move;
     bool atleast_one_move_searched = false;
     int bestscore = -INF;
     uint8_t nodetype = ub;
-    
+
     uint64_t zob_hash = state_stack.top();
     std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
     std::optional<Move> first_move = {};
@@ -250,7 +255,7 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         if (entry.is_valid_move())
             first_move = std::make_optional(maybe_entry.value().bestmove);
 
-        if constexpr (!is_root){
+        if constexpr (!is_root) {
             if (trans_table->is_useable_entry(entry, depth)) {
                 // If exact, return score
                 int eval = score_from_tt(entry.eval, ply);
@@ -274,20 +279,20 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     }
     bool king_checked = board.king_checked<is_white>();
     bool may_zugzwang = EvalState::can_zugzwang<is_white>(board);
-    
+
     // null move pruning
     // If we don't make a move, and the store is still beating beta, we are sure this branch is not worth searching
     // (Since our score is way too high)
     // Even doing nothing (worst possible move) is good.
     const int reduction = Parameters::NULLMOVE_R;
-    if (!(king_checked | may_zugzwang) && (depth > reduction + 1) && !in_null){
+    if (!(king_checked | may_zugzwang) && (depth > reduction + 1) && !in_null) {
         in_null = true;
         make_nullmove<is_white>();
-        std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - reduction - 1, ply+1, -beta, -(beta-1), num_extensions);
+        std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - reduction - 1, ply + 1, -beta, -(beta - 1), num_extensions);
         int eval = -res.first;
         undo_move<is_white>();
         in_null = false;
-        if (eval >= beta){// even doing nothing is good: prune
+        if (eval >= beta) {  // even doing nothing is good: prune
             return {beta, lb};
         }
     }
@@ -304,16 +309,15 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     }
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
-    std::array<Move, NUM_KILLER_MOVES>& killers = killer_moves[ply];
+    std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
     MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
-
 
     // Normal move generation.
     //
     while (picker.has_next()) {
         const auto [i, move] = picker.next();
-        const MoveOrder::MoveScore& score = scores[i];
+        const MoveOrder::MoveScore &score = scores[i];
 
         bool move_quiet = board.is_move_quiet(move);
         make_move<is_white>(move);
@@ -323,28 +327,29 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         std::pair<int, uint8_t> res;
         if (i == 0)
             res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
-        else{
-            //PVS: Run null window search.
+        else {
+            // PVS: Run null window search.
             int r = 0;
             // late move reduction:
-            if constexpr (!is_root){
-                if (depth >= 3 && i>= 3 && move_quiet && (!king_checked) && (!enemy_king_checked) && extension == 0 && (score.movetype != MoveOrder::MoveScore::Killer)){
+            if constexpr (!is_root) {
+                if (depth >= 3 && i >= 3 && move_quiet && (!king_checked) && (!enemy_king_checked) && extension == 0 &&
+                    (score.movetype != MoveOrder::MoveScore::Killer)) {
                     r = reductions[depth][i];
-                    r = std::min(depth+extension - 2, r); // clamp to assure we do not go into quiesence.
-                    reductions_total+=r;
+                    r = std::min(depth + extension - 2, r);  // clamp to assure we do not go into quiesence.
+                    reductions_total += r;
                     reductions_cnt++;
                 }
             }
-            res = alpha_beta<false, !is_white>(depth -1 + extension - r, ply+1, -(alpha+1), -alpha, num_extensions+extension);
+            res = alpha_beta<false, !is_white>(depth - 1 + extension - r, ply + 1, -(alpha + 1), -alpha, num_extensions + extension);
             eval = -res.first;
             // full search, null window
-            if (eval > alpha && r > 0){
-                res = alpha_beta<false, !is_white>(depth -1 + extension, ply+1, -(alpha+1), -alpha, num_extensions+extension);
+            if (eval > alpha && r > 0) {
+                res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -(alpha + 1), -alpha, num_extensions + extension);
                 eval = -res.first;
                 research_cnt++;
             }
 
-            //pvs kicks in: Full window.
+            // pvs kicks in: Full window.
             if ((eval > alpha) && (eval < beta))
                 res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         }
@@ -363,26 +368,27 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
             best_curr_move = move;
             atleast_one_move_searched = true;
         }
-        if constexpr (is_root){
-            if (eval > alpha) root_best = move;
+        if constexpr (is_root) {
+            if (eval > alpha)
+                root_best = move;
         }
         if (eval >= beta) {  // FAIL HIGH.
             trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
                                depth);  // Can update hash to curr depth.
-                                        
+
             if (move_quiet)
                 insert_killer(move, killers);
-            if (!board.is_move_capture(move)){
-                int bonus = depth*depth;
-                history.update<is_white>(board.get_piece_at(move.source).get_type() , move.target,  bonus);
-                for (int j = static_cast<int>(i) - 1; j>=0; j--){
-                    if (!board.is_move_capture(moves[j])){
+            if (!board.is_move_capture(move)) {
+                int bonus = depth * depth;
+                history.update<is_white>(board.get_piece_at(move.source).get_type(), move.target, bonus);
+                for (int j = static_cast<int>(i) - 1; j >= 0; j--) {
+                    if (!board.is_move_capture(moves[j])) {
                         // penalize old moves.
-                        history.update<is_white>(board.get_piece_at(moves[j].source).get_type() , moves[j].target,  -bonus);
+                        history.update<is_white>(board.get_piece_at(moves[j].source).get_type(), moves[j].target, -bonus);
                     }
                 }
             }
-            return {beta, lb};          // This move is too good. The minimising player (beta) will never
+            return {beta, lb};  // This move is too good. The minimising player (beta) will never
 
             // allow the board to go here. we can return.
         }
@@ -401,61 +407,61 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         return {0, exact};  // Checks if position is a repeat.
     if (EvalState::forced_draw_ply(board))
         return {0, exact};
-    if (ply >= MAX_PLY - 1){
+    if (ply >= MAX_PLY - 1) {
         return {EvalState::eval(board), exact};
     }
-    
+
     uint64_t zob_hash = state_stack.top();
     std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
     if (maybe_entry) {
         const TranspositionEntry &entry = maybe_entry.value();
-        if (trans_table->is_useable_entry(entry, 0)) {   // depth 0: any stored depth qualifies
+        if (trans_table->is_useable_entry(entry, 0)) {  // depth 0: any stored depth qualifies
             int tt_score = score_from_tt(entry.eval, ply);
-            if (entry.is_exact()) return {tt_score, exact};
-            if (entry.is_lb() && tt_score >= beta) return {beta, lb};
-            if (entry.is_ub() && tt_score <= alpha) return {alpha, ub};
+            if (entry.is_exact())
+                return {tt_score, exact};
+            if (entry.is_lb() && tt_score >= beta)
+                return {beta, lb};
+            if (entry.is_ub() && tt_score <= alpha)
+                return {alpha, ub};
         }
     }
 
     const bool in_check = board.king_checked<is_white>();
     const bool may_zugwang = EvalState::can_zugzwang<is_white>(board);
     int standing_pat = EvalState::eval(board);
-    if(!in_check){
-        if (!may_zugwang && standing_pat >= beta){
+    if (!in_check) {
+        if (!may_zugwang && standing_pat >= beta) {
             return {beta, lb};
         }
-    
-        //delta futility pruning
-        //prune branch if we cannot improve score even with best capture and promotion.
-        if (delta_futility_pruning<is_white>(standing_pat, alpha)){
+
+        // delta futility pruning
+        // prune branch if we cannot improve score even with best capture and promotion.
+        if (delta_futility_pruning<is_white>(standing_pat, alpha)) {
             return {alpha, ub};
         }
         alpha = std::max(alpha, standing_pat);
     }
 
-
-
-    int num_moves = in_check ?  board.get_moves<full_search, is_white>(move_arr[ply]) : board.get_moves<quiesence_search, is_white>(move_arr[ply]);
+    int num_moves = in_check ? board.get_moves<full_search, is_white>(move_arr[ply]) : board.get_moves<quiesence_search, is_white>(move_arr[ply]);
     moves_generated += num_moves;
     if (num_moves == 0 && in_check)
-        return {-EvalState::MATE_SCORE +ply, exact};
-
+        return {-EvalState::MATE_SCORE + ply, exact};
 
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
-    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {},history,  killers);
+    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {}, history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
     while (picker.has_next()) {
         const auto [i, move] = picker.next();
-        //delta pruning:
-        // check if delta threshhold is reached
-        if ((!in_check) && !(may_zugwang)){
+        // delta pruning:
+        //  check if delta threshhold is reached
+        if ((!in_check) && !(may_zugwang)) {
             int extra = PieceValue::piecevals[board.get_piece_at(move.target).get_type()];
-            extra += PieceValue::piecevals[move.get_promotion()]; // doesn't detract pawn value if promotion...
+            extra += PieceValue::piecevals[move.get_promotion()];  // doesn't detract pawn value if promotion...
             extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? PieceValue::pawn : 0;
             assert(extra > 0);
-            
+
             // worth checking branch!
             if (!(standing_pat + extra + Parameters::DELTA_THRESHHOLD > alpha))
                 continue;
@@ -469,7 +475,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         if (should_abort()) {
             return {0, timeout};
         }
-        if (eval >= beta){
+        if (eval >= beta) {
             if (board.is_move_quiet(move))
                 insert_killer(move, killers);
             return {beta, lb};
@@ -500,33 +506,32 @@ bool Game::check_repetition() {
     bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
     return atleast2;
 }
-Move Game::get_bestmove() const { 
+Move Game::get_bestmove() const {
     std::lock_guard<std::mutex> lock(bestmove_mutex);
     return bestmove;
- }
+}
 
-void Game::set_bestmove(Move move){
+void Game::set_bestmove(Move move) {
     std::lock_guard<std::mutex> lock(bestmove_mutex);
     bestmove = move;
 }
 
 std::string Game::get_fen() const { return board.fen_from_state(); }
 
-
-template<bool is_white> void Game::make_nullmove(){
-    Move nullmove = Move(0,0,moveflag::MOVEFLAG_null_move);
+template <bool is_white> void Game::make_nullmove() {
+    Move nullmove = Move(0, 0, moveflag::MOVEFLAG_null_move);
     RestoreMoveInfo info = board.do_move<is_white, pieces::none, moveflag::MOVEFLAG_null_move, pieces::none>(nullmove);
     move_stack.push(nullmove);
     restore_info_stack.push(info);
     state_stack.push(state_stack.top() ^ ZobroistHasher::get().delta(info.delta));
-    assert(state_stack.top () == ZobroistHasher::get().hash_board(board));
+    assert(state_stack.top() == ZobroistHasher::get().hash_board(board));
 }
 template <bool is_white> void Game::make_move(Move move) {
     RestoreMoveInfo info = board.do_move<is_white>(move);
     move_stack.push(move);
     restore_info_stack.push(info);
     state_stack.push(state_stack.top() ^ ZobroistHasher::get().delta(info.delta));
-    assert(state_stack.top () == ZobroistHasher::get().hash_board(board));
+    assert(state_stack.top() == ZobroistHasher::get().hash_board(board));
 }
 
 template <bool is_white> void Game::undo_move() {
@@ -538,17 +543,15 @@ template <bool is_white> void Game::undo_move() {
     state_stack.pop();
 }
 
-int Game::reduction(int depth, int i) const{
-    int r = std::floor(Parameters::REDUCTION_OFFSET + std::log(double(depth)) * std::log(double(i)) * Parameters::REDUCTION_MULT);    
+int Game::reduction(int depth, int i) const {
+    int r = std::floor(Parameters::REDUCTION_OFFSET + std::log(double(depth)) * std::log(double(i)) * Parameters::REDUCTION_MULT);
     return std::min(r, depth - 2);
 }
-void Game::precompute_reduction(){
-    for (size_t depth = 1; depth < reduction_depth_cap; depth++){
-        for (size_t i = 1; i < max_legal_moves; i++){
+void Game::precompute_reduction() {
+    for (size_t depth = 1; depth < reduction_depth_cap; depth++) {
+        for (size_t i = 1; i < max_legal_moves; i++) {
             reductions[depth][i] = reduction(depth, i);
         }
     }
 }
-void Game::precompute(){
-    precompute_reduction();
-}
+void Game::precompute() { precompute_reduction(); }
