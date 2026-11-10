@@ -306,18 +306,13 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES>& killers = killer_moves[ply];
     MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history, killers);
-
+    MoveOrder::MovePicker picker(moves, scores, num_moves);
 
 
     // Normal move generation.
     //
-    for (uint8_t i = 0; i < num_moves; i++) {
-        int best = i;
-        for (int j = i + 1; j < num_moves; j++)
-            if (scores[j].score > scores[best].score) best = j;
-        std::swap(moves[i], moves[best]);
-        std::swap(scores[i], scores[best]);     
-        const Move& move = moves[i];
+    while (picker.has_next()) {
+        const auto [i, move] = picker.next();
         const MoveOrder::MoveScore& score = scores[i];
 
         bool move_quiet = board.is_move_quiet(move);
@@ -450,13 +445,9 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
     MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {},history,  killers);
-    for (int i = 0; i < num_moves; i++) {
-        int best = i;
-        for (int j = i + 1; j < num_moves; j++)
-            if (scores[j].score > scores[best].score) best = j;
-        std::swap(moves[i], moves[best]);
-        std::swap(scores[i], scores[best]);     
-        const Move & move = moves[i];
+    MoveOrder::MovePicker picker(moves, scores, num_moves);
+    while (picker.has_next()) {
+        const auto [i, move] = picker.next();
         //delta pruning:
         // check if delta threshhold is reached
         if ((!in_check) && !(may_zugwang)){

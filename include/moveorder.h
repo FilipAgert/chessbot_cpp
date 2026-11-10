@@ -23,24 +23,6 @@ struct MoveScore{
 constexpr int TT_MOVE_SCORE = 2'000'000'000;
 constexpr int CAPTURE_SCORE = 10'000;
 constexpr int KILLER_MOVE_SCORE = 10000;
-void partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                       std::array<int, max_legal_moves> &scores, size_t start, size_t num_moves,
-                       bool ascending);
-
-/**
- * @brief Sorts the moves in array by the scores in scores
- *
- * @param[[TODO:direction]] moves [TODO:description]
- * @param[[TODO:direction]] scores [TODO:description]
- * @param[[TODO:direction]] num_moves [TODO:description]
- * @param[in] ascending: bool to sort in ascending order. If false sorts by descending order.
- * True if minimiser, false if maximiser.
- */
-inline void partial_move_sort(std::array<Move, max_legal_moves> &moves,
-                              std::array<int, max_legal_moves> &scores, size_t num_moves,
-                              bool ascending) {
-    partial_move_sort(moves, scores, 0, num_moves, ascending);
-}
 /**
  * @brief Rate move by Heuristics
  *
@@ -95,23 +77,54 @@ template<bool is_white> void move_heuristics(std::array<Move, max_legal_moves>&m
         }
     }
 }
-/**
- * @brief Sorts moves by heuristics.
- *
- * @param[[TODO:direction]] moves [TODO:description]
- * @param[[TODO:direction]] board [TODO:description]
- */
-template <bool is_white>
-void apply_move_sort(std::array<Move, max_legal_moves> &moves, size_t num_moves, Board &board) {
-    std::array<int, max_legal_moves> move_scores;
 
-    BB enemy_pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
-    for (size_t m = 0; m < num_moves; m++) {
-        int move_score = move_heuristics<is_white>(moves[m], board, enemy_pawn_atk_bb);
-        move_scores[m] = move_score;
+class MovePicker{
+    private:
+    std::array<Move, max_legal_moves>& moves_;
+    std::array<MoveScore, max_legal_moves>& scores_;
+    int num_moves_;
+    int current_index_;
+    int sorted_count_;
+    public:
+    MovePicker(std::array<Move, max_legal_moves>& moves, std::array<MoveScore, max_legal_moves>& scores, int num_moves) : moves_(moves), scores_(scores), num_moves_(num_moves), current_index_(0), sorted_count_(0){} 
+    
+    inline bool has_next() const{
+        return current_index_ < num_moves_;
     }
-    partial_move_sort(moves, move_scores, num_moves, false);
-}
+
+    /**
+     * @brief Gets next move in list sorted by score
+     * 
+     * @return std::pair<size_t, Move&>  index of and move.
+     */
+    std::pair<size_t, Move&> next();
+
+    /**
+     * @brief Reset counter to 0
+     * 
+     */
+    void reset_head();
+
+    /**
+     * @brief Reset counter to zero and do not trust sort.
+     * 
+     */
+    void reset_head_sort();
+
+    
+    /**
+     * @brief Gets how many moves processed so far.
+     * 
+     * @return int 
+     */
+    int processed_count() const;
+    
+    /**
+     * @brief Fully sorts the list.
+     * 
+     */
+    void sort();
+};
 
 };  // namespace MoveOrder
 #endif
