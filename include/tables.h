@@ -2,6 +2,7 @@
 #ifndef TABLES_H
 #define TABLES_H
 
+#include "integer_representation.h"
 #include <algorithm>
 #include <bitboard.h>
 #include <config.h>
@@ -71,27 +72,6 @@ class StateStack {
     }
 };
 
-struct TranspositionEntry {
-    static constexpr int keep_hashbits = 48;
-    static constexpr int shift_hash = 64 - 48;
-    uint64_t hash : keep_hashbits = 0;
-    // Why 48? because the key contains part of the hash anyway. 64-48 = 16 bits minimum in key for this to not destroy information.
-    // Key uses rightmost bits, so
-    // this must use the leftmost bits.
-    uint8_t nodetype = invalid;
-    uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
-    int eval = 0;       // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n -
-    Move bestmove = Move();
-    // 1 = an upper bound.
-    // same or shallower.
-    inline bool is_valid_move() const { return (bestmove.source != bestmove.target); }
-
-    bool is_exact() const { return nodetype == exact; }
-    bool is_lb() const { return nodetype == lb; }
-    bool is_ub() const { return nodetype == ub; }
-};
-constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
-
 class ZobroistHasher {
  private:
     ZobroistHasher() {
@@ -128,19 +108,15 @@ class ZobroistHasher {
      * @param[inout] hash Hash as input. new hash as output
      * @param[in] board to hash.
      */
-    template <Piece_t p, bool is_white> void hash_piece(uint64_t &hash, const Board &board);
-    template <Piece_t p> void hash_both_piece(uint64_t &hash, const Board &board);
+    template <Piece_t p, bool is_white> void hash_piece(uint64_t &hash, const Board &board) const;
+    template <Piece_t p> void hash_both_piece(uint64_t &hash, const Board &board) const;
     template <Piece_t p, bool is_white> constexpr static uint8_t piece_key() {
         uint8_t col_offset = is_white ? 0 : 6;
         return col_offset + (p - 1);
     }
-    void hash_ep(uint64_t &hash, const Board &board);
-    void hash_castle(uint64_t &hash, const Board &board) { hash ^= castle_numbers[board.get_castling()]; }
-    void hash_turn(uint64_t &hash, const Board &board) {
-        if (board.get_turn_color() == pieces::black) {
-            hash ^= black_number;
-        }
-    }
+    void hash_ep(uint64_t &hash, const Board &board) const;
+    void hash_castle(uint64_t &hash, const Board &board) const;
+    void hash_turn(uint64_t &hash, const Board &board) const; 
 
     uint64_t rand_uint64_t();
     /**
@@ -149,7 +125,7 @@ class ZobroistHasher {
      * @param[in] board Board to hash
      * @return hash of board.
      */
-    uint64_t hash_board(const Board &board);
+    uint64_t hash_board(const Board &board) const;
     uint64_t delta(const HashDelta &delta) const;
     /**
      * @brief Hash can be incremented by XORing the parts that changed. This is color and pieces
@@ -160,8 +136,34 @@ class ZobroistHasher {
      */
     template <bool forward> void update_hash(uint64_t &hash, const Move move) {}
 };
+struct TranspositionEntry {
+    static constexpr int keep_hashbits = 48;
+    static constexpr int shift_hash = 64 - 48;
+    uint64_t hash : keep_hashbits = 0;
+    // Why 48? because the key contains part of the hash anyway. 64-48 = 16 bits minimum in key for this to not destroy information.
+    // Key uses rightmost bits, so
+    // this must use the leftmost bits.
+    uint8_t nodetype = invalid;
+    uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
+    int eval = 0;       // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n -
+    Move bestmove = Move();
+    // 1 = an upper bound.
+    // same or shallower.
+    inline bool is_valid_move() const { return (bestmove.source != bestmove.target); }
+
+    bool is_exact() const { return nodetype == exact; }
+    bool is_lb() const { return nodetype == lb; }
+    bool is_ub() const { return nodetype == ub; }
+};
+constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
+
+struct TranspositionBucket{
+    TranspositionEntry depth_pref;
+    TranspositionEntry always_replace;
+};
+
 struct TranspositionTable {
-    static constexpr size_t entry_size = sizeof(TranspositionEntry);
+    static constexpr size_t entry_size = sizeof(TranspositionBucket);
     static constexpr int size_MB = TT_SIZE_MB;
     static constexpr int nbits = [] constexpr {
         constexpr size_t num_entries = size_MB * 1000000 / entry_size;
@@ -183,7 +185,7 @@ struct TranspositionTable {
     static constexpr int table_size = 1ULL << nbits;
     static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
     static constexpr int actual_size_MB = (table_size * entry_size) / 1000000;
-    std::array<TranspositionEntry, table_size> arr;  // array holding the data.
+    std::array<TranspositionBucket, table_size> arr;  // array holding the data.
     size_t hits = 0;                                  // how many times did we access the table and find the board inside?
     size_t misses = 0;                                // how many times did we access the table and not find the board?
     size_t collisions = 0;                            // how many times did we have a hash collision?
@@ -204,15 +206,7 @@ struct TranspositionTable {
      */
     std::optional<TranspositionEntry> get(uint64_t hash);
 
-    inline void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
-        uint64_t shifted_hash = (hash >> TranspositionEntry::shift_hash);
-        size_t key = get_key(hash);
-        writes++;
-        if (arr[key].nodetype != invalid) {
-            overwrites++;
-        }
-        arr[key] = {shifted_hash, nodetype, depth, eval, bestmove};
-    }
+    void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth);
     /**
      * @brief Gets if the entry provided is
      *
@@ -221,11 +215,11 @@ struct TranspositionTable {
      * @return True if the current depth is smaller than or equal the entries depth.
      */
     static bool is_useable_entry(const TranspositionEntry entry, const int depth) { return depth <= entry.depth; }
-    void clear() {
-        std::fill(arr.begin(), arr.end(), TranspositionEntry{0, invalid, 0, 0, Move()});
-        writes = 0;
-        overwrites = 0;
-    }
+    /**
+     * @brief Clears the table.
+     * 
+     */
+    void clear();
 
     /**
      * @brief Gets the load factor of the hash table in permille. This is the ratio of filled slots.
@@ -235,6 +229,13 @@ struct TranspositionTable {
      */
     int load_factor() const;
 
+    /**
+     * @brief Gets the principal variation for as long as the table has it.
+     * 
+     * @param board 
+     * @param depth 
+     * @return std::vector<Move> 
+     */
     std::vector<Move> get_pv(Board &board, int depth);
 };
 #endif
