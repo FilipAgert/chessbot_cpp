@@ -34,7 +34,7 @@ endif
 DOBJ := build/$(type)
 
 # ---------- parallelism ----------
-MAKEFLAGS += -j$(shell nproc)
+MAKEFLAGS += -j 2
 
 # ---------- toolchain ----------
 CXX      := clang++
