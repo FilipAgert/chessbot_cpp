@@ -168,7 +168,7 @@ std::string PieceSquareTable::to_string() const {
             int offset = piece_ == pieces::pawn ? 1 : 0;
             int idx = NotationInterface::idx(r, f);
             const bool store = ((static_cast<size_t>(f) < w) && (static_cast<size_t>(r) < (h - offset)) && (static_cast<size_t>(r) >= offset) &&
-                                (sym_ == Symmetry::PIZZA ? f >= r : true;));
+                                (sym_ == Symmetry::PIZZA ? f >= r : true));
             os << centered(store ? std::to_string(white_[idx]) : "") << "|";
         }
         os << " " << (r + 1) << "\n" << sep;
