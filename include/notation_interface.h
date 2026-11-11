@@ -87,6 +87,19 @@ class NotationInterface {
      */
     inline constexpr static int row(const uint8_t idx) { return idx / 8; }
     inline constexpr static int col(const uint8_t idx) { return idx & 0b111; }  // Equivalent to mod 8
+    /**
+     * @brief Flips perspective of index. E.g. white kingsquare -> black kingsquare
+     *
+     * @param i
+     * @return constexpr int
+     */
+    inline constexpr static int idx_flip(const uint8_t i) {
+        int r = row(i);
+        int c = col(i);
+        // flip r!
+        int rb = 7 - r;
+        return idx(rb, c);
+    }
 };
 
 #endif

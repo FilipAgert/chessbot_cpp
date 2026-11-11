@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <board.h>
+#include <vector>
 namespace helpers {
 /**
  * @brief Get manhattan distance between two squares
@@ -57,43 +58,136 @@ constexpr int queen_moveval = 0;
 constexpr int king_moveval = -6;
 
 constexpr int bishop_double_bonus = 25;
-constexpr int king_dist2centre_value = 3;
+constexpr int king_dist = 3;
 constexpr int passed_pawn_eval = 30;
 constexpr int doubled_pawn_punishment = -15;
 constexpr int solo_pawn_punishment = -15;
 }  // namespace DefaultVals
-struct EvalParameters {
- private:
- public:
-    std::array<int, 7> piecevals = {0, DefaultVals::king, DefaultVals::queen, DefaultVals::rook, DefaultVals::knight, DefaultVals::bishop, DefaultVals::pawn};
-    std::array<int, 7> movevals = {0,
-                                   DefaultVals::king_moveval,
-                                   DefaultVals::queen_moveval,
-                                   DefaultVals::rook_moveval,
-                                   DefaultVals::knight_moveval,
-                                   DefaultVals::bishop_moveval,
-                                   DefaultVals::pawn_moveval};
-    int bishop_double_bonus = DefaultVals::bishop_double_bonus;
-    int king_dist2centre_value = DefaultVals::king_dist2centre_value;
-    int passed_pawn_eval = DefaultVals::passed_pawn_eval;
-    int doubled_pawn_punishment = DefaultVals::doubled_pawn_punishment;
-    int solo_pawn_punishment = DefaultVals::solo_pawn_punishment;
+   //
+enum class Symmetry : unsigned { None = 0, EW = 1, NS = 2, EWNS = 3 };
+std::string symmetry_name(Symmetry s);
+struct PieceSquareTable {
+    PieceSquareTable() { set(Symmetry::None, pieces::none, std::vector<int>(64, 0)); }
+    /**
+     * @brief Constructs a piece square table from a set of parameters and a symmetry
+     *
+     * @param s symmetry
+     * @param p piece
+     * @param params
+     */
+    PieceSquareTable(Symmetry s, Piece_t p, std::vector<int> params) { set(s, p, std::move(params)); }
+    int num_params(Symmetry s, Piece_t p) const;
+    /**
+     * @brief Set and recalculate.
+     *
+     * @param s
+     * @param params
+     */
+    void set(Symmetry s, Piece_t p, std::vector<int> params);
 
-    EvalParameters() {}
-    EvalParameters(std::array<int, 5> piecevals_, std::array<int, 6> movevals_, int bishop_double_bonus, int king_dist2centre_value, int passed_pawn_eval,
-                   int doubled_pawn_punishment, int solo_pawn_punishment)
-        : bishop_double_bonus(bishop_double_bonus), king_dist2centre_value(king_dist2centre_value), passed_pawn_eval(passed_pawn_eval),
-          doubled_pawn_punishment(doubled_pawn_punishment), solo_pawn_punishment(solo_pawn_punishment) {
-        piecevals[0] = 0;
-        piecevals[1] = DefaultVals::king;
-        for (size_t i = 0; i < piecevals_.size(); i++) {
-            piecevals[i + 2] = piecevals_[i];
-        }
-        for (size_t i = 0; i < movevals_.size(); i++) {
-            movevals[i + 1] = movevals_[i];
+    /**
+     * @brief Gets the piece square table
+     *
+     * @tparam is_white
+     * @return const std::array<int, 64>&
+     */
+    template <bool is_white> const std::array<int, 64> &get() {
+        if constexpr (is_white)
+            return white_;
+        else
+            return black_;
+    }
+    /**
+     * @brief Gets value at square.
+     *
+     * @tparam is_white
+     * @param sq
+     * @return int
+     */
+    template <bool is_white> int value(int sq) const {
+        if constexpr (is_white)
+            return white_[sq];
+        else
+            return black_[sq];
+    }
+
+    std::vector<int> params;
+
+    /**
+     * @brief Number of parameters.
+     *
+     * @return size_t
+     */
+    size_t size() const;
+    size_t width() const;
+    size_t height() const;
+    /**
+     * @brief Gets symmetry.
+     *
+     * @return Symmetry
+     */
+    Symmetry symmetry() const;
+
+    std::string to_string() const;
+
+ private:
+    Symmetry sym_;
+    Piece_t piece_;
+    std::array<int, 64> white_;
+    std::array<int, 64> black_;
+
+    static int num_cols(Symmetry s);
+    /**
+     * @brief Constructs the piece/square tables from parameters and symmetry.
+     *
+     */
+    void rebuild();
+};
+
+extern const std::array<std::pair<std::vector<int>, Symmetry>, 7> psq_parameters_base;
+
+#define EVAL_SCALAR_PARAMS(X)                                                                                                                                  \
+    X(bishop_double_bonus, DefaultVals::bishop_double_bonus)                                                                                                   \
+    X(king_dist, DefaultVals::king_dist)                                                                                                                       \
+    X(passed_pawn_eval, DefaultVals::passed_pawn_eval)                                                                                                         \
+    X(doubled_pawn_punishment, DefaultVals::doubled_pawn_punishment)                                                                                           \
+    X(solo_pawn_punishment, DefaultVals::solo_pawn_punishment)
+
+struct EvalParameters {
+#define X(name, def) int name = def;
+    EVAL_SCALAR_PARAMS(X)
+#undef X
+    static const int num_pieces = 7;
+    std::array<int, num_pieces> piecevals{
+        0, DefaultVals::king, DefaultVals::queen, DefaultVals::rook, DefaultVals::knight, DefaultVals::bishop, DefaultVals::pawn};
+    std::array<int, num_pieces> movevals{0,
+                                         DefaultVals::king_moveval,
+                                         DefaultVals::queen_moveval,
+                                         DefaultVals::rook_moveval,
+                                         DefaultVals::knight_moveval,
+                                         DefaultVals::bishop_moveval,
+                                         DefaultVals::pawn_moveval};
+
+    std::array<PieceSquareTable, num_pieces> psts;
+    void set_pst(Piece_t p, Symmetry s, std::vector<int> params) {
+        assert(p > 0 && p < num_pieces);
+        psts[p].set(s, p, std::move(params));
+    }
+    template <bool is_white> int pst(Piece_t p, int sq) const {
+        assert(p > 0 && p < num_pieces);
+        return psts.at(p).value<is_white>(sq);
+    }
+
+    std::vector<int> to_vector() const;
+    void from_vector(const std::vector<int> &v);
+
+    size_t num_params() const;
+    std::string to_string() const;
+    EvalParameters(std::array<std::pair<std::vector<int>, Symmetry>, num_pieces> psqs = psq_parameters_base) {
+        for (Piece_t p = 1; p < num_pieces; p++) {
+            set_pst(p, psqs.at(p).second, psqs.at(p).first);
         }
     }
-    std::string to_string() const;
 };
 class EvalState {
  public:

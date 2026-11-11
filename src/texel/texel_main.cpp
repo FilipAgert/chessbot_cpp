@@ -1,4 +1,5 @@
 #include "eval.h"
+#include "integer_representation.h"
 #include "str.h"
 #include "texel/core.h"
 #include "texel/eigen_defs.h"
@@ -8,8 +9,15 @@
 #include "texel/minimize.h"
 #include "utils/str.h"
 #include <iostream>
-#include <omp.h>
 #include <optional>
+#ifdef _OPENMP
+#include <omp.h>
+#else
+// Fallback stubs so code compiles even if OpenMP isn't enabled
+inline int omp_get_num_threads() { return 1; }
+inline int omp_get_thread_num() { return 0; }
+inline int omp_get_max_threads() { return 1; }
+#endif
 using namespace Texel;
 double round_if_int(double a, bool is_float) {
     if (is_float)
@@ -62,38 +70,27 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < res.size(); i++) {
         results(i) = to_win(res[i]);
     }
-
+    EvalParameters p0;
     // parameter handling
-    int num_params = 5 + 6 + 5;
+    int num_params = p0.num_params();
     std::vector<bool> is_float(num_params, false);
 
-    auto create_params = [is_float](const dvec &x) -> EvalParameters {
-        dvec rounded(x.size());
+    auto create_params = [is_float, p0](const dvec &x) -> EvalParameters {
+        std::vector<int> rounded(x.size());
         for (size_t i = 0; i < x.size(); i++) {
-            rounded(i) = round_if_int(x(i), is_float.at(i));
+            rounded[i] = round_if_int(x(i), is_float.at(i));
         }
-        std::array<int, 5> piecevals;
-        std::array<int, 6> movevals;
-
-        int taken = 0;
-        for (size_t i = 0; i < piecevals.size(); i++) {
-            piecevals[i] = static_cast<int>(rounded(taken++));
-        }
-        for (size_t i = 0; i < movevals.size(); i++) {
-            movevals[i] = static_cast<int>(rounded(taken++));
-        }
-        int bdb = rounded(taken++);
-        int k2centre = rounded(taken++);
-        int passed = rounded(taken++);
-        int doubled = rounded(taken++);
-        int solo = rounded(taken++);
-
-        return EvalParameters{std::move(piecevals), std::move(movevals), bdb, k2centre, passed, doubled, solo};
+        EvalParameters p = p0;
+        p.from_vector(rounded);
+        return p;
     };
+
     using namespace DefaultVals;
-    dvec x0 = (dvec(num_params) << queen, rook, knight, bishop, pawn, king_moveval, queen_moveval, rook_moveval, knight_moveval, bishop_moveval, pawn_moveval,
-               bishop_double_bonus, king_dist2centre_value, passed_pawn_eval, doubled_pawn_punishment, solo_pawn_punishment)
-                  .finished();
+    dvec x0(num_params);
+    std::vector<int> params = p0.to_vector();
+    for (size_t i = 0; i < num_params; i++) {
+        x0(i) = params[i];
+    }
 
     // create evaluator
     // const EvalParameters params0 = create_params(x0);
@@ -118,9 +115,10 @@ int main(int argc, char *argv[]) {
     };
 
     std::cout << "\n\nNow minimizing parameters" << std::endl;
+    std::cout << "Initial parameters: \n" << p0.to_string() << std::endl;
     MixedGradient param_eval(is_float, eval_param_loss);
     auto print_fnc = [create_params](dvec x) { return create_params(x).to_string(); };
     MinimizeResult param_res = minimize(x0, param_eval, print_fnc);
-    std::cout << "Parameters found\n" << param_res.x;
+    std::cout << "Parameters found\n" << create_params(param_res.x).to_string();
     return 0;
 }

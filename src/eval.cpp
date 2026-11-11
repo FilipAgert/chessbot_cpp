@@ -1,57 +1,228 @@
 // Copyright Filip Agert
+#include "integer_representation.h"
+#include "notation_interface.h"
 #include <cassert>
 #include <eval.h>
 #include <iomanip>
 #include <piece.h>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+
+std::string symmetry_name(Symmetry s) {
+    if (s == Symmetry::EW) {
+        return "EW";
+    }
+    if (s == Symmetry::EWNS) {
+        return "EWNS";
+    }
+    if (s == Symmetry::NS) {
+        return "NS";
+    }
+    return "none";
+}
+// Piece square tables
+int PieceSquareTable::num_params(Symmetry s, Piece_t p) const {
+    if (s == Symmetry::None)
+        return 64 - (p == pieces::pawn ? 16 : 0);
+    if (s == Symmetry::EW || s == Symmetry::NS)
+        return 32 - (p == pieces::pawn ? 8 : 0);
+    return 16 - (p == pieces::pawn ? 4 : 0);
+}
+void PieceSquareTable::set(Symmetry s, Piece_t p, std::vector<int> params_) {
+    if (params_.size() != num_params(s, p)) {
+        throw std::invalid_argument("Wrong number of parameters. Expected: " + std::to_string(num_params(s, p)) +
+                                    ". Received: " + std::to_string(params_.size()));
+    }
+
+    sym_ = s;
+    params = params_;
+    piece_ = p;
+    rebuild();
+}
+void south_north_mirror(std::array<int, 64> &arr) {
+    // pastes south onto north, mirrored
+    for (int i = 0; i < 32; i++) {
+        arr[NotationInterface::idx_flip(i)] = arr[i];
+    }
+    for (int row = 0; row < 4; row++) {
+        for (int col = 7; col >= 0; col--) {
+            int nrow = 4 + row;
+            int nidx = NotationInterface::idx(nrow, col);
+            // idx to paste to.
+            int srow = 3 - row;
+            int sidx = NotationInterface::idx(srow, col);
+            arr[nidx] = arr[sidx];
+        }
+    }
+}
+void west_east_mirror(std::array<int, 64> &arr) {
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 4; col++) {
+            int wcol = 3 - col;
+            int wsq = NotationInterface::idx(row, wcol);
+
+            int ecol = 4 + col;
+            int esq = NotationInterface::idx(row, ecol);
+            arr[esq] = arr[wsq];
+        }
+    }
+}
+int PieceSquareTable::num_cols(Symmetry s) {
+    if (s == Symmetry::NS || s == Symmetry::None)
+        return 8;
+    return 4;
+}
+void PieceSquareTable::rebuild() {
+    int np = num_params(sym_, piece_);
+    int idx_offset = piece_ == pieces::pawn ? 8 : 0;
+    if (sym_ == Symmetry::None) {
+        for (size_t i = 0; i < np; i++) {
+            white_[i + idx_offset] = params.at(i);
+        }
+    } else if (sym_ == Symmetry::NS) {  // 32 pieces.
+        for (size_t i = 0; i < np; i++) {
+            white_[i + idx_offset] = params.at(i);
+        }
+        south_north_mirror(white_);
+    } else if (sym_ == Symmetry::EW || sym_ == Symmetry::EWNS) {
+        int row = piece_ == pieces::pawn ? 1 : 0;
+        int col = 0;
+        // go A1...D1, A2...D2 up to maxrows
+
+        for (size_t i = 0; i < np; i++) {
+            int idx = NotationInterface::idx(row, col);
+            white_[idx] = params.at(i);
+
+            if (++col >= 4) {
+                col = 0;
+                row++;
+            }
+        }
+        if (sym_ == Symmetry::EWNS)
+            south_north_mirror(white_);
+        west_east_mirror(white_);
+    } else {
+        throw std::runtime_error("Unknown symmetry");
+    }
+
+    // mirror onto black.
+    for (size_t i = 0; i < white_.size(); i++) {
+        int black_idx = NotationInterface::idx_flip(i);
+        black_[black_idx] = white_[i];
+    }
+}
+size_t PieceSquareTable::size() const { return params.size(); }
+size_t PieceSquareTable::width() const {
+    if (sym_ != Symmetry::EW && sym_ != Symmetry::EWNS)
+        return 8;
+    return 4;
+}
+size_t PieceSquareTable::height() const {
+    if (sym_ != Symmetry::NS && sym_ != Symmetry::EWNS)
+        return 8;
+    return 4;
+}
+Symmetry PieceSquareTable::symmetry() const { return sym_; }
+
+std::string PieceSquareTable::to_string() const {
+    const size_t w = width(), h = height();
+
+    size_t cw = 5;  // inner cell width, same for every cell
+    for (int v : params)
+        cw = std::max(cw, std::to_string(v).size() + 2);
+
+    std::string sep = "   +";
+    for (int f = 0; f < 8; ++f)
+        sep += std::string(cw, '-') + "+";
+    sep += "\n";
+
+    auto centered = [&](const std::string &s) {
+        const size_t total = cw - s.size();
+        const size_t left = total / 2;
+        return std::string(left, ' ') + s + std::string(total - left, ' ');
+    };
+
+    std::ostringstream os;
+    os << "symmetry: " << symmetry_name(sym_) << "\n";
+    os << "    ";
+    for (int f = 0; f < 8; ++f)
+        os << centered(std::string(1, char('a' + f))) << " ";
+    os << "\n" << sep;
+    for (int r = 7; r >= 0; --r) {
+        os << " " << (r + 1) << " |";
+        for (int f = 0; f < 8; ++f) {
+            int offset = piece_ == pieces::pawn ? 1 : 0;
+            const bool stored = static_cast<size_t>(f) < w && static_cast<size_t>(r) < (h - offset) && static_cast<size_t>(r) >= offset;
+            os << centered(stored ? std::to_string(params[r * w + f]) : "") << "|";
+        }
+        os << " " << (r + 1) << "\n" << sep;
+    }
+    os << "    ";
+    for (int f = 0; f < 8; ++f)
+        os << centered(std::string(1, char('a' + f))) << " ";
+    os << "\n";
+    return os.str();
+}
+
+std::vector<int> EvalParameters::to_vector() const {
+    std::vector<int> v;
+#define X(name, def) v.push_back(name);
+    EVAL_SCALAR_PARAMS(X)
+#undef X
+    for (size_t p = 1; p < num_pieces; ++p)
+        v.push_back(piecevals[p]);
+    for (size_t p = 1; p < num_pieces; ++p)
+        v.push_back(movevals[p]);
+    for (size_t p = 1; p < num_pieces; ++p)
+        v.insert(v.end(), psts[p].params.begin(), psts[p].params.end());
+    return v;
+}
+
+void EvalParameters::from_vector(const std::vector<int> &v) {
+    if (v.size() != num_params())
+        throw std::invalid_argument("EvalParameters::from_vector: wrong size");
+    size_t i = 0;
+#define X(name, def) name = v[i++];
+    EVAL_SCALAR_PARAMS(X)
+#undef X
+    for (size_t p = 1; p < num_pieces; ++p)
+        piecevals[p] = v[i++];
+    for (size_t p = 1; p < num_pieces; ++p)
+        movevals[p] = v[i++];
+    for (size_t p = 1; p < num_pieces; ++p) {
+        const size_t n = psts[p].size();
+        psts[p].set(psts[p].symmetry(), p, std::vector<int>(v.begin() + i, v.begin() + i + n));
+        i += n;
+    }
+}
+
+size_t EvalParameters::num_params() const { return to_vector().size(); }
+std::string EvalParameters::to_string() const {
+    std::ostringstream os;
+#define X(name, def) os << #name << " = " << name << "\n";
+    EVAL_SCALAR_PARAMS(X)
+#undef X
+    auto dump = [&](const char *label, const std::array<int, num_pieces> &a) {
+        os << label << " = {";
+        for (size_t p = 1; p < num_pieces; ++p)
+            os << a[p] << (p + 1 < num_pieces ? ", " : "");
+        os << "}\n";
+    };
+    dump("piecevals[K,Q,R,N,B,P]", piecevals);
+    dump("movevals[K,Q,R,N,B,P]", movevals);
+    static const char *names[num_pieces] = {"", "King", "Queen", "Rook", "Knight", "Bishop", "Pawn"};
+    for (size_t p = 1; p < num_pieces; ++p) {
+        os << "\n" << names[p] << " PST\n";
+        os << psts[p].to_string();
+        os << "\n";
+    }
+    return os.str();
+}
+
 EvalState::EvalState(EvalParameters params_) : params(params_) {}
 EvalState::EvalState() : params(EvalParameters()) {}
-std::string EvalParameters::to_string() const {
-    std::ostringstream oss;
 
-    // Helper lambda to format a single table row
-    auto print_row = [&oss](const std::string &name, int val) {
-        oss << " | " << std::left << std::setw(26) << name << " | " << std::right << std::setw(10) << val << " |\n";
-    };
-
-    // Helper lambda for table headers
-    auto print_header = [&oss](const std::string &title) {
-        oss << "\n=== " << title << " ===\n";
-        oss << " +----------------------------+------------+\n";
-        oss << " | Parameter                  |      Value |\n";
-        oss << " +----------------------------+------------+\n";
-    };
-
-    auto print_footer = [&oss]() { oss << " +----------------------------+------------+\n"; };
-
-    // --- Group 1: Piece Values (Skipping King at index 1) ---
-    print_header("Piece Values");
-    const char *piece_names[] = {"", "King", "Queen", "Rook", "Knight", "Bishop", "Pawn"};
-    for (size_t i = 2; i < piecevals.size(); ++i) {
-        print_row(piece_names[i], piecevals[i]);
-    }
-    print_footer();
-
-    // --- Group 2: Move / Mobility Values ---
-    print_header("Move / Mobility Values");
-    const char *move_names[] = {"None", "King Move", "Queen Move", "Rook Move", "Knight Move", "Bishop Move", "Pawn Move"};
-    for (size_t i = 1; i < movevals.size(); ++i) {
-        print_row(move_names[i], movevals[i]);
-    }
-    print_footer();
-
-    // --- Group 3: Positional Bonuses & Punishments ---
-    print_header("Positional Bonuses & Punishments");
-    print_row("Bishop Double Bonus", bishop_double_bonus);
-    print_row("King Dist to Centre", king_dist2centre_value);
-    print_row("Passed Pawn Eval", passed_pawn_eval);
-    print_row("Doubled Pawn Punishment", doubled_pawn_punishment);
-    print_row("Solo Pawn Punishment", solo_pawn_punishment);
-    print_footer();
-
-    return oss.str();
-}
 int EvalState::eval(Board &board) {
     int score = 0;
     if (forced_draw_ply(board))
@@ -96,10 +267,20 @@ int EvalState::eval_material(Board &board) {
 }
 template <Piece_t p> int EvalState::eval_single_piece(Board &board) {
     int pvalue = params.piecevals[p];
-    int wpiece_cnt = board.get_piece_cnt<p, true>();
-    int bpiece_cnt = board.get_piece_cnt<p, false>();
-    int eval = (wpiece_cnt - bpiece_cnt) * pvalue;
-    if (p == pieces::bishop) {
+    BB wpieces = board.get_piece_bb<p, true>();
+    BB bpieces = board.get_piece_bb<p, false>();
+    const PieceSquareTable &pst = params.psts[p];
+    int eval = 0, wpiece_cnt = 0, bpiece_cnt = 0;
+    BitLoop(wpieces) {
+        eval += pst.value<true>(BitBoard::lsb(wpieces));
+        wpiece_cnt++;
+    }
+    BitLoop(bpieces) {
+        eval -= pst.value<false>(BitBoard::lsb(bpieces));
+        bpiece_cnt++;
+    }
+    eval += (wpiece_cnt - bpiece_cnt) * pvalue;
+    if constexpr (p == pieces::bishop) {
         if (wpiece_cnt > 1)
             eval += params.bishop_double_bonus;
         if (bpiece_cnt > 1)
@@ -110,18 +291,12 @@ template <Piece_t p> int EvalState::eval_single_piece(Board &board) {
 int EvalState::eval_king_dist2centre(Board &board) {
     uint8_t white_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, true>());
     uint8_t black_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, false>());
-    uint8_t white_dist = helpers::dist2centre[white_king_sq];
-    uint8_t black_dist = helpers::dist2centre[black_king_sq];
     uint8_t king_dist = helpers::manhattan(white_king_sq, black_king_sq);
     float white_endgame = 2 * eval_game_phase(board.get_num_pieces<false>()) - 1;  // eval based on black pieces
     float black_endgame = 2 * eval_game_phase(board.get_num_pieces<true>()) - 1;   // eval based on white pieces
 
-    // Absolute king position value.
-    float wval = -white_dist * params.king_dist2centre_value * white_endgame;
-    float bval = black_dist * params.king_dist2centre_value * black_endgame;
-
-    float relval = king_dist * (white_endgame - black_endgame) * params.king_dist2centre_value;
-    return static_cast<int>(wval + bval + relval);
+    float relval = king_dist * (white_endgame - black_endgame) * params.king_dist;
+    return static_cast<int>(relval);
 }
 std::optional<int> EvalState::moves_to_mate(int score) {
     // Negative score should remain negative.
@@ -192,3 +367,45 @@ int EvalState::eval_pawn_structure(Board &board) {
     return (wpassed - bpassed) * params.passed_pawn_eval + (wdoubled - bdoubled) * params.doubled_pawn_punishment +
            (nsolow - nsolob) * params.solo_pawn_punishment;
 }
+
+/**
+ * Collection of piece square tables.
+ *
+ */
+using PstItem = std::pair<std::vector<int>, Symmetry>;
+PstItem pawn_pst = []() {
+    Symmetry s = Symmetry::EW;
+    std::vector<int> values{5, 10, 10, -20, 5, -5, -10, 0, 0, 0, 0, 20, 5, 5, 10, 25, 10, 10, 20, 30, 50, 50, 50, 50};
+    return PstItem{values, s};
+}();
+PstItem knight_pst = []() {
+    Symmetry s = Symmetry::EWNS;
+    std::vector<int> values{-50, -40, -30, -30, -40, -20, 0, 5, -30, 5, 10, 15, -30, 0, 15, 20};
+    return PstItem{values, s};
+}();
+PstItem bishop_pst = []() {
+    Symmetry s = Symmetry::EW;
+    std::vector<int> values{-20, -10, -10, -10, -10, 5, 0, 0, -10, 10, 10, 10, -10, 0, 10, 10, -10, 5, 5, 10, -10, 0, 5, 10, -10, 0, 0, 0, -20, -10, -10, -10};
+    return PstItem{values, s};
+}();
+PstItem rook_pst = []() {
+    Symmetry s = Symmetry::EW;
+    std::vector<int> values{0, 0, 0, 5, -5, 0, 0, 0, -5, 0, 0, 0, -5, 0, 0, 0, -5, 0, 0, 0, -5, 0, 0, 0, 5, 10, 10, 10, 0, 0, 0, 0};
+    return PstItem{values, s};
+}();
+PstItem queen_pst = []() {
+    Symmetry s = Symmetry::EWNS;
+    std::vector<int> values{-20, -10, -10, -5, -10, 0, 5, 0, -10, 5, 5, 5, 0, 0, 5, 5};
+    return PstItem{values, s};
+}();
+PstItem king_pst = []() {
+    Symmetry s = Symmetry::EW;
+    std::vector<int> values{20,  30,  10,  0,   20,  20,  0,   0,   -10, -20, -20, -20, -20, -30, -30, -40,
+                            -30, -40, -40, -50, -30, -40, -40, -50, -30, -40, -40, -50, -30, -40, -40, -50};
+    return PstItem{values, s};
+}();
+
+extern const std::array<PstItem, 7> psq_parameters_base = {
+    PstItem{std::vector<int>(), Symmetry::None}, king_pst, queen_pst, rook_pst, knight_pst, bishop_pst, pawn_pst
+
+};
