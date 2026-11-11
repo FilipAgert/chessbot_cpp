@@ -487,9 +487,9 @@ constexpr uint64_t knight_atk_sq(const uint8_t sq) {
     uint64_t knight_bb = BitBoard::one_high(sq);
     return knight_atk_bb(knight_bb);
 }
-alignas(64) constexpr std::array<uint64_t, 64> king_attack_table =  // 512 bytes
+alignas(64) const std::array<uint64_t, 64> king_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, king_atk_sq>();
-alignas(64) constexpr std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
+alignas(64) const std::array<uint64_t, 64> knight_attack_table =  // 512 bytes
     generate_simple_move_table_uint8_t<uint64_t, 64, knight_atk_sq>();
 
 }  // namespace internal
