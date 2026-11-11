@@ -20,6 +20,9 @@ std::string symmetry_name(Symmetry s) {
     if (s == Symmetry::NS) {
         return "NS";
     }
+    if (s == Symmetry::PIZZA) {
+        return "PIZZA";
+    }
     return "none";
 }
 // Piece square tables
@@ -28,6 +31,8 @@ int PieceSquareTable::num_params(Symmetry s, Piece_t p) const {
         return 64 - (p == pieces::pawn ? 16 : 0);
     if (s == Symmetry::EW || s == Symmetry::NS)
         return 32 - (p == pieces::pawn ? 8 : 0);
+    if (s == Symmetry::PIZZA)
+        return 10 - (p == pieces::pawn ? 4 : 0);
     return 16 - (p == pieces::pawn ? 4 : 0);
 }
 void PieceSquareTable::set(Symmetry s, Piece_t p, std::vector<int> params_) {
@@ -93,6 +98,23 @@ void PieceSquareTable::rebuild() {
         if (sym_ == Symmetry::EWNS)
             south_north_mirror(white_);
         west_east_mirror(white_);
+    } else if (sym_ == Symmetry::PIZZA) {
+        int row = piece_ == pieces::pawn ? 1 : 0;
+        int col = piece_ == pieces::pawn ? 1 : 0;
+
+        for (size_t i = 0; i < np; i++) {
+            int idx = NotationInterface::idx(row, col);
+            white_[idx] = params.at(i);
+            int mirrored = NotationInterface::idx(col, row);
+            white_[mirrored] = white_[idx];
+            if (++col >= 4) {
+                row++;
+                col = row;
+            }
+        }
+        south_north_mirror(white_);
+        west_east_mirror(white_);
+
     } else {
         throw std::runtime_error("Unknown symmetry");
     }
@@ -105,12 +127,12 @@ void PieceSquareTable::rebuild() {
 }
 size_t PieceSquareTable::size() const { return params.size(); }
 size_t PieceSquareTable::width() const {
-    if (sym_ != Symmetry::EW && sym_ != Symmetry::EWNS)
+    if (sym_ != Symmetry::EW && sym_ != Symmetry::EWNS && sym_ != Symmetry::PIZZA)
         return 8;
     return 4;
 }
 size_t PieceSquareTable::height() const {
-    if (sym_ != Symmetry::NS && sym_ != Symmetry::EWNS)
+    if (sym_ != Symmetry::NS && sym_ != Symmetry::EWNS && sym_ != Symmetry::PIZZA)
         return 8;
     return 4;
 }
@@ -145,7 +167,8 @@ std::string PieceSquareTable::to_string() const {
         for (int f = 0; f < 8; ++f) {
             int offset = piece_ == pieces::pawn ? 1 : 0;
             int idx = NotationInterface::idx(r, f);
-            const bool store = static_cast<size_t>(f) < w && static_cast<size_t>(r) < (h - offset) && static_cast<size_t>(r) >= offset;
+            const bool store = ((static_cast<size_t>(f) < w) && (static_cast<size_t>(r) < (h - offset)) && (static_cast<size_t>(r) >= offset) &&
+                                (sym_ == Symmetry::PIZZA ? f >= r : true;));
             os << centered(store ? std::to_string(white_[idx]) : "") << "|";
         }
         os << " " << (r + 1) << "\n" << sep;
@@ -380,8 +403,8 @@ PstItem pawn_pst = []() {
     return PstItem{values, s};
 }();
 PstItem knight_pst = []() {
-    Symmetry s = Symmetry::EWNS;
-    std::vector<int> values{-50, -40, -30, -30, -40, -20, 0, 5, -30, 5, 10, 15, -30, 0, 15, 20};
+    Symmetry s = Symmetry::PIZZA;
+    std::vector<int> values{-50, -40, -30, -30, -20, 0, 5, 10, 15, 20};
     return PstItem{values, s};
 }();
 PstItem bishop_pst = []() {
@@ -395,8 +418,8 @@ PstItem rook_pst = []() {
     return PstItem{values, s};
 }();
 PstItem queen_pst = []() {
-    Symmetry s = Symmetry::EWNS;
-    std::vector<int> values{-20, -10, -10, -5, -10, 0, 5, 0, -10, 5, 5, 5, 0, 0, 5, 5};
+    Symmetry s = Symmetry::PIZZA;
+    std::vector<int> values{-20, -10, -10, -5, 0, 5, 0, 5, 5, 5};
     return PstItem{values, s};
 }();
 PstItem king_pst = []() {

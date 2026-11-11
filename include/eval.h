@@ -64,7 +64,7 @@ constexpr int doubled_pawn_punishment = -15;
 constexpr int solo_pawn_punishment = -15;
 }  // namespace DefaultVals
    //
-enum class Symmetry : unsigned { None = 0, EW = 1, NS = 2, EWNS = 3 };
+enum class Symmetry : unsigned { None = 0, EW = 1, NS = 2, EWNS = 3, PIZZA };
 std::string symmetry_name(Symmetry s);
 struct PieceSquareTable {
     PieceSquareTable() { set(Symmetry::None, pieces::none, std::vector<int>(64, 0)); }
