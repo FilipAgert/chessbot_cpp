@@ -56,27 +56,5 @@ class UCIInterface {
 
  private:
     UCIInterface() = delete;
-
-    /**
-     * @brief Split string into its component parts.
-     *
-     * @param[[TODO:direction]] full [TODO:description]
-     * @param[[TODO:direction]] del [TODO:description]
-     */
-    static std::vector<std::string> split(std::string full, char del);
-    /**
-     * @brief Trim whitespaces from a string
-     *
-     * @param[[TODO:direction]] full [TODO:description]
-     */
-    static std::string trim(std::string full);
-    /**
-     * @brief Join together vector of strings separated by delimiter.
-     *
-     * @param[[TODO:direction]] strings [TODO:description]
-     * @param[[TODO:direction]] del [TODO:description]
-     */
-    static std::string join(std::vector<std::string> strings, char del);
-    static std::optional<int> try_process_int(std::string intstring);
 };
 #endif

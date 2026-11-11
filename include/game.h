@@ -3,6 +3,7 @@
 #define GAME_H
 #include "config.h"
 #include "eval.h"
+#include "integer_representation.h"
 #include "moveorder.h"
 #include "parameters.h"
 #include <board.h>
@@ -166,6 +167,8 @@ class Game {
     void abort_search_and_wait();
     std::atomic<bool> search_finished{false};
 
+    EvalState eval = EvalState();
+
  private:
     std::atomic<bool> stop_requested_{false};
     std::jthread search_thread_;
@@ -228,9 +231,11 @@ class Game {
     template <bool is_white> std::pair<int, uint8_t> aspiration_search(int preveval, int depth);
 
     template <bool is_white> bool delta_futility_pruning(int standing_pat, int alpha) const {
-        int big_delta = PieceValue::queen + Parameters::DELTA_THRESHHOLD;
+        const EvalParameters &params = eval.params;
+        const int queen = params.piecevals[pieces::queen];
+        int big_delta = queen + Parameters::DELTA_THRESHHOLD;
         if (board.has_pawn_promotion<is_white>()) {
-            big_delta += PieceValue::queen - PieceValue::pawn;
+            big_delta += queen - params.piecevals[pieces::pawn];
         }
         return standing_pat + big_delta < alpha;
     }

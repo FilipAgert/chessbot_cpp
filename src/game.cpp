@@ -240,7 +240,7 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
     }
 
     if (ply >= MAX_PLY - 1) {
-        return {EvalState::eval(board), exact};
+        return {eval.eval(board), exact};
     }
 
     Move best_curr_move;
@@ -313,7 +313,7 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
-    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history, killers);
+    MoveOrder::move_heuristics<is_white>(eval.params.piecevals, moves, scores, num_moves, board, first_move, history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
 
     // Multicut pruning.
@@ -440,7 +440,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     if (EvalState::forced_draw_ply(board))
         return {0, exact};
     if (ply >= MAX_PLY - 1) {
-        return {EvalState::eval(board), exact};
+        return {eval.eval(board), exact};
     }
 
     uint64_t zob_hash = state_stack.top();
@@ -460,7 +460,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
 
     const bool in_check = board.king_checked<is_white>();
     const bool may_zugwang = EvalState::can_zugzwang<is_white>(board);
-    int standing_pat = EvalState::eval(board);
+    int standing_pat = eval.eval(board);
     if (!in_check) {
         if (!may_zugwang && standing_pat >= beta) {
             return {beta, lb};
@@ -482,16 +482,16 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
-    MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, {}, history, killers);
+    MoveOrder::move_heuristics<is_white>(eval.params.piecevals, moves, scores, num_moves, board, {}, history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
     while (picker.has_next()) {
         const auto [i, move] = picker.next();
         // delta pruning:
         //  check if delta threshhold is reached
         if ((!in_check) && !(may_zugwang)) {
-            int extra = PieceValue::piecevals[board.get_piece_at(move.target).get_type()];
-            extra += PieceValue::piecevals[move.get_promotion()];  // doesn't detract pawn value if promotion...
-            extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? PieceValue::pawn : 0;
+            int extra = eval.params.piecevals[board.get_piece_at(move.target).get_type()];
+            extra += eval.params.piecevals[move.get_promotion()];  // doesn't detract pawn value if promotion...
+            extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? eval.params.piecevals[pieces::pawn] : 0;
             assert(extra > 0);
 
             // worth checking branch!

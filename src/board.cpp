@@ -1,11 +1,13 @@
 // Copyright 2025 Filip Agert
 #include "move.h"
+#include "str.h"
 #include <board.h>
 #include <cassert>
 #include <exceptions.h>
 #include <iostream>
 #include <movegen.h>
 #include <sstream>
+#include <stdexcept>
 using namespace movegen;
 using namespace pieces;
 
@@ -267,7 +269,7 @@ void Board::Display_board() {
     std::cout << "  +-----------------+" << std::endl;
     std::cout << "    " << files << std::endl;
 }
-bool Board::read_fen(const std::string FEN) {
+bool Board::read_fen(const std::string &FEN) {
     this->reset();
     int row = 7;
     int col = 0;
@@ -363,10 +365,18 @@ bool Board::read_fen(const std::string FEN) {
     }
 
     // Halfmove clock
-    ply_moves = std::stoi(halfPart);
+    std::optional<int> opt_ply = Utils::try_process_int(halfPart);
+    if (!opt_ply) {
+        throw std::runtime_error("Could not process ply" + FEN);
+    }
+    ply_moves = opt_ply.value();
 
     // Fullmove number
-    full_moves = std::stoi(movePart);
+    std::optional<int> opt_full = Utils::try_process_int(movePart);
+    if (!opt_full) {
+        throw std::runtime_error("Could not process full_moves");
+    }
+    full_moves = opt_full.value();
 
     // ----------------------------
     // 3. Store results in state
@@ -440,3 +450,4 @@ std::string Board::fen_from_state() const {
 
     return FEN;
 }
+Board::Board(const std::string &fen) { read_fen(fen); }

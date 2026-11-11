@@ -4,16 +4,16 @@
 
 #include "integer_representation.h"
 #include "movegen.h"
+#include "utils/attribute.h"
+#include <array>
 #include <bitboard.h>
 #include <cassert>
 #include <constants.h>
+#include <cstdint>
 #include <move.h>
 #include <notation_interface.h>
 #include <piece.h>
 #include <stdexcept>
-
-#include <array>
-#include <cstdint>
 #include <string>
 struct HashDelta {
     uint8_t moved_piece = 0, placed_piece = 0;  // full piece value (color | type)
@@ -161,8 +161,8 @@ struct Board {
     template <bool white_to_move> RestoreMoveInfo constexpr inline do_move(Move move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
-        [[assume(moved >= 1 && moved <= 6)]];
-        [[assume(move.flag >= 0 && move.flag <= 12)]];
+        ASSUME(moved >= 1 && moved <= 6);
+        ASSUME(move.flag >= 0 && move.flag <= 12);
         switch (moved) {
         case pieces::pawn:
             switch (move.flag) {
@@ -227,7 +227,7 @@ struct Board {
      */
     template <bool white_to_move, Piece_t moved, Flag_t flag> RestoreMoveInfo constexpr inline do_move(Move move) {
         Piece_t captured = get_piece_at(move.target).get_type();
-        [[assume(captured >= 0 && captured <= 6 && captured != 1)]];
+        ASSUME(captured >= 0 && captured <= 6 && captured != 1);
         switch (captured) {
         case pieces::none:
             return do_move<white_to_move, moved, flag, pieces::none>(move);
@@ -485,7 +485,7 @@ struct Board {
         change_turn();
         Piece_t captured = info.captured;
 
-        [[assume(move.flag >= 0 && move.flag <= 12)]];
+        ASSUME(move.flag >= 0 && move.flag <= 12);
         switch (move.flag) {
         case moveflag::MOVEFLAG_silent:
             undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
@@ -686,7 +686,7 @@ struct Board {
      * @return true : Successfully parsed FEN.
      * @return false : Did not succesfully parse FEN. BoardState undefined
      */
-    bool read_fen(std::string FEN);
+    bool read_fen(const std::string &FEN);
 
     /**
      * @brief Outputs fen from state.
@@ -696,7 +696,7 @@ struct Board {
     std::string fen_from_state() const;
     void Display_board();
     bool operator==(const Board &other) const;
-    explicit Board(std::string fen);
+    explicit Board(const std::string &fen);
 
     inline Piece get_piece_at(uint8_t row, uint8_t col) const { return get_piece_at(NotationInterface::idx(row, col)); }
 
@@ -1233,7 +1233,7 @@ struct Board {
 
     template <bool white_moved, Flag_t flag> constexpr void undo_move(const Move move, const Piece_t captured) {
         Piece_t moved = get_piece_at(move.target).get_type();
-        [[assume(moved >= 1 && moved <= 6)]];
+        ASSUME(moved >= 1 && moved <= 6);
         switch (moved) {
         case pieces::pawn:
             undo_move<white_moved, pieces::pawn, flag>(move, captured);
@@ -1258,7 +1258,7 @@ struct Board {
         }
     }
     template <bool white_moved, Piece_t piece, Flag_t flag> constexpr void undo_move(const Move move, const Piece_t captured) {
-        [[assume(captured >= 0 && captured <= 6 && captured != 1)]];
+        ASSUME(captured >= 0 && captured <= 6 && captured != 1);
         switch (captured) {
         case pieces::none:
             undo_move<white_moved, piece, flag, pieces::none>(move);

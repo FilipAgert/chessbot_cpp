@@ -44,4 +44,8 @@ compile*
 .cache
 
 bench/*.json
-tools/tournament.py
+libraries
+.clangd
+data
+batch_pgn_to_fen.sh
+.venv   

@@ -1,5 +1,6 @@
 #include "uci_interface.h"
 #include "game.h"
+#include "utils/str.h"
 #include <chrono>
 #include <config.h>
 #include <cstdlib>
@@ -7,7 +8,7 @@
 #include <exceptions.h>
 #include <iostream>
 #include <movegen_benchmark.h>
-#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <time_manager.h>
 
@@ -65,7 +66,7 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
 #endif
     }
 
-    std::string final_str = join(parts, ' ');
+    std::string final_str = Utils::join(parts, ' ');
 
     UCIInterface::uci_response(final_str);
 }
@@ -82,7 +83,7 @@ void UCIInterface::process_go_command(std::string command) {
     int wtime, btime, winc, binc;
     wtime = btime = STANDARD_TIME;
     winc = binc = STANDARD_TINC;
-    auto parts = split(command, ' ');
+    auto parts = Utils::split(command, ' ');
     if (parts.size() > 0) {
         if (parts[0] == "perft") {
             if (parts.size() < 3) {
@@ -113,26 +114,26 @@ void UCIInterface::process_go_command(std::string command) {
                 std::string token = parts[idx];
                 std::optional<int> oint;
                 if (token == "wtime") {
-                    oint = try_process_int(parts[idx + 1]);
+                    oint = Utils::try_process_int(parts[idx + 1]);
                     if (oint) {
                         wtime = oint.value();
                         idx++;
                     }
                 } else if (token == "btime") {
-                    oint = try_process_int(parts[idx + 1]);
+                    oint = Utils::try_process_int(parts[idx + 1]);
                     if (oint) {
                         btime = oint.value();
                         idx++;
                     }
 
                 } else if (token == "binc") {
-                    oint = try_process_int(parts[idx + 1]);
+                    oint = Utils::try_process_int(parts[idx + 1]);
                     if (oint) {
                         binc = oint.value();
                         idx++;
                     }
                 } else if (token == "winc") {
-                    oint = try_process_int(parts[idx + 1]);
+                    oint = Utils::try_process_int(parts[idx + 1]);
                     if (oint) {
                         winc = oint.value();
                         idx++;
@@ -150,16 +151,6 @@ void UCIInterface::process_go_command(std::string command) {
     // UCIInterface::send_bestmove();
 }
 
-std::optional<int> UCIInterface::try_process_int(std::string intstring) {
-    int depth;
-    try {
-        depth = std::stoi(intstring);
-    } catch (const std::exception &e) {
-        UCIInterface::uci_response("Error processing string to int: " + intstring);
-        return {};
-    }
-    return std::make_optional(depth);
-}
 void UCIInterface::process_position_command(std::string command) {
     // Example: "position startpos moves e2e4 e7e5"
     // Initialize board:
@@ -236,13 +227,13 @@ void UCIInterface::process_d_command() {
     Game::instance().display_board();
     UCIInterface::uci_response(Game::instance().get_fen());
     Board board = Game::instance().get_board();
-    int eval = EvalState::eval(board);
+    int eval = Game::instance().eval.eval(board);
     UCIInterface::uci_response("Board evaluation (0 depth): " + std::to_string(eval));
 }
 void UCIInterface::process_bench_command(std::string command) {
     // Should be structured like:
     // <fentype> <depth> <threads>
-    std::vector<std::string> parts = UCIInterface::split(command, ' ');
+    std::vector<std::string> parts = Utils::split(command, ' ');
     int depthloc = 1;
     if (parts.size() == 8) {
         std::vector<std::string> fenparts = parts;
@@ -250,7 +241,7 @@ void UCIInterface::process_bench_command(std::string command) {
         for (int i = 0; i < fenl; i++)
             fenparts[i] = parts[i];
         depthloc = fenl;
-        std::string fen = UCIInterface::join(fenparts, ' ');
+        std::string fen = Utils::join(fenparts, ' ');
         Game::instance().set_fen(fen);
     } else if (parts.size() == 3) {
         if (parts[0] == "current") {
@@ -287,41 +278,10 @@ void UCIInterface::process_fen_command(std::string command) {
 }
 
 void UCIInterface::uci_response(std::string response) { std::cout << response << std::endl; }
-std::vector<std::string> UCIInterface::split(std::string full, char del) {
-    std::stringstream ss(full);
-    std::string temp;
-    std::vector<std::string> out;
-    while (std::getline(ss, temp, del)) {
-        out.push_back(temp);
-    }
-    return out;
-}
-std::string UCIInterface::trim(std::string full) {
-    std::string out = "";
-    size_t i;
-    for (i = 0; i < full.length() && full[i] == ' '; i++) {
-    }
-    size_t start = i;
 
-    for (i = full.length() - 1; i >= 0 && full[i] == ' '; i--) {
-    }
-    size_t stop = i;
-    if (start <= stop)
-        out = full.substr(start, stop - start + 1);
-    return out;
-}
-std::string UCIInterface::join(std::vector<std::string> strings, char del) {
-    std::string str = "";
-    for (size_t i = 0; i < strings.size(); i++) {
-        if (i != 0)
-            str.push_back(del);
-        str.append(strings[i]);
-    }
-    return str;
-}
 void UCIInterface::process_self_command(std::string command) {
     std::string fen = Game::instance().get_fen();
-    std::vector<std::string> parts = split(command, ' ');
+    std::vector<std::string> parts = Utils::split(command, ' ');
     if (parts.size() == 0) {
         UCIInterface::uci_response("Correct syntax is self <nmoves>");
         return;

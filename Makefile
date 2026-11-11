@@ -1,92 +1,129 @@
-# paths
-DSRC = ./src
-DINC = ./include
-DOBJ = ./build
-DEXE = ./bin
-DTEST = ./tests
+# ---------- paths ----------
+DSRC  := src
+DINC  := include
+DTEST := tests
+DEXE  := bin
 
-EXE?=filipbot
-TEST_EXE = testsuite
-MAGIC_EXE = gen_magics
+EXE       ?= filipbot
+TEST_EXE  := testsuite
+MAGIC_EXE := gen_magics
+TEXEL_EXE := tune
 
-# compile in parallel
-NPROCS := $(shell grep -c 'processor' /proc/cpuinfo)
-MAKEFLAGS += -j4
+LIBRARIES = libraries
+# eigen
 
+EIGEN_DIR := $(LIBRARIES)/Eigen
+EIGEN_URL := https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.gz
+
+# ---------- build type ----------
 type ?= dev
-ifeq ($(type), release)
-    FLAGS = -Wall -std=c++23 -O3 -DNDEBUG -march=native
-else ifeq ($(type), dev)
-    FLAGS = -DDEBUG -g -Wall -std=c++23 -Ofast -march=native -fsanitize=address
-else ifeq ($(type), debug)
-    FLAGS = -DDEBUG -g -Wall -std=c++23 -O0 -march=native -fsanitize=address
-else ifeq ($(type), perft)
-    FLAGS = -Wall -std=c++23 -O2 -g -DNDEBUG -march=native
+
+ifeq ($(type),release)
+  FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -fopenmp
+else ifeq ($(type),dev)
+  FLAGS := -DDEBUG -g -Wall -std=c++23 -O2 -march=native -fsanitize=address
+else ifeq ($(type),debug)
+  FLAGS := -DDEBUG -g -Wall -std=c++23 -O0 -march=native -fsanitize=address
+else ifeq ($(type),perft)
+  FLAGS := -Wall -std=c++23 -O2 -g -DNDEBUG -march=native
 else
-    $(error Invalid value for type: '$(type)'. Must be 'release', 'dev' or 'perft'.)
+  $(error Invalid type '$(type)'. Must be release, dev, debug or perft)
 endif
 
-LIBS = -lgtest -lgtest_main -pthread  # Google Test and pthread libs
+# Separate object dir per build type, so switching type never mixes objects
+DOBJ := build/$(type)
 
-# Commands for linking.
-CCL = g++ $(FLAGS) -o
-# Commands for compilation (removed redundant -c here)
-CC = g++ $(FLAGS) -MMD -MP -c
+# ---------- parallelism ----------
+MAKEFLAGS += -j$(shell nproc)
 
-# objects
-OBJECTS = $(DOBJ)/uci_interface.o $(DOBJ)/piece.o $(DOBJ)/board.o $(DOBJ)/game.o $(DOBJ)/notation_interface.o $(DOBJ)/bitboard.o $(DOBJ)/movegen.o $(DOBJ)/movegen_benchmark.o $(DOBJ)/time_manager.o $(DOBJ)/eval.o $(DOBJ)/moveorder.o $(DOBJ)/tables.o $(DOBJ)/config_parser.o $(DOBJ)/history.o
-MAIN_OBJ = $(DOBJ)/main.o
-MAGIC_OBJ = $(DOBJ)/gen_magic_nums.o
-TEST_OBJECTS = $(DOBJ)/piece_test.o $(DOBJ)/board_test.o $(DOBJ)/interface_test.o $(DOBJ)/board_state_test.o $(DOBJ)/bitboard_test.o $(DOBJ)/movegen_test.o $(DOBJ)/time_manager_test.o $(DOBJ)/tables_test.o $(DOBJ)/config_parser_test.o
+# ---------- toolchain ----------
+CXX      := clang++
+INC_DIRS := $(shell find $(DINC) -type d)
+CPPFLAGS := $(addprefix -I,$(INC_DIRS)) -MMD -MP
+CXXFLAGS := $(FLAGS)
+LDFLAGS  := $(FLAGS)
+LIBS     := -lgtest -lgtest_main -pthread
 
-# Target
+# ---------- source discovery ----------
+# Files with their own main() or belonging to a separate tool
+MAIN_SRC  := $(DSRC)/main.cpp
+MAGIC_SRC := $(DSRC)/gen_magic_nums.cpp
+TEXEL_SRC := $(shell find $(DSRC)/texel -name '*.cpp' 2>/dev/null)
+
+ALL_SRC   := $(shell find $(DSRC) -name '*.cpp')
+CORE_SRC  := $(filter-out $(MAIN_SRC) $(MAGIC_SRC) $(TEXEL_SRC),$(ALL_SRC))
+TEST_SRC  := $(shell find $(DTEST) -name '*.cpp')
+
+# src/a/b.cpp -> build/<type>/src/a/b.o
+to_obj = $(patsubst %.cpp,$(DOBJ)/%.o,$(1))
+
+CORE_OBJ  := $(call to_obj,$(CORE_SRC))
+MAIN_OBJ  := $(call to_obj,$(MAIN_SRC))
+MAGIC_OBJ := $(call to_obj,$(MAGIC_SRC))
+TEXEL_OBJ := $(call to_obj,$(TEXEL_SRC))
+TEST_OBJ  := $(call to_obj,$(TEST_SRC))
+
+ALL_OBJ := $(CORE_OBJ) $(MAIN_OBJ) $(MAGIC_OBJ) $(TEXEL_OBJ) $(TEST_OBJ)
+
+# add eigen include only to texel objects.
+$(TEXEL_OBJ): CPPFLAGS += -I$(EIGEN_DIR) -fpermissive
+
+$(TEXEL_OBJ): | $(EIGEN_DIR)
+
+$(EIGEN_DIR):
+	@echo "Downloading Eigen header-only library..."
+	@mkdir -p libraries
+	@if command -v curl >/dev/null; then \
+		curl -L $(EIGEN_URL) -o libraries/eigen.tar.gz; \
+	elif command -v wget >/dev/null; then \
+		wget $(EIGEN_URL) -O libraries/eigen.tar.gz; \
+	else \
+		echo "Error: Neither curl nor wget found." >&2; exit 1; \
+	fi
+	@tar -xzf libraries/eigen.tar.gz -C libraries/
+	@mv libraries/eigen-* $(EIGEN_DIR)
+	@rm libraries/eigen.tar.gz
+	@echo "Eigen downloaded successfully."
+
+# ---------- targets ----------
+.PHONY: all test runtest magic tune run clean FORCE
+
 all: $(DEXE)/$(EXE)
 
-# Link the main executable
-$(DEXE)/$(EXE): $(OBJECTS) $(MAIN_OBJ) 
-	$(CCL) $@ $(MAIN_OBJ) $(OBJECTS) $(LIBS)
+# ---- link into build/<type>/ ----
+$(DOBJ)/$(EXE): $(CORE_OBJ) $(MAIN_OBJ)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(DEXE)/$(MAGIC_EXE): $(OBJECTS) $(MAGIC_OBJ) 
-	$(CCL) $@ $(MAGIC_OBJ) $(OBJECTS) $(LIBS)
+$(DOBJ)/$(MAGIC_EXE): $(CORE_OBJ) $(MAGIC_OBJ)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-# Test executable target
-$(DEXE)/$(TEST_EXE): $(TEST_OBJECTS) $(OBJECTS)
-	$(CCL) $@ $(TEST_OBJECTS) $(OBJECTS) $(LIBS)
+$(DOBJ)/$(TEXEL_EXE): $(CORE_OBJ) $(TEXEL_OBJ)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-# Compile test object files (from ./tests folder)
-$(DOBJ)/%.o: $(DTEST)/%.cpp Makefile
-	$(CC) -I$(DINC) $< -o $@
+$(DOBJ)/$(TEST_EXE): $(CORE_OBJ) $(TEST_OBJ)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-# Compile source object files (from ./src folder - includes main.cpp and gen_magic_nums.cpp)
-$(DOBJ)/%.o: $(DSRC)/%.cpp Makefile 
-	$(CC) -I$(DINC) $< -o $@
+# ---- copy into bin/ (FORCE makes it copy every time) ----
+$(DEXE)/%: $(DOBJ)/% FORCE
+	@mkdir -p $(DEXE)
+	@cmp -s $< $@ || cp -f $< $@
 
-# Include dependency files for ALL objects
-DEPS := $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d) $(MAIN_OBJ:.o=.d) $(MAGIC_OBJ:.o=.d)
--include $(DEPS)
+FORCE:
 
-build:
-	mkdir -p $(DOBJ)
+# One rule compiles everything (src, src/subdirs, tests, tests/subdirs)
+$(DOBJ)/%.o: %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-bin:
-	mkdir -p $(DEXE)
+# Header dependency tracking
+-include $(ALL_OBJ:.o=.d)
 
-# Clean up build artifacts safely
-clean:
-	rm -rf $(DOBJ)/* $(DEXE)/$(EXE) $(DEXE)/$(TEST_EXE) $(DEXE)/$(MAGIC_EXE)
+# ---------- convenience ----------
+filter ?= *
 
-# Run the main executable
-run:
-	cd $(DEXE); \
-	./$(EXE)
-
-# Compile tests
 test: $(DEXE)/$(TEST_EXE)
-
-filter ?= "*"
-# runtests
-runtest: $(DEXE)/$(TEST_EXE)
-	./$(DEXE)/$(TEST_EXE) --gtest_filter="$(filter)"
-
 magic: $(DEXE)/$(MAGIC_EXE)
-	./$(DEXE)/$(MAGIC_EXE)
+tune: $(DEXE)/$(TEXEL_EXE)
+
+clean:
+	rm -rf build $(DEXE)/$(EXE) $(DEXE)/$(TEST_EXE) $(DEXE)/$(MAGIC_EXE) $(DEXE)/$(TEXEL_EXE) libraries
