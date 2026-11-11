@@ -20,5 +20,5 @@ dvec eval_positions(const EvalParameters &params, const std::vector<std::string>
     return win_chance;
 }
 
-double loss(const dvec &res, const dvec &pred) { return (res - pred).array().square().sum() / res.size(); }
+double loss(const dvec &res, const dvec &pred) { return std::sqrt((res - pred).array().square().sum() / res.size()); }
 }  // namespace Texel
