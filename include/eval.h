@@ -149,7 +149,6 @@ extern const std::array<std::pair<std::vector<int>, Symmetry>, 7> psq_parameters
 #define EVAL_SCALAR_PARAMS(X)                                                                                                                                  \
     X(bishop_double_bonus, DefaultVals::bishop_double_bonus)                                                                                                   \
     X(king_dist, DefaultVals::king_dist)                                                                                                                       \
-    X(passed_pawn_eval, DefaultVals::passed_pawn_eval)                                                                                                         \
     X(doubled_pawn_punishment, DefaultVals::doubled_pawn_punishment)                                                                                           \
     X(solo_pawn_punishment, DefaultVals::solo_pawn_punishment)
 
@@ -167,8 +166,9 @@ struct EvalParameters {
                                          DefaultVals::knight_moveval,
                                          DefaultVals::bishop_moveval,
                                          DefaultVals::pawn_moveval};
-
     std::array<PieceSquareTable, num_pieces> psts;
+    std::array<int, 7> passed_dist_to_promotion = {0, 80, 60, 40, 30, 10, 10};
+
     void set_pst(Piece_t p, Symmetry s, std::vector<int> params) {
         assert(p > 0 && p < num_pieces);
         psts[p].set(s, p, std::move(params));

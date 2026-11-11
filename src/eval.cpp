@@ -1,4 +1,5 @@
 // Copyright Filip Agert
+#include "bitboard.h"
 #include "integer_representation.h"
 #include "notation_interface.h"
 #include <cassert>
@@ -44,16 +45,6 @@ void south_north_mirror(std::array<int, 64> &arr) {
     // pastes south onto north, mirrored
     for (int i = 0; i < 32; i++) {
         arr[NotationInterface::idx_flip(i)] = arr[i];
-    }
-    for (int row = 0; row < 4; row++) {
-        for (int col = 7; col >= 0; col--) {
-            int nrow = 4 + row;
-            int nidx = NotationInterface::idx(nrow, col);
-            // idx to paste to.
-            int srow = 3 - row;
-            int sidx = NotationInterface::idx(srow, col);
-            arr[nidx] = arr[sidx];
-        }
     }
 }
 void west_east_mirror(std::array<int, 64> &arr) {
@@ -153,8 +144,9 @@ std::string PieceSquareTable::to_string() const {
         os << " " << (r + 1) << " |";
         for (int f = 0; f < 8; ++f) {
             int offset = piece_ == pieces::pawn ? 1 : 0;
-            const bool stored = static_cast<size_t>(f) < w && static_cast<size_t>(r) < (h - offset) && static_cast<size_t>(r) >= offset;
-            os << centered(stored ? std::to_string(params[r * w + f]) : "") << "|";
+            int idx = NotationInterface::idx(r, f);
+            const bool store = static_cast<size_t>(f) < w && static_cast<size_t>(r) < (h - offset) && static_cast<size_t>(r) >= offset;
+            os << centered(store ? std::to_string(white_[idx]) : "") << "|";
         }
         os << " " << (r + 1) << "\n" << sep;
     }
@@ -170,6 +162,8 @@ std::vector<int> EvalParameters::to_vector() const {
 #define X(name, def) v.push_back(name);
     EVAL_SCALAR_PARAMS(X)
 #undef X
+    for (size_t i = 1; i < passed_dist_to_promotion.size(); i++)
+        v.push_back(passed_dist_to_promotion[i]);
     for (size_t p = 1; p < num_pieces; ++p)
         v.push_back(piecevals[p]);
     for (size_t p = 1; p < num_pieces; ++p)
@@ -186,6 +180,8 @@ void EvalParameters::from_vector(const std::vector<int> &v) {
 #define X(name, def) name = v[i++];
     EVAL_SCALAR_PARAMS(X)
 #undef X
+    for (size_t j = 1; j < passed_dist_to_promotion.size(); j++)
+        passed_dist_to_promotion[j] = v[i++];
     for (size_t p = 1; p < num_pieces; ++p)
         piecevals[p] = v[i++];
     for (size_t p = 1; p < num_pieces; ++p)
@@ -203,12 +199,13 @@ std::string EvalParameters::to_string() const {
 #define X(name, def) os << #name << " = " << name << "\n";
     EVAL_SCALAR_PARAMS(X)
 #undef X
-    auto dump = [&](const char *label, const std::array<int, num_pieces> &a) {
+    auto dump = [&]<size_t N>(const char *label, const std::array<int, N> &a) {
         os << label << " = {";
-        for (size_t p = 1; p < num_pieces; ++p)
-            os << a[p] << (p + 1 < num_pieces ? ", " : "");
+        for (size_t p = 1; p < N; ++p)
+            os << a[p] << (p + 1 < N ? ", " : "");
         os << "}\n";
     };
+    dump("dist2promo[1,2,3,4,5,6]", passed_dist_to_promotion);
     dump("piecevals[K,Q,R,N,B,P]", piecevals);
     dump("movevals[K,Q,R,N,B,P]", movevals);
     static const char *names[num_pieces] = {"", "King", "Queen", "Rook", "Knight", "Bishop", "Pawn"};
@@ -241,12 +238,10 @@ int EvalState::eval_mobility(Board &board) {
     constexpr bool omit_pawn = true;
     int king_mobility = board.get_piece_mobility<pieces::king, omit_pawn, true>() - board.get_piece_mobility<pieces::king, omit_pawn, false>();
     int bishop_mobility = board.get_piece_mobility<pieces::bishop, omit_pawn, true>() - board.get_piece_mobility<pieces::bishop, omit_pawn, false>();
-    // int queen_mobility = board.get_piece_mobility<pieces::queen, omit_pawn, true>() -
-    //                      board.get_piece_mobility<pieces::queen, omit_pawn, false>();
+    int queen_mobility = board.get_piece_mobility<pieces::queen, omit_pawn, true>() - board.get_piece_mobility<pieces::queen, omit_pawn, false>();
     int knight_mobility = board.get_piece_mobility<pieces::knight, omit_pawn, true>() - board.get_piece_mobility<pieces::knight, omit_pawn, false>();
-    int mobility_eval =
-        king_mobility * params.movevals[pieces::king] + bishop_mobility * params.movevals[pieces::bishop] + knight_mobility * params.movevals[pieces::knight];
-    // queen_mobility * PieceValue::movevals[pieces::queen];
+    int mobility_eval = king_mobility * params.movevals[pieces::king] + bishop_mobility * params.movevals[pieces::bishop] +
+                        knight_mobility * params.movevals[pieces::knight] + queen_mobility * params.movevals[pieces::queen];
     return mobility_eval;
 }
 bool EvalState::forced_draw_ply(Board &board) {
@@ -309,6 +304,7 @@ std::optional<int> EvalState::moves_to_mate(int score) {
     }
 }
 int EvalState::eval_pawn_structure(Board &board) {
+    int eval = 0;
     constexpr int maxforward = 4;
     constexpr BB AFILE = ~masks::left;
     constexpr BB HFILE = ~masks::right;
@@ -332,13 +328,19 @@ int EvalState::eval_pawn_structure(Board &board) {
     BB w_full_mask = w_NE_fill | w_NW_fill | w_N_fill;
     BB b_full_mask = b_SE_fill | b_SW_fill | b_S_fill;
 
-    int bpassed = BitBoard::bitcount(~w_full_mask & bpawns);  // Counts black pawns not in the white passed
-                                                              // mask. these are all passed black pawns.
-    int wpassed = BitBoard::bitcount(~b_full_mask & wpawns);  // Counts white pawns not in the black passed mask
-    assert(bpassed <= 8);
-    assert(wpassed <= 8);
-    assert(bpassed >= 0);
-    assert(wpassed >= 0);
+    BB bpassed = ~w_full_mask & bpawns;  // Counts black pawns not in the white passed
+                                         // mask. these are all passed black pawns.
+    BB wpassed = ~b_full_mask & wpawns;  // Counts white pawns not in the black passed mask
+
+    BitLoop(wpassed) {
+        uint8_t row = NotationInterface::row(BitBoard::lsb(wpassed));
+        uint8_t dist_to_promote = 8 - row;
+        eval += params.passed_dist_to_promotion[dist_to_promote];
+    }
+    BitLoop(bpassed) {
+        uint8_t row = NotationInterface::row(BitBoard::lsb(bpassed));
+        eval -= params.passed_dist_to_promotion[row];
+    }
     // END PASSED PAWNS
     // CALCULATE DOUBLED PAWNS
     int wdoubled = BitBoard::bitcount(w_N_fill & wpawns);
@@ -349,23 +351,22 @@ int EvalState::eval_pawn_structure(Board &board) {
     BB b_fill = b_S_fill;
     for (int i = 0; i < maxforward; i++) {
         w_fill |= w_fill >> 8;
-        b_fill |= b_fill >> 8;
+        b_fill |= b_fill << 8;
     }
-    w_NE_fill = (HFILE & w_fill) << 1;
-    b_SE_fill = (HFILE & b_fill) << 1;
+    BB w_E_fill = (HFILE & w_fill) << 1;
+    BB b_E_fill = (HFILE & b_fill) << 1;
 
-    w_NW_fill = (AFILE & w_fill) >> 1;
-    b_SW_fill = (AFILE & b_fill) >> 1;
+    BB w_W_fill = (AFILE & w_fill) >> 1;
+    BB b_W_fill = (AFILE & b_fill) >> 1;
 
-    BB w_sides = w_NE_fill | w_NW_fill;
-    BB b_sides = w_NE_fill | w_NW_fill;
+    BB w_sides = w_E_fill | w_W_fill;
+    BB b_sides = b_E_fill | b_W_fill;
 
     // Number of alone pawns (no pawns on adjacent files.)
     int nsolow = BitBoard::bitcount(wpawns) - BitBoard::bitcount(w_sides & wpawns);
     int nsolob = BitBoard::bitcount(bpawns) - BitBoard::bitcount(b_sides & bpawns);
 
-    return (wpassed - bpassed) * params.passed_pawn_eval + (wdoubled - bdoubled) * params.doubled_pawn_punishment +
-           (nsolow - nsolob) * params.solo_pawn_punishment;
+    return eval + (wdoubled - bdoubled) * params.doubled_pawn_punishment + (nsolow - nsolob) * params.solo_pawn_punishment;
 }
 
 /**
