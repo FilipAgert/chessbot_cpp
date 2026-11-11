@@ -44,3 +44,4 @@ compile*
 .cache
 
 bench/*.json
+tools/tournament.py
