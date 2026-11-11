@@ -38,7 +38,7 @@ git worktree add --detach "$WT" "$FULL_HASH" >&2
 (
   cd "$WT"
   mkdir -p build bin
-  make type=release
+  make type=release all
   cp bin/filipbot "$BIN"
 )
 
