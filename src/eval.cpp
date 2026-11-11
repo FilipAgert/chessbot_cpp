@@ -187,7 +187,7 @@ std::vector<int> EvalParameters::to_vector() const {
 #undef X
     for (size_t i = 1; i < passed_dist_to_promotion.size(); i++)
         v.push_back(passed_dist_to_promotion[i]);
-    for (size_t p = 1; p < num_pieces; ++p)
+    for (size_t p = 2; p < num_pieces; ++p)
         v.push_back(piecevals[p]);
     for (size_t p = 1; p < num_pieces; ++p)
         v.push_back(movevals[p]);
@@ -205,7 +205,7 @@ void EvalParameters::from_vector(const std::vector<int> &v) {
 #undef X
     for (size_t j = 1; j < passed_dist_to_promotion.size(); j++)
         passed_dist_to_promotion[j] = v[i++];
-    for (size_t p = 1; p < num_pieces; ++p)
+    for (size_t p = 2; p < num_pieces; ++p)
         piecevals[p] = v[i++];
     for (size_t p = 1; p < num_pieces; ++p)
         movevals[p] = v[i++];
