@@ -16,7 +16,7 @@ if [[ -x "$BIN" ]]; then
     exit 0 
 fi   # cached
 
-WT="$ROOT/engines/.wt-$HASH"
+WT="${TMPDIR:-/tmp}/engine-wt-$HASH"
 
 cleanup() {
     git worktree remove --force "$WT" >/dev/null 2>&1 || true
@@ -38,8 +38,12 @@ git worktree add --detach "$WT" "$FULL_HASH" >&2
 (
   cd "$WT"
   mkdir -p build bin
-  make type=release all
+  make -j1 type=release all >&2
   cp bin/filipbot "$BIN"
 )
-
+if [[ -x "$BIN" ]]; then
+ echo "$BIN"
+ exit 0
+fi
+...
 echo "$BIN"
