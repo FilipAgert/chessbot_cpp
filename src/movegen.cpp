@@ -4,6 +4,44 @@
 using namespace dirs;
 using namespace masks;
 namespace magic {
+std::array<uint64_t, max_size> compute_atk_bbs(std::array<uint64_t, max_size> occ_vars, int sq, bool rook, bool xray) {
+    int m = rook ? rook_num_occ_bits[sq] : bishop_num_occ_bits[sq];
+    int num = 1 << m;  // number of occ boards to generate.
+    std::array<uint64_t, max_size> atk_bbs;
+    for (int n = 0; n < num; n++) {
+        if (xray) {
+            atk_bbs[n] = rook ? rook_xray_atk_bb_helper(sq, occ_vars[n]) : bishop_xray_atk_bb_helper(sq, occ_vars[n]);
+        } else {
+            atk_bbs[n] = rook ? rook_atk_bb_helper(sq, occ_vars[n]) : bishop_atk_bb_helper(sq, occ_vars[n]);
+        }
+    }
+    return atk_bbs;
+}
+std::array<uint64_t, max_size> gen_occ_variation(uint64_t occ_mask, int m) {
+    // 1: Find binary rep of n
+    // 2: For each 1 in n, starting from the right:
+    //    Put it on each 1 in occ_mask, in the correct order.
+    int num = 1 << m;  // number of occ boards to generate
+    std::array<uint8_t, max_bits> mask_one_locations = mask_one_locs(occ_mask);
+    std::array<uint64_t, max_size> occ_vars;
+
+    for (int n = 0; n < num; n++) {
+        int nreduced = n;
+        uint64_t out_nbr = 0;
+        while (nreduced > 0) {
+            uint8_t hibit = BitBoard::lsb(nreduced);  // Extract LSB loc.
+            nreduced = BitBoard::clear_lsb(nreduced);
+            // hi_bit, m, is then the location of the current high bit m in the number n. This
+            // should be put on the mth 1 in occ_mask. How to find the location of the mth one in
+            // occ_mask? Do the same.
+            uint8_t mask_one_loc = mask_one_locations[hibit];
+            out_nbr |= BitBoard::one_high(mask_one_loc);
+        }
+        occ_vars[n] = out_nbr;
+    }
+    return occ_vars;
+}
+
 alignas(64) const std::array<uint64_t, rook_magic_table_sz> rook_magic_bitboards = [] {  // precompute the magic bitboards;
     std::array<uint64_t, rook_magic_table_sz> rook_magic_bbs;
     for (int sq = 0; sq < 64; sq++) {

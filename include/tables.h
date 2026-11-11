@@ -185,7 +185,7 @@ struct TranspositionTable {
     static constexpr int table_size = 1ULL << nbits;
     static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
     static constexpr int actual_size_MB = (table_size * entry_size) / 1000000;
-    std::array<TranspositionBucket, table_size> arr;  // array holding the data.
+    std::vector<TranspositionBucket> arr = std::vector<TranspositionBucket>(table_size);
     size_t hits = 0;                                  // how many times did we access the table and find the board inside?
     size_t misses = 0;                                // how many times did we access the table and not find the board?
     size_t collisions = 0;                            // how many times did we have a hash collision?

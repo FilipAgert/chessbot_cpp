@@ -205,7 +205,7 @@ class Game {
     static constexpr int INF = 10000000;
     bool must_finish;  // if must finish this search or not.
     // table needs to be a pointer since its so large in memory.
-    std::unique_ptr<TranspositionTable> trans_table = std::make_unique<TranspositionTable>();
+    TranspositionTable trans_table = TranspositionTable();
 
     long int reductions_total;
     long int reductions_cnt;

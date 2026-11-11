@@ -28,7 +28,7 @@ bool Game::set_fen(std::string FEN) {
     bool success = board.read_fen(FEN);
     assert(board.board_BB_match());
     reset_state_stack();
-    trans_table->clear();
+    trans_table.clear();
     return success;
 }
 
@@ -179,9 +179,9 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         new_msg.nodes = nodes_evaluated + nodes_quiesence_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
-        new_msg.pv = trans_table->get_pv(board, depth);
+        new_msg.pv = trans_table.get_pv(board, depth);
         new_msg.seldepth = seldepth;
-        new_msg.hashfill = trans_table->load_factor();
+        new_msg.hashfill = trans_table.load_factor();
         new_msg.score = eval;
         new_msg.reduction_average = (float(reductions_total) / float(reductions_cnt));
         new_msg.reduction_research = (float(research_cnt) / float(reductions_cnt));
@@ -249,7 +249,7 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
     uint8_t nodetype = ub;
 
     uint64_t zob_hash = state_stack.top();
-    std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
+    std::optional<TranspositionEntry> maybe_entry = trans_table.get(zob_hash);
     std::optional<Move> first_move = {};
     if (maybe_entry) {
         const TranspositionEntry &entry = maybe_entry.value();
@@ -257,7 +257,7 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
             first_move = std::make_optional(maybe_entry.value().bestmove);
 
         if constexpr (!is_root) {
-            if (trans_table->is_useable_entry(entry, depth)) {
+            if (trans_table.is_useable_entry(entry, depth)) {
                 // If exact, return score
                 int eval = score_from_tt(entry.eval, ply);
                 if (entry.is_exact()) {  // if exact value
@@ -390,7 +390,7 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
         if (should_abort()) {
             if constexpr (is_root) {
                 if (atleast_one_move_searched && bestscore > alpha) {
-                    trans_table->store(zob_hash, best_curr_move, score_to_tt(bestscore, ply), lb, depth);
+                    trans_table.store(zob_hash, best_curr_move, score_to_tt(bestscore, ply), lb, depth);
                 }
             }
             return {0, timeout};
@@ -405,8 +405,8 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
                 root_best = move;
         }
         if (eval >= beta) {  // FAIL HIGH.
-            trans_table->store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
-                               depth);  // Can update hash to curr depth.
+            trans_table.store(zob_hash, best_curr_move, score_to_tt(beta, ply), lb,
+                              depth);  // Can update hash to curr depth.
 
             if (move_quiet)
                 insert_killer(move, killers);
@@ -429,7 +429,7 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
             nodetype = exact;
         }
     }
-    trans_table->store(zob_hash, nodetype == exact ? best_curr_move : Move(), score_to_tt(alpha, ply), nodetype, depth);
+    trans_table.store(zob_hash, nodetype == exact ? best_curr_move : Move(), score_to_tt(alpha, ply), nodetype, depth);
     return {alpha, nodetype};
 }
 
@@ -444,10 +444,10 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     }
 
     uint64_t zob_hash = state_stack.top();
-    std::optional<TranspositionEntry> maybe_entry = trans_table->get(zob_hash);
+    std::optional<TranspositionEntry> maybe_entry = trans_table.get(zob_hash);
     if (maybe_entry) {
         const TranspositionEntry &entry = maybe_entry.value();
-        if (trans_table->is_useable_entry(entry, 0)) {  // depth 0: any stored depth qualifies
+        if (trans_table.is_useable_entry(entry, 0)) {  // depth 0: any stored depth qualifies
             int tt_score = score_from_tt(entry.eval, ply);
             if (entry.is_exact())
                 return {tt_score, exact};
