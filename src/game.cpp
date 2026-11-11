@@ -7,16 +7,15 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdio>
 #include <moveorder.h>
 
 #include "parameters.h"
 #include <board.h>
-#include <chrono>
 #include <climits>  // For infinity
 #include <config.h>
 #include <eval.h>
 #include <game.h>
-#include <iostream>
 #include <memory>
 #include <move.h>
 #include <optional>
@@ -210,7 +209,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int pre
     }
     int fails = 0;
     while (true) {
-        auto res = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
+        auto res = alpha_beta<true, is_white, false, NodeType::PV>(depth, 0, alpha, beta, 0);
         if (res.second == timeout)
             return res;
         int score = res.first;
@@ -223,7 +222,9 @@ template <bool is_white> std::pair<int, uint8_t> Game::aspiration_search(int pre
         delta += delta / 2;
     }
 }
-template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
+
+template <bool is_root, bool is_white, bool is_zw, uint8_t node_type>
+std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     nodes_evaluated++;
     seldepth = std::max(ply, seldepth);
     if (this->check_repetition()) {
@@ -284,16 +285,18 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     // If we don't make a move, and the store is still beating beta, we are sure this branch is not worth searching
     // (Since our score is way too high)
     // Even doing nothing (worst possible move) is good.
-    const int reduction = Parameters::NULLMOVE_R;
-    if (!(king_checked | may_zugzwang) && (depth > reduction + 1) && !in_null) {
-        in_null = true;
-        make_nullmove<is_white>();
-        std::pair<int, uint8_t> res = alpha_beta<false, !is_white>(depth - reduction - 1, ply + 1, -beta, -(beta - 1), num_extensions);
-        int eval = -res.first;
-        undo_move<is_white>();
-        in_null = false;
-        if (eval >= beta) {  // even doing nothing is good: prune
-            return {beta, lb};
+    if constexpr (node_type != NodeType::CUT) {
+        const int reduction = Parameters::NULLMOVE_R;
+        if (!(king_checked | may_zugzwang) && (depth > reduction + 1) && !in_null) {
+            in_null = true;
+            make_nullmove<is_white>();
+            std::pair<int, uint8_t> res = alpha_beta<false, !is_white, true, true>(depth - reduction - 1, ply + 1, -beta, -(beta - 1), num_extensions);
+            int eval = -res.first;
+            undo_move<is_white>();
+            in_null = false;
+            if (eval >= beta) {  // even doing nothing is good: prune
+                return {beta, lb};
+            }
         }
     }
     // Handle if king is checked or no moves can be made.
@@ -313,6 +316,33 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
     MoveOrder::move_heuristics<is_white>(moves, scores, num_moves, board, first_move, history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
 
+    // Multicut pruning.
+    // Applies in cut nodes with zero width.
+    // Should benchmark later, apparently may be negative impact in some cases.
+    // Here, it was 17 +/- 13 elo.
+    if constexpr (is_zw && node_type == NodeType::CUT) {
+        if (depth >= Parameters::MC_R && num_moves >= Parameters::MC_M) {
+            int c = 0;
+            int i = 0;
+            while (picker.has_next() && i < Parameters::MC_M && (Parameters::MC_M - i) >= (Parameters::MC_C - c)) {
+                i++;
+                auto [_, move] = picker.next();
+
+                make_move<is_white>(move);
+                std::pair<int, uint8_t> res =
+                    alpha_beta<false, !is_white, is_zw, NodeType::ALL>(depth - 1 - Parameters::MC_R, ply + 1, -beta, -(beta - 1), num_extensions);
+                undo_move<is_white>();
+
+                if (-res.first >= beta) {
+                    if (++c >= Parameters::MC_C) {
+                        return {beta, ub};
+                    }
+                }
+            }
+            picker.reset_head();  // redo search for real.
+        }
+    }
+
     // Normal move generation.
     //
     while (picker.has_next()) {
@@ -325,9 +355,11 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
         int extension = calculate_extension(move, i, num_extensions, enemy_king_checked);
         int eval;
         std::pair<int, uint8_t> res;
-        if (i == 0)
-            res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
-        else {
+        if (i == 0) {
+            constexpr uint8_t child_type = node_type == NodeType::PV ? NodeType::PV : (node_type == NodeType::CUT ? NodeType::ALL : NodeType::CUT);
+            res = alpha_beta<false, !is_white, is_zw, child_type>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
+        } else {
+            constexpr uint8_t child_type = node_type == NodeType::CUT ? NodeType::ALL : NodeType::CUT;
             // PVS: Run null window search.
             int r = 0;
             // late move reduction:
@@ -340,18 +372,18 @@ template <bool is_root, bool is_white> std::pair<int, uint8_t> Game::alpha_beta(
                     reductions_cnt++;
                 }
             }
-            res = alpha_beta<false, !is_white>(depth - 1 + extension - r, ply + 1, -(alpha + 1), -alpha, num_extensions + extension);
+            res = alpha_beta<false, !is_white, true, child_type>(depth - 1 + extension - r, ply + 1, -(alpha + 1), -alpha, num_extensions + extension);
             eval = -res.first;
             // full search, null window
             if (eval > alpha && r > 0) {
-                res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -(alpha + 1), -alpha, num_extensions + extension);
+                res = alpha_beta<false, !is_white, true, child_type>(depth - 1 + extension, ply + 1, -(alpha + 1), -alpha, num_extensions + extension);
                 eval = -res.first;
                 research_cnt++;
             }
 
-            // pvs kicks in: Full window.
+            // pvs kicks in: Full window. //should be nodetype PV here?
             if ((eval > alpha) && (eval < beta))
-                res = alpha_beta<false, !is_white>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
+                res = alpha_beta<false, !is_white, is_zw, NodeType::PV>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         }
         eval = -res.first;
         undo_move<is_white>();

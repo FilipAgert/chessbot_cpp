@@ -20,7 +20,11 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+namespace NodeType {
+constexpr uint8_t PV = 0;
+constexpr uint8_t CUT = 1;
+constexpr uint8_t ALL = 2;
+}  // namespace NodeType
 struct InfoMsg {
     int depth = 0;              // half-ply
     int seldepth = 0;           // Depth reached in quiesence
@@ -77,7 +81,8 @@ class Game {
      * @param[in] num_extensions - number of move extensions performed so far
      * @return Pair of the eval and bound type.
      */
-    template <bool is_root, bool is_white> std::pair<int, uint8_t> alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
+    template <bool is_root, bool is_white, bool is_zw, uint8_t node_type>
+    std::pair<int, uint8_t> alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
     /**
      * @brief Quiesence search. Only evaluates captures
      * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
