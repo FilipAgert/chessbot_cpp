@@ -163,34 +163,24 @@ struct TranspositionBucket {
 };
 
 struct TranspositionTable {
+ private:
+    std::vector<TranspositionBucket> arr;
+
+ public:
     static constexpr size_t entry_size = sizeof(TranspositionBucket);
-    static constexpr int size_MB = TT_SIZE_MB;
-    static constexpr int nbits = [] constexpr {
-        constexpr size_t num_entries = size_MB * 1000000 / entry_size;
-        int msb = 0;
-        int val = num_entries;
-        while (val >>= 1)
-            msb++;
-
-        int numbits;
-        if (num_entries & ~(1ULL << msb)) {  // if other bits were set high too.
-            numbits = msb + 1;
-        } else {
-            numbits = msb;
-        }
-
-        return numbits;
-    }();
-    static_assert(nbits > TranspositionEntry::shift_hash, "Must have more bits in table than the hash shift.");
-    static constexpr int table_size = 1ULL << nbits;
-    static constexpr uint64_t mask = (1ULL << nbits) - 1;  // lowest nbits set high.
-    static constexpr int actual_size_MB = (table_size * entry_size) / 1000000;
-    std::vector<TranspositionBucket> arr = std::vector<TranspositionBucket>(table_size);
-    size_t hits = 0;                                  // how many times did we access the table and find the board inside?
-    size_t misses = 0;                                // how many times did we access the table and not find the board?
-    size_t collisions = 0;                            // how many times did we have a hash collision?
+    uint64_t mask;
+    size_t hits = 0;        // how many times did we access the table and find the board inside?
+    size_t misses = 0;      // how many times did we access the table and not find the board?
+    size_t collisions = 0;  // how many times did we have a hash collision?
     size_t overwrites = 0;
     size_t writes = 0;
+    int table_size_MB = 0;
+    /**
+     * @brief Initializes the table to a desired size in MB.
+     *
+     * @param desired_size_MB
+     */
+    TranspositionTable(int desired_size_MB);
 
     /**
      * @brief Gets key to access the table with
@@ -198,7 +188,7 @@ struct TranspositionTable {
      * @param[in] hash hash of board
      * @return key to access array with.
      */
-    static inline constexpr size_t get_key(uint64_t hash) { return hash & mask; }
+    inline size_t get_key(uint64_t hash) { return hash & mask; }
     /**
      * @brief Gets entry from table. If hash matches, return entry.
      *

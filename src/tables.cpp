@@ -1,10 +1,12 @@
 // Copyright 2025 Filip Agert
+#include "config.h"
 #include <bitboard.h>
+#include <cassert>
 #include <cstdlib>
 #include <piece.h>
 #include <random>
+#include <stdexcept>
 #include <tables.h>
-
 void ZobroistHasher::initialize_engine() {
     std::random_device sd;
     engine.seed(sd());
@@ -88,6 +90,27 @@ void ZobroistHasher::hash_turn(uint64_t &hash, const Board &board) const {
     if (board.get_turn_color() == pieces::black) {
         hash ^= black_number;
     }
+}
+TranspositionTable::TranspositionTable(int desired_size_MB) {
+    size_t num_entries = desired_size_MB * 1000000 / entry_size;
+    int msb = 0;
+    int val = num_entries;
+    while (val >>= 1)
+        msb++;
+
+    int numbits;
+    if (num_entries & ~(1ULL << msb)) {  // if other bits were set high too.
+        numbits = msb + 1;
+    } else {
+        numbits = msb;
+    }
+    int table_size = 1ULL << numbits;
+    if (!(numbits > TranspositionEntry::shift_hash))
+        throw std::runtime_error("must have more bits in table than in the hash shift");
+    mask = (1ULL << numbits) - 1;  // lowest nbits set high.
+
+    table_size_MB = table_size * entry_size / 1000000;
+    arr.resize(table_size);
 }
 std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
     size_t key = get_key(hash);

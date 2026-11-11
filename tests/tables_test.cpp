@@ -1,4 +1,5 @@
 
+#include "config.h"
 #include <board.h>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -68,7 +69,7 @@ TEST(TransTest, optionalReturn) {
     Board state;
     state.read_fen(NotationInterface::starting_FEN());
     uint64_t hash = ZobroistHasher::get().hash_board(state);
-    std::unique_ptr<TranspositionTable> tab = std::make_unique<TranspositionTable>();
+    std::unique_ptr<TranspositionTable> tab = std::make_unique<TranspositionTable>(TT_SIZE_MB);
     ASSERT_FALSE(tab->get(hash));
     tab->store(hash, Move{2, 9}, 0, exact, 0);
     ASSERT_TRUE(tab->get(hash));

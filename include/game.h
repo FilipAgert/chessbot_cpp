@@ -205,7 +205,7 @@ class Game {
     static constexpr int INF = 10000000;
     bool must_finish;  // if must finish this search or not.
     // table needs to be a pointer since its so large in memory.
-    TranspositionTable trans_table = TranspositionTable();
+    TranspositionTable trans_table = TranspositionTable(TT_SIZE_MB);
 
     long int reductions_total;
     long int reductions_cnt;
