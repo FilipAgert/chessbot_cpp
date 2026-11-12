@@ -1,3 +1,4 @@
+#include "config.h"
 #include "eval.h"
 #include "integer_representation.h"
 #include "str.h"
@@ -8,9 +9,10 @@
 #include "texel/input_reader.h"
 #include "texel/minimize.h"
 #include "utils/str.h"
-
+#include <argparse/argparse.hpp>
 #include <iostream>
 #include <optional>
+#include <stdexcept>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -35,27 +37,26 @@ int main(int argc, char *argv[]) {
     std::cout << "There are generally two ways to do this: Quiesence tuning and standing pat tuning.\n";
     std::cout << "Quiesence tuning will reduce horizon effect but will take longer to run.\n";
 
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <path/to/games.dat> <verification_positions> [max_lines]\n";
-        return 1;
+    argparse::ArgumentParser parser(ID_name, ID_version);
+    parser.add_argument("file").help("File containing <fen>, <result>, <eval>");
+    parser.add_argument("--mode").help("Mode in [result, eval]. Train on game result or stockfish eval.").default_value("result");
+    parser.add_argument("--nload").help("Number of positions to load.").scan<'i', int>();
+    parser.add_argument("--nvalidation").help("Number of positions to validate on. Subset of nload.").scan<'i', int>();
+    try {
+        parser.parse_args(argc, argv);
+    } catch (const std::exception &err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << parser;
+        std::exit(1);
     }
 
-    std::string path = argv[1];
-
-    auto verification_arg = Utils::try_process_int(argv[2]);
-    if (!verification_arg || *verification_arg < 0) {
-        std::cerr << "Invalid verification position count.\n";
-        return 1;
-    }
-
-    const size_t verification_count = static_cast<size_t>(*verification_arg);
-
-    std::optional<int> num_lines = std::nullopt;
-    if (argc >= 4)
-        num_lines = Utils::try_process_int(argv[3]);
+    std::string path = parser.get<std::string>("file");
+    int nload = parser.get<int>("--nload");
+    int nvalidation = parser.get<int>("--nvalidation");
+    std::string mode = parser.get<std::string>("--mode");
 
     // Load dataset
-    std::vector<Position> positions = read_dataset(path, num_lines);
+    std::vector<Position> positions = read_dataset(path, {nload});
 
     std::cout << "Loaded " << positions.size() << " positions" << std::endl;
 
@@ -66,17 +67,11 @@ int main(int argc, char *argv[]) {
     }
 
     // Validate and extract positions
-    std::vector<Result> res;
     std::vector<std::string> fens;
-
-    res.reserve(positions.size());
     fens.reserve(positions.size());
-
     for (const auto &position : positions) {
         Board test;
-
         if (test.read_fen(position.fen)) {
-            res.push_back(position.res);
             fens.push_back(position.fen);
         }
     }
@@ -84,34 +79,36 @@ int main(int argc, char *argv[]) {
     std::cout << "Successfully processed " << fens.size() << " positions" << std::endl;
 
     // Split training and verification data
-    if (verification_count >= fens.size()) {
+    if (nvalidation >= fens.size()) {
         std::cerr << "Error: Verification set must be smaller than the dataset.\n";
         return 1;
     }
 
-    const size_t training_count = fens.size() - verification_count;
+    const size_t training_count = fens.size() - nvalidation;
+    std::vector<Position> training_res(positions.begin(), positions.begin() + training_count);
+    std::vector<Position> validation_res(positions.begin() + training_count, positions.end());
 
     std::vector<std::string> training_fens(fens.begin(), fens.begin() + training_count);
-
-    std::vector<Result> training_res(res.begin(), res.begin() + training_count);
-
     std::vector<std::string> verification_fens(fens.begin() + training_count, fens.end());
 
-    std::vector<Result> verification_res(res.begin() + training_count, res.end());
-
-    std::cout << "\nDataset split:" << "\n  Training:    " << training_count << "\n  Verification: " << verification_count << std::endl;
-
-    // Convert training results to win probabilities
-    dvec training_results(training_res.size());
-
-    for (size_t i = 0; i < training_res.size(); i++)
-        training_results(i) = to_win(training_res[i]);
-
-    // Convert verification results to win probabilities
-    dvec verification_results(verification_res.size());
-
-    for (size_t i = 0; i < verification_res.size(); i++)
-        verification_results(i) = to_win(verification_res[i]);
+    std::cout << "\nDataset split:" << "\n  Training:    " << training_count << "\n  Verification: " << nvalidation << std::endl;
+    // Evaluation constant
+    double K = 0.63;
+    auto to_res = [K, mode](std::vector<Position> &res) {
+        dvec out(res.size());
+        for (size_t i = 0; i < res.size(); i++) {
+            if (mode == "result")
+                out(i) = to_win(res[i].res);
+            else {
+                if (!res[i].eval)
+                    throw std::runtime_error("Must have eval if using mode <eval>");
+                out(i) = sigmoid(res[i].eval.value(), K);
+            }
+        }
+        return out;
+    };
+    dvec training_results = to_res(training_res);
+    dvec validation_results = to_res(validation_res);
 
     // Initial parameters
     EvalParameters p0;
@@ -138,9 +135,6 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < num_params; i++)
         x0(i) = params[i];
 
-    // Evaluation constant
-    double K = 0.63;
-
     // Training objective: verification data is never used here.
     std::function<double(const dvec &)> eval_param_loss = [create_params, training_fens, training_results, K](const dvec &x) {
         const EvalParameters params = create_params(x);
@@ -153,7 +147,7 @@ int main(int argc, char *argv[]) {
     // Measure initial verification loss
     dvec verification_predictions_before = eval_positions(p0, verification_fens, K);
 
-    double verification_loss_before = loss(verification_results, verification_predictions_before);
+    double verification_loss_before = loss(validation_results, verification_predictions_before);
 
     std::cout << "\n\nNow minimizing parameters" << std::endl;
     std::cout << "Initial parameters:\n" << p0.to_string() << std::endl;
@@ -170,7 +164,7 @@ int main(int argc, char *argv[]) {
     // Measure final verification loss
     dvec verification_predictions_after = eval_positions(optimized_params, verification_fens, K);
 
-    double verification_loss_after = loss(verification_results, verification_predictions_after);
+    double verification_loss_after = loss(validation_results, verification_predictions_after);
 
     // Results
     std::cout << "\n\n========== RESULTS ==========\n";

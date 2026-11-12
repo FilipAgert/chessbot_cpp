@@ -22,4 +22,5 @@ std::string trim(std::string full);
  */
 std::string join(std::vector<std::string> strings, char del);
 std::optional<int> try_process_int(std::string intstring);
+std::optional<double> try_process_double(std::string doublestring);
 }  // namespace Utils

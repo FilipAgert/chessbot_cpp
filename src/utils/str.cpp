@@ -1,6 +1,7 @@
 #include "utils/str.h"
 #include <exception>
 #include <sstream>
+#include <string>
 namespace Utils {
 std::vector<std::string> split(const std::string &full, char del) {
     std::stringstream ss(full);
@@ -38,6 +39,15 @@ std::optional<int> try_process_int(std::string intstring) {
     int depth;
     try {
         depth = std::stoi(trim(intstring));
+    } catch (const std::exception &e) {
+        return {};
+    }
+    return std::make_optional(depth);
+}
+std::optional<double> try_process_double(std::string doublestring) {
+    int depth;
+    try {
+        depth = std::stod(trim(doublestring));
     } catch (const std::exception &e) {
         return {};
     }
