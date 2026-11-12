@@ -53,40 +53,41 @@ MinimizeResult newton_raphson(const dvec &x0, const Gradient &calc, int max_step
     return {x, f, grad, H, MinimizeResult::max_steps};
 }
 
-MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, double tol, std::optional<MinimizeResult> failed = std::nullopt) {
+MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validation, dvec x0, int max_steps, double tol,
+                                  std::optional<MinimizeResult> failed = std::nullopt) {
+
     if (failed && failed->flag == MinimizeResult::success)
         return failed.value();
 
     dvec x = x0;
-    auto [f, grad, H] = calc.eval_grad_hessian(x);
+    double f = calc.evaluate(x);
+    dvec grad = calc.evaluate_grad(x);
+    dmat H = dmat::Zero(x.size(), x.size());
 
-    if (grad.norm() < tol)
-        return {x, f, grad, H, MinimizeResult::success};
+    double best_val_f = validation.evaluate(x);
+    MinimizeResult best_val{x, f, grad, H, MinimizeResult::max_steps};
 
-    const int n = static_cast<int>(x.size());
-
-    // Initial direction: Newton if descent, otherwise steepest descent.
-    dvec p = -grad;
-
-    Eigen::FullPivLU<dmat> lu(H);
-    if (lu.isInvertible()) {
-        dvec pn = lu.solve(-grad);
-        if (grad.dot(pn) < 0)
-            p = pn;
+    if (grad.norm() < tol) {
+        best_val.flag = MinimizeResult::success;
+        return best_val;
     }
 
-    p.normalize();
+    const int n = static_cast<int>(x.size());
+    dvec p = -grad.normalized();
 
     constexpr double min_step = 0.1;
-    constexpr double max_step = 30;
-    double step_size = 1.0;  // Start with unit step
+    constexpr double max_step = 50.0;
+    constexpr int val_check_interval = 5;  // Check validation every 5 CG steps
+    constexpr int val_patience = 20;       // Stop if no val improvement for 20 steps
+    double step_size = 1.0;
+    int steps_since_val_best = 0;
 
     for (int step = 0; step < max_steps; ++step) {
         dvec x_next;
         double f_next = f;
         bool accepted = false;
 
-        // 1. Try current conjugate/Newton direction, shrinking step_size if f increases
+        // 1. Backtrack step_size if training objective increases
         while (true) {
             x_next = x + step_size * p;
             f_next = calc.evaluate(x_next);
@@ -95,14 +96,13 @@ MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, 
                 accepted = true;
                 break;
             }
-
             if (step_size <= min_step)
                 break;
 
             step_size = std::max(min_step, step_size * 0.5);
         }
 
-        // 2. If conjugate direction failed even at min_step, fall back to steepest descent
+        // 2. Fallback to steepest descent if conjugate direction stalls
         if (!accepted) {
             p = -grad.normalized();
             step_size = 1.0;
@@ -115,18 +115,14 @@ MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, 
                     accepted = true;
                     break;
                 }
-
                 if (step_size <= min_step)
                     break;
 
                 step_size = std::max(min_step, step_size * 0.5);
             }
 
-            // No improvement even along steepest descent at min_step: terminate
-            if (!accepted) {
-                double f_fin = calc.evaluate(x);
-                return {x, f_fin, grad, H, MinimizeResult::non_descent};
-            }
+            if (!accepted)
+                return best_val;
         }
 
         dvec grad_next = calc.evaluate_grad(x_next);
@@ -138,7 +134,6 @@ MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, 
         bool restart = ((step + 1) % n == 0);
         dvec p_next = -grad_next + (restart ? 0.0 : beta) * p;
 
-        // Ensure p_next is a descent direction; otherwise reset to steepest descent
         if (p_next.norm() < 1e-14 || grad_next.dot(p_next) >= 0.0) {
             p = -grad_next.normalized();
         } else {
@@ -148,65 +143,106 @@ MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, 
         x = x_next;
         f = f_next;
         grad = grad_next;
-
-        // Greedily grow step_size on successful decrease, clamped to [0.1, 5.0]
         step_size = std::clamp(step_size * 1.25, min_step, max_step);
 
-        std::cout << "CG step " << step << " | f: " << f << " | ||grad||: " << grad.norm() << " | step_size: " << step_size << std::endl;
+        // Periodic validation check
+        if ((step + 1) % val_check_interval == 0 || grad.norm() < tol) {
+            double val_f = validation.evaluate(x);
+
+            if (val_f < best_val_f) {
+                best_val_f = val_f;
+                best_val = {x, f, grad, H, MinimizeResult::max_steps};
+                steps_since_val_best = 0;
+            } else {
+                steps_since_val_best += val_check_interval;
+            }
+
+            std::cout << "CG step " << step << " | train: " << f << " | val: " << val_f << " (best: " << best_val_f << ")" << " | ||grad||: " << grad.norm()
+                      << " | step: " << step_size << std::endl;
+
+            if (steps_since_val_best >= val_patience) {
+                std::cout << "CG early stop: validation loss stopped improving.\n";
+                return best_val;
+            }
+        }
 
         if (grad.norm() < tol) {
-            double f_fin = calc.evaluate(x);
-            return {x, f_fin, grad, H, MinimizeResult::success};
+            best_val.flag = MinimizeResult::success;
+            return best_val;
         }
     }
-    double f_fin = calc.evaluate(x);
-    return {x, f_fin, grad, H, MinimizeResult::max_steps};
-}
 
-MinimizeResult minimize(const dvec &x0, const Gradient &calc) {
+    return best_val;
+}
+MinimizeResult minimize(const dvec &x0, const Gradient &calc, const Gradient &validation) {
     const int NR_freeze = 10;
     const int max_outer = 1000;
     const int max_stalls = 3;
+    const int max_val_stalls = 3;  // Stop outer loop if validation degrades across 3 outer cycles
     double tol = 1e-6;
     std::string tab = "    ";
 
     double f0 = calc.evaluate(x0);
+    double f0_validation = validation.evaluate(x0);
     dvec grad = calc.evaluate_grad(x0);
     dmat H;
+
     MinimizeResult best{x0, f0, grad, H, MinimizeResult::max_steps};
-    if (grad.norm() < tol)
+    MinimizeResult best_val_res = best;
+    double best_val_f = f0_validation;
+
+    if (grad.norm() < tol) {
         best.flag = MinimizeResult::success;
+        return best;
+    }
 
-    std::cout << "Starting minimizer with " << x0.size() << " params" << std::endl;
+    std::cout << "Starting minimizer with " << x0.size() << " params" << " | initial train f=" << f0 << " | initial val f=" << f0_validation << std::endl;
 
-    int no_nr_cnt = 0, stalls = 0, i = 0;
-    while (best.flag != MinimizeResult::success && i < max_outer && stalls < max_stalls) {
-        bool use_nr = (no_nr_cnt >= NR_freeze);
-        std::cout << i << ": " << (use_nr ? "newton-raphson" : "conjugate gradient") << " from f=" << best.f << ", |df|^2=" << best.grad.squaredNorm()
-                  << std::endl;
+    int stalls = 0, val_stalls = 0, i = 0;
+    while (best.flag != MinimizeResult::success && i < max_outer && stalls < max_stalls && val_stalls < max_val_stalls) {
+        std::cout << i << ": " << "conjugate gradient" << " from f=" << best.f << ", |df|^2=" << best.grad.squaredNorm() << std::endl;
 
-        MinimizeResult res = use_nr ? newton_raphson(best.x, calc, 5, tol) : conjugate_gradient(calc, best.x, 100, tol);
-        std::cout << tab << "-> f=" << res.f << ", |df|^2=" << res.grad.squaredNorm() << std::endl;
+        MinimizeResult res = conjugate_gradient(calc, validation, best.x, 100, tol);
 
-        // Accept only genuine improvements (or success)
+        double val_f = validation.evaluate(res.x);
+        std::cout << tab << "-> train f=" << res.f << ", val f=" << val_f << ", |df|^2=" << res.grad.squaredNorm() << std::endl;
+
+        // Track training progress to keep optimizer moving
         bool improved = res.f < best.f - 1e-14 * std::max(1.0, std::abs(best.f));
         if (improved || res.flag == MinimizeResult::success) {
             best = res;
             stalls = 0;
         } else {
             stalls++;
-            std::cout << tab << "No improvement (" << stalls << "/" << max_stalls << ")\n";
+            std::cout << tab << "No train improvement (" << stalls << "/" << max_stalls << ")\n";
         }
-        no_nr_cnt = use_nr ? 0 : no_nr_cnt + 1;
+
+        // Track best generalizable parameters on validation set
+        if (val_f < best_val_f - 1e-14 * std::max(1.0, std::abs(best_val_f))) {
+            best_val_f = val_f;
+            best_val_res = res;
+            val_stalls = 0;
+            std::cout << tab << "New best validation f=" << best_val_f << "\n";
+        } else {
+            val_stalls++;
+            std::cout << tab << "No validation improvement (" << val_stalls << "/" << max_val_stalls << ")\n";
+        }
+
         i++;
     }
 
-    if (best.flag != MinimizeResult::success)
+    if (val_stalls >= max_val_stalls)
+        std::cout << "Stopped early due to validation plateau/overtraining.\n";
+    else if (best.flag != MinimizeResult::success)
         std::cout << "Warning: stopped without converging (stalled or max outer iterations)\n";
 
-    std::cout << "Minimization complete. f=" << best.f << ", an improvement of " << std::abs(best.f - f0) << "\n";
-    std::cout << "Iterations: " << i << "\nEvaluation function calls: " << calc.num_evals << "\nGradient calls: " << calc.num_grads
-              << "\nHessian function calls: " << calc.num_h << "\n";
-    return best;
+    std::cout << "Minimization complete.\n"
+              << "  Best train f=" << best.f << " (delta: " << std::abs(best.f - f0) << ")\n"
+              << "  Best val   f=" << best_val_f << " (delta: " << std::abs(best_val_f - f0_validation) << ")\n"
+              << "  Outer iterations: " << i << "\n"
+              << "  Train evals: " << calc.num_evals << " | Val evals: " << validation.num_evals << "\n"
+              << "  Gradient calls: " << calc.num_grads << " | Hessian calls: " << calc.num_h << "\n";
+
+    return best_val_res;
 }
 }  // namespace Texel

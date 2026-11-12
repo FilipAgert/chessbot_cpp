@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
     std::vector<Position> validation_res(positions.begin() + training_count, positions.end());
 
     std::vector<std::string> training_fens(fens.begin(), fens.begin() + training_count);
-    std::vector<std::string> verification_fens(fens.begin() + training_count, fens.end());
+    std::vector<std::string> validation_fens(fens.begin() + training_count, fens.end());
 
     std::cout << "\nDataset split:" << "\n  Training:    " << training_count << "\n  Verification: " << nvalidation << std::endl;
     // Evaluation constant
@@ -149,9 +149,16 @@ int main(int argc, char *argv[]) {
 
         return loss(training_results, predictions);
     };
+    std::function<double(const dvec &)> validate_param_loss = [create_params, validation_fens, validation_results, K](const dvec &x) {
+        const EvalParameters params = create_params(x);
+
+        dvec predictions = eval_positions(params, validation_fens, K);
+
+        return loss(validation_results, predictions);
+    };
 
     // Measure initial verification loss
-    dvec verification_predictions_before = eval_positions(p0, verification_fens, K);
+    dvec verification_predictions_before = eval_positions(p0, validation_fens, K);
 
     double validation_loss_before = loss(validation_results, verification_predictions_before);
 
@@ -160,14 +167,15 @@ int main(int argc, char *argv[]) {
     std::cout << "Validation loss pre fit: " << validation_loss_before << std::endl;
 
     MixedGradient param_eval(is_float, eval_param_loss);
+    MixedGradient validation_eval(is_float, validate_param_loss);
 
     // Minimize using training data only
-    MinimizeResult param_res = minimize(x0, param_eval);
+    MinimizeResult param_res = minimize(x0, param_eval, validate_params_loss);
 
     EvalParameters optimized_params = create_params(param_res.x);
 
     // Measure final verification loss
-    dvec verification_predictions_after = eval_positions(optimized_params, verification_fens, K);
+    dvec verification_predictions_after = eval_positions(optimized_params, validation_fens, K);
 
     double verification_loss_after = loss(validation_results, verification_predictions_after);
 

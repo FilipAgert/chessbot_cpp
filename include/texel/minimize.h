@@ -12,5 +12,5 @@ struct MinimizeResult {
     constexpr static int non_descent = -2;
     int flag = 1;  // 0 minimum found 1 max steps reached, -1 hessian non-invertible
 };
-MinimizeResult minimize(const dvec &x0, const Gradient &grad);
+MinimizeResult minimize(const dvec &x0, const Gradient &grad, const Gradient &validation);
 }  // namespace Texel
