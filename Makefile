@@ -15,6 +15,9 @@ LIBRARIES = libraries
 EIGEN_DIR := $(LIBRARIES)/Eigen
 EIGEN_URL := https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.gz
 
+ARGPARSE_DIR := $(LIBRARIES)/ArgParse
+ARGPARSE_URL := https://raw.githubusercontent.com/p-ranav/argparse/refs/heads/master/include/argparse/argparse.hpp
+
 # ---------- build type ----------
 type ?= dev
 
@@ -66,9 +69,9 @@ TEST_OBJ  := $(call to_obj,$(TEST_SRC))
 ALL_OBJ := $(CORE_OBJ) $(MAIN_OBJ) $(MAGIC_OBJ) $(TEXEL_OBJ) $(TEST_OBJ)
 
 # add eigen include only to texel objects.
-$(TEXEL_OBJ): CPPFLAGS += -I$(EIGEN_DIR) -fpermissive
+$(TEXEL_OBJ): CPPFLAGS += -I$(EIGEN_DIR) -I$(ARGPARSE_DIR) -fpermissive
 
-$(TEXEL_OBJ): | $(EIGEN_DIR)
+$(TEXEL_OBJ): | $(EIGEN_DIR) $(ARGPARSE_DIR)
 
 $(EIGEN_DIR):
 	@echo "Downloading Eigen header-only library..."
@@ -85,6 +88,17 @@ $(EIGEN_DIR):
 	@rm libraries/eigen.tar.gz
 	@echo "Eigen downloaded successfully."
 
+$(ARGPARSE_DIR):
+	@echo "Downloading argparse library..."
+	@mkdir -p $(ARGPARSE_DIR)/argparse
+	@if command -v curl >/dev/null; then \
+		curl -L $(ARGPARSE_URL) -o $(ARGPARSE_DIR)/argparse/argparse.hpp;\
+	elif command -v wget >/dev/null; then \
+		wget $(ARGPARSE_URL) -o $(ARGPARSE_DIR)/argparse/argparse.hpp;\
+	else \
+		echo "Error: Neither curl nor wget found" >&2; exit 1; \
+	fi
+	@echo "Argparse downloaded successfully."
 # ---------- targets ----------
 .PHONY: all test runtest magic tune run clean FORCE
 
