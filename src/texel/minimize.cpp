@@ -7,215 +7,170 @@
 #include <optional>
 #include <stdexcept>
 namespace Texel {
+// Armijo backtracking. Returns 0 if no acceptable step was found.
+double backtracking_line_search(const dvec &x, double f_current, const dvec &grad, const dvec &p, const Gradient &calc, double initial_alpha = 1.0,
+                                double c1 = 1e-4, double rho = 0.5) {
+    double dd = grad.dot(p);
+    if (dd >= 0)
+        return 0.0;  // not a descent direction
+
+    double alpha = initial_alpha;
+    for (int i = 0; i < 40; ++i) {
+        double f_new = calc.evaluate(x + alpha * p);  // cheaper than eval_grad_hessian
+        if (std::isfinite(f_new) && f_new <= f_current + c1 * alpha * dd)
+            return alpha;
+        alpha *= rho;
+    }
+    return 0.0;  // failed: caller must handle
+}
+
 MinimizeResult newton_raphson(const dvec &x0, const Gradient &calc, int max_steps, double tol) {
     dvec x = x0;
-    dvec grad;
-    dmat H;
-    double f = 0.0;
-    for (int step = 0; step < max_steps; ++step) {
-        auto res = calc.eval_grad_hessian(x);
-        f = std::get<0>(res);
-        grad = std::get<1>(res);
-        H = std::get<2>(res);
+    auto [f, grad, H] = calc.eval_grad_hessian(x);
 
-        if (grad.norm() < tol) {
+    for (int step = 0; step < max_steps; ++step) {
+        if (grad.norm() < tol)
             return {x, f, grad, H, MinimizeResult::success};
-        }
 
         Eigen::FullPivLU<dmat> lu(H);
-        if (!lu.isInvertible()) {
+        if (!lu.isInvertible())
             return {x, f, grad, H, MinimizeResult::hessian_non_invertible};
-        }
 
         dvec delta = lu.solve(-grad);
+        if (grad.dot(delta) >= 0)
+            delta = -grad;  // indefinite Hessian -> fall back to steepest descent
 
-        double alpha = 1.0;  // Try a full Newton step first
-        double c = 1e-4;     // Armijo condition parameter
-        double f_new = f;
-        dvec x_new = x;
+        double alpha = backtracking_line_search(x, f, grad, delta, calc, 1.0);
+        if (alpha == 0.0)
+            break;  // no improvement possible; keep current (consistent) x, f, grad, H
 
-        int line_search_steps = 0;
-        while (line_search_steps < 10) {
-            x_new = x + alpha * delta;
-            f_new = std::get<0>(calc.eval_grad_hessian(x_new));  // Evaluate loss at new point
-
-            // Check if loss improved sufficiently (Armijo condition)
-            if (f_new <= f + c * alpha * grad.dot(delta)) {
-                break;  // Valid step found!
-            }
-            alpha *= 0.5;  // Shrink step size
-            line_search_steps++;
-        }
-
-        // Update x with the safe, scaled step
-        x = x_new;
-        std::cout << "Step " << step << " | f: " << f << " | alpha: " << alpha << " | ||delta||: " << delta.norm() << std::endl;
+        x += alpha * delta;
+        std::tie(f, grad, H) = calc.eval_grad_hessian(x);  // keep f/grad/H consistent with x
+        std::cout << "NR step " << step << " | f: " << f << " | alpha: " << alpha << " | ||delta||: " << delta.norm() << std::endl;
     }
-
+    if (grad.norm() < tol)
+        return {x, f, grad, H, MinimizeResult::success};
     return {x, f, grad, H, MinimizeResult::max_steps};
-}
-double backtracking_line_search(const dvec &x, double f_current, const dvec &grad, const dvec &p, const Gradient &calc, double initial_alpha = 1.0,
-                                double c1 = 1e-4,  // Armijo condition parameter (usually 1e-4)
-                                double rho = 0.5   // Shrink factor (cut step in half each time)
-) {
-    double alpha = initial_alpha;
-    double directional_deriv = grad.dot(p);
-
-    // Safety check: CG directions should always be descent directions (grad^T * p < 0).
-    // If it's positive, p is pointing uphill. Force a reset to the negative gradient.
-    if (directional_deriv >= 0) {
-        return 1e-5;  // Fallback to a tiny step or trigger a CG restart
-    }
-
-    int max_iters = 20;
-    for (int i = 0; i < max_iters; ++i) {
-        dvec x_new = x + alpha * p;
-
-        // Evaluate loss at the candidate point
-        auto res = calc.eval_grad_hessian(x_new);  // (f, grad, H)
-        double f_new = std::get<0>(res);
-
-        // Armijo Condition: Check if f decreased *sufficiently*
-        if (f_new <= f_current + c1 * alpha * directional_deriv) {
-            return alpha;  // Valid step size found!
-        }
-
-        alpha *= rho;  // Step was too big; shrink it
-    }
-
-    // If line search exhausts iterations, return the smallest shrunk alpha
-    return alpha;
 }
 
 MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, double tol, std::optional<MinimizeResult> failed = std::nullopt) {
+    if (failed && failed->flag == MinimizeResult::success)
+        return failed.value();
+
     dvec x = x0;
-    dvec grad;
-    double f = calc.evaluate(x);
+    auto [f, grad, H] = calc.eval_grad_hessian(x);
 
-    // Use provided gradient or evaluate it
-    dmat H;
-    if (failed) {
-        if (failed->flag == MinimizeResult::success) {
-            return failed.value();
-        }
-        grad = failed->grad;
-        H = failed->H;
-    } else {
-        auto res = calc.eval_grad_hessian(x);
-        f = std::get<0>(res);
-        grad = std::get<1>(res);
-        H = std::get<2>(res);
-    }
+    if (grad.norm() < tol)
+        return {x, f, grad, H, MinimizeResult::success};
 
-    // Keep track of the Hessian (or fallback identity if none provided)
+    const int n = static_cast<int>(x.size());
 
-    // Initialize search direction using initial Hessian preconditioner if available
-    dvec p;
+    // Initial direction: Newton if descent, otherwise steepest descent.
+    dvec p = -grad;
+
     Eigen::FullPivLU<dmat> lu(H);
     if (lu.isInvertible()) {
-        p = lu.solve(-grad);
-    } else {
-        p = -grad;  // Fallback if singular
+        dvec pn = lu.solve(-grad);
+        if (grad.dot(pn) < 0)
+            p = pn;
     }
 
-    double r_old_norm_sq = grad.squaredNorm();
-    if (std::sqrt(r_old_norm_sq) < tol) {
-        return {x, f, grad, H, MinimizeResult::success};
-    }
+    // Unit-length direction.
+    p.normalize();
 
     for (int step = 0; step < max_steps; ++step) {
-        // Step size / line search placeholder (adjust alpha or implement backtracking)
-        double alpha = 300;  // backtracking_line_search(x0, f, grad, p, calc, 1);
 
-        dvec x_next = x + alpha * p;
-        dvec grad_next;
-        grad_next = calc.evaluate_grad(x_next);
+        // Exactly one unit step.
+        dvec x_next = x + p;
 
-        if (grad_next.norm() < tol) {
-            f = calc.evaluate(x_next);
-            return {x_next, f, grad_next, H, MinimizeResult::success};
+        double f_next = calc.evaluate(x_next);
+        dvec grad_next = calc.evaluate_grad(x_next);
+
+        // If the step increases the objective, try steepest descent.
+        if (f_next >= f) {
+            p = -grad;
+            p.normalize();
+
+            x_next = x + p;
+            f_next = calc.evaluate(x_next);
+            grad_next = calc.evaluate_grad(x_next);
+
+            // No improvement: terminate.
+            if (f_next >= f)
+                return {x, f, grad, H, MinimizeResult::max_steps};
         }
 
-        // Polak-Ribière / Fletcher-Reeves beta calculation
-        double r_new_norm_sq = grad_next.squaredNorm();
-        double beta = r_new_norm_sq / r_old_norm_sq;
+        // Polak-Ribiere+
+        double beta = grad_next.dot(grad_next - grad) / grad.squaredNorm();
 
-        p = -grad_next + beta * p;
+        beta = std::max(0.0, beta);
+
+        bool restart = ((step + 1) % n == 0);
+
+        dvec p_next = -grad_next + (restart ? 0.0 : beta) * p;
+
+        if (p_next.norm() < 1e-14)
+            return {x_next, f_next, grad_next, H, MinimizeResult::success};
+
+        p = p_next.normalized();
 
         x = x_next;
-        f = calc.evaluate(x);
+        f = f_next;
         grad = grad_next;
-        r_old_norm_sq = r_new_norm_sq;
-        std::cout << "Step " << step << " | alpha " << alpha << " | f: " << f << " | ||grad||: " << grad.norm() << " | ||delta||: " << (alpha * p).norm()
-                  << std::endl;
+
+        std::cout << "CG step " << step << " | f: " << f << " | ||grad||: " << grad.norm() << std::endl;
+
+        if (grad.norm() < tol)
+            return {x, f, grad, H, MinimizeResult::success};
     }
-    f = calc.evaluate(x);
+
     return {x, f, grad, H, MinimizeResult::max_steps};
 }
 
 MinimizeResult minimize(const dvec &x0, const Gradient &calc, std::function<std::string(dvec)> print_fnc) {
-    dvec x = x0;
     const int NR_freeze = 10;
-    int no_nr_cnt = 0;
-    double f0 = calc.evaluate(x0);
-    double f = f0;
-    dvec grad = calc.evaluate_grad(x0);
+    const int max_outer = 1000;
+    const int max_stalls = 3;
     double tol = 1e-6;
-    std::cout << "Starting minimizer with " << static_cast<int>(x0.size()) << " params\n" << std::setprecision(6) << print_fnc(x0) << std::endl;
-
-    std::optional<MinimizeResult> res_ = std::nullopt;
-    int i = 0;
     std::string tab = "    ";
-    while ((!res_.has_value()) || ((res_.has_value()) && res_.value().flag != MinimizeResult::success)) {
 
-        if (no_nr_cnt >= NR_freeze) {
-            // newton-raphson test
-            std::cout << i << ": performing newton-raphson from f(x_0)=" << f << ", |df|^2=" << grad.squaredNorm() << std::endl;
-            MinimizeResult res = newton_raphson(x, calc, 5, tol);
-            std::cout << tab << calc.num_evals << " evals perfomed. f(x_1)=" << res.f << ", |df|^2=" << res.grad.squaredNorm() << std::endl;
-            if (res.f < f) {
-                f = res.f;
-                grad = res.grad;
-                x = res.x;
-                res_ = std::make_optional(res);
-            } else {
-                std::cout << tab << "Switching to conjugate gradient due to non-improvement. " << std::endl;
-            }
-            if (res.flag == MinimizeResult::hessian_non_invertible) {
-                std::cout << tab << "Switching to conjugate gradient due to non-invertible hessian. " << std::endl;
-            }
-            no_nr_cnt = 0;
+    double f0 = calc.evaluate(x0);
+    auto [f, grad, H] = calc.eval_grad_hessian(x0);
+    MinimizeResult best{x0, f, grad, H, MinimizeResult::max_steps};
+    if (grad.norm() < tol)
+        best.flag = MinimizeResult::success;
+
+    std::cout << "Starting minimizer with " << x0.size() << " params\n" << std::setprecision(6) << print_fnc(x0) << std::endl;
+
+    int no_nr_cnt = 0, stalls = 0, i = 0;
+    while (best.flag != MinimizeResult::success && i < max_outer && stalls < max_stalls) {
+        bool use_nr = (no_nr_cnt >= NR_freeze);
+        std::cout << i << ": " << (use_nr ? "newton-raphson" : "conjugate gradient") << " from f=" << best.f << ", |df|^2=" << best.grad.squaredNorm()
+                  << std::endl;
+
+        MinimizeResult res = use_nr ? newton_raphson(best.x, calc, 5, tol) : conjugate_gradient(calc, best.x, 100, tol);
+        std::cout << tab << "-> f=" << res.f << ", |df|^2=" << res.grad.squaredNorm() << std::endl;
+
+        // Accept only genuine improvements (or success)
+        bool improved = res.f < best.f - 1e-14 * std::max(1.0, std::abs(best.f));
+        if (improved || res.flag == MinimizeResult::success) {
+            best = res;
+            stalls = 0;
         } else {
-            std::cout << i << ": performing conjugate gradient from f(x_0)=" << f << ", |df|^2=" << grad.squaredNorm() << std::endl;
-            MinimizeResult res = conjugate_gradient(calc, x, 100, tol, res_);
-            std::cout << tab << "Ran conjugate gradient to f(x_1)=" << res.f << ", |df|^2=" << res.grad.squaredNorm() << "\n" << print_fnc(res.x) << std::endl;
-            if (res.flag != MinimizeResult::success) {
-                if (res.f < f) {
-                    f = res.f;
-                    grad = res.grad;
-                    x = res.x;
-                    auto c = calc.eval_grad_hessian(x);
-                    res.H = std::get<2>(c);
-                    res_ = {res};
-                } else {
-                    res_ = std::nullopt;
-                }
-            }
-            no_nr_cnt++;
+            stalls++;
+            std::cout << tab << "No improvement (" << stalls << "/" << max_stalls << ")\n";
         }
+        no_nr_cnt = use_nr ? 0 : no_nr_cnt + 1;
         i++;
     }
-    if (!res_) {
-        throw std::runtime_error("No result");
-    }
-    MinimizeResult res = res_.value();
 
-    std::cout << "Minimization complete. f=" << res.f << ", an improvement of " << std::abs(res.f - f0) << "\n";
-    std::cout << "Final parameters:\n" << print_fnc(res.x) << "\n";
-    std::cout << "Iterations: " << i << "\n"
-              << "Evaluation function calls: " << calc.num_evals << "\n"
-              << "Gradient calls: " << calc.num_grads << "\n"
-              << "Hessian function calls: " << calc.num_h << "\n";
-    return res;
+    if (best.flag != MinimizeResult::success)
+        std::cout << "Warning: stopped without converging (stalled or max outer iterations)\n";
+
+    std::cout << "Minimization complete. f=" << best.f << ", an improvement of " << std::abs(best.f - f0) << "\n";
+    std::cout << "Final parameters:\n" << print_fnc(best.x) << "\n";
+    std::cout << "Iterations: " << i << "\nEvaluation function calls: " << calc.num_evals << "\nGradient calls: " << calc.num_grads
+              << "\nHessian function calls: " << calc.num_h << "\n";
+    return best;
 }
 }  // namespace Texel
