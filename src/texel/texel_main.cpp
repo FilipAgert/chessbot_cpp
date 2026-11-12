@@ -151,6 +151,7 @@ int main(int argc, char *argv[]) {
 
     std::cout << "\n\nNow minimizing parameters" << std::endl;
     std::cout << "Initial parameters:\n" << p0.to_string() << std::endl;
+    std::cout << "Validation loss pre fit: " << validation_loss_before << std::endl;
 
     MixedGradient param_eval(is_float, eval_param_loss);
 
