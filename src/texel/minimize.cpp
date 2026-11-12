@@ -177,7 +177,7 @@ MinimizeResult minimize(const dvec &x0, const Gradient &calc, std::function<std:
     if (grad.norm() < tol)
         best.flag = MinimizeResult::success;
 
-    std::cout << "Starting minimizer with " << x0.size() << " params\n" << std::setprecision(6) << print_fnc(x0) << std::endl;
+    std::cout << "Starting minimizer with " << x0.size() << " params" << std::endl;
 
     int no_nr_cnt = 0, stalls = 0, i = 0;
     while (best.flag != MinimizeResult::success && i < max_outer && stalls < max_stalls) {
