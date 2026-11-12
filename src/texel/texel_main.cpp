@@ -157,10 +157,8 @@ int main(int argc, char *argv[]) {
 
     MixedGradient param_eval(is_float, eval_param_loss);
 
-    auto print_fnc = [create_params](dvec x) { return create_params(x).to_string(); };
-
     // Minimize using training data only
-    MinimizeResult param_res = minimize(x0, param_eval, print_fnc);
+    MinimizeResult param_res = minimize(x0, param_eval);
 
     EvalParameters optimized_params = create_params(param_res.x);
 

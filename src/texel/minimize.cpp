@@ -163,7 +163,7 @@ MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, 
     return {x, f_fin, grad, H, MinimizeResult::max_steps};
 }
 
-MinimizeResult minimize(const dvec &x0, const Gradient &calc, std::function<std::string(dvec)> print_fnc) {
+MinimizeResult minimize(const dvec &x0, const Gradient &calc) {
     const int NR_freeze = 10;
     const int max_outer = 1000;
     const int max_stalls = 3;
