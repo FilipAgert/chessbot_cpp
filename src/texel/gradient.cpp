@@ -40,11 +40,12 @@ std::tuple<double, dvec, dmat> MixedGradient::eval_grad_hessian(const dvec &para
         fm(i) = evaluate(x);
         x(i) += h;
         grad(i) = (fp(i) - fm(i)) / (2 * h);
+        H(i, i) = (fp(i) - 2.0 * f0 + fm(i)) / (h * h);
     }
 
     for (size_t i = 0; i < np; i++) {
         double hi = stepsize(i);
-        for (size_t j = i; j < np; j++) {
+        for (size_t j = i + 1; j < np; j++) {
             double hj = stepsize(j);
             x(i) += hi;
             x(j) += hj;
