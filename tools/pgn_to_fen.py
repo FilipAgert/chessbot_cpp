@@ -1,42 +1,55 @@
 #!/usr/bin/env python3
 """
-pgn_to_fen.py - Filter games in a large PGN file and export board states
-as "<fen>, <result>" lines.
+pgn_to_fen.py - Filter games in large (optionally compressed) PGN files and
+export board states as "<fen>, <result>" lines.
 
-Install:
+Requires:
     pip install chess
+    Ubuntu tools as needed:  sudo apt install zstd xz-utils bzip2 gzip tar unzip p7zip-full lz4
 
-Workflow (two passes, so memory use stays tiny even for multi-GB files):
-    Pass 1: read only the HEADERS of every game (fast), apply the filters and
-            remember the file offset of each game that passes.
-            -> prints how many games were selected.
-    Pass 2: (only if you confirm) seek back to each selected game, parse its
-            moves, sample board states and write "<fen>, <result>" lines.
+Supported inputs (detected by file name):
+    .pgn                                   read directly
+    .zst .zstd .gz .bz2 .xz .lzma .lz4     single-file compressors
+    .tar .tar.gz .tgz .tar.bz2 .tbz2 .tar.xz .txz .tar.zst .tzst .tar.lz4
+                                           tar archives (every *.pgn inside is processed)
+    .zip .7z                               archives (every *.pgn inside is processed)
+
+Workflow, per input (processed one after the other):
+    1. Decompress to a temp dir (or read directly if it is a plain .pgn)
+    2. Pass 1: scan headers, apply filters, remember offsets of selected games
+       Pass 2: (after confirmation) parse the selected games and write positions
+    3. Delete the decompressed copy; the original archive stays compressed
+    4. Go to the next input
+
+Output format:
+    With --mode all / fraction, each game's positions are preceded by a separator:
+        =======GAME 1=======
+        <fen>, <result>
+        <fen>, <result>
+        =======GAME 2=======
+        ...
+    With --mode one (a single position per game) no separators are written.
+    Game numbers keep counting across all games and input files.
 
 Examples:
-    # All positions from rated-ish blitz games, both players 1800-2200
-    python pgn_to_fen.py games.pgn out.csv --mode all \
-        --min-white-elo 1800 --max-white-elo 2200 \
-        --min-black-elo 1800 --max-black-elo 2200 \
-        --time-controls "180+0" "300+0" --terminations Normal "Time forfeit"
-
-    # One random position per game, no confirmation prompt
-    python pgn_to_fen.py games.pgn out.csv --mode one --yes
-
-    # 20 % of the positions of each game, reproducible
-    python pgn_to_fen.py games.pgn out.csv --mode fraction --fraction 0.2 --seed 42
-
-    # Only count the games that pass the filters
-    python pgn_to_fen.py games.pgn out.csv --dry-run
+    python pgn_to_fen.py -o out.txt lichess_2023-01.pgn.zst --mode fraction --fraction 0.2 --seed 42
+    python pgn_to_fen.py -o out.txt a.pgn.zst b.pgn.xz c.tar.gz --yes
+    python pgn_to_fen.py a.pgn.zst --dry-run
+    python pgn_to_fen.py -o out.txt big.pgn.zst --tmp-dir /mnt/bigdisk/tmp
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
+import os
 import random
+import shutil
+import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
-from typing import Iterable, Optional
+from typing import Iterable, Iterator, Optional
 
 import chess
 import chess.pgn
@@ -61,15 +74,113 @@ class FilterConfig:
     max_black_elo: Optional[int] = None
     # Allowed values (case-insensitive). Empty set = allow everything.
     terminations: set[str] = field(default_factory=set)
-    max_time: int = None
+    max_time: Optional[int] = None
 
 
 @dataclass
 class SamplingConfig:
     mode: str = MODE_ALL
-    fraction: float = 0.2            # used only in MODE_FRACTION
+    fraction: float = 0.2                   # used only in MODE_FRACTION
     include_initial_position: bool = False  # also emit the position before move 1
     skip_games_with_errors: bool = True     # skip games with illegal/unparsable moves
+
+
+# --------------------------------------------------------------------------- #
+# Compression handling
+# --------------------------------------------------------------------------- #
+
+# Single-stream compressors: suffix -> command that writes decompressed data to stdout.
+# --long=31 is needed for big zstd files (e.g. Lichess dumps use a 2 GB window).
+STREAM_CMDS: dict[str, list[str]] = {
+    ".zst":   ["zstd", "-d", "-c", "-q", "--long=31"],
+    ".zstd":  ["zstd", "-d", "-c", "-q", "--long=31"],
+    ".gz":    ["gzip", "-dc"],
+    ".bz2":   ["bzip2", "-dc"],
+    ".xz":    ["xz", "-dc"],
+    ".lzma":  ["xz", "--format=lzma", "-dc"],
+    ".lz4":   ["lz4", "-dc", "-q"],
+}
+
+TAR_SUFFIXES = (".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tar.xz", ".txz",
+                ".tar.zst", ".tzst", ".tar.lz4", ".tar.lzma")
+
+
+def detect_kind(path: str) -> str:
+    """Return one of: 'plain', 'tar', 'zip', '7z', 'stream'."""
+    name = path.lower()
+    if name.endswith(TAR_SUFFIXES):
+        return "tar"
+    if name.endswith(".zip"):
+        return "zip"
+    if name.endswith(".7z"):
+        return "7z"
+    if any(name.endswith(s) for s in STREAM_CMDS):
+        return "stream"
+    return "plain"
+
+
+def _require(tool: str) -> None:
+    if shutil.which(tool) is None:
+        raise RuntimeError(f"'{tool}' not found. Install it, e.g.: sudo apt install {tool}")
+
+
+def _find_pgns(root: str) -> list[str]:
+    found = []
+    for dirpath, _, files in os.walk(root):
+        for f in files:
+            if f.lower().endswith(".pgn"):
+                found.append(os.path.join(dirpath, f))
+    return sorted(found)
+
+
+@contextlib.contextmanager
+def prepared_pgns(path: str, tmp_dir: Optional[str] = None,
+                  keep: bool = False) -> Iterator[list[str]]:
+    """
+    Yield a list of readable .pgn file paths for the given input.
+    Compressed inputs are decompressed into a temp dir, which is removed on exit
+    (the original archive is never touched). Plain .pgn files are yielded as is.
+    """
+    kind = detect_kind(path)
+    if kind == "plain":
+        yield [path]
+        return
+
+    work = tempfile.mkdtemp(prefix="pgn_", dir=tmp_dir)
+    try:
+        print(f"Decompressing {path} -> {work} ...", file=sys.stderr)
+        if kind == "stream":
+            suffix = next(s for s in STREAM_CMDS if path.lower().endswith(s))
+            cmd = STREAM_CMDS[suffix]
+            _require(cmd[0])
+            base = os.path.basename(path)[: -len(suffix)] or "decompressed"
+            if not base.lower().endswith(".pgn"):
+                base += ".pgn"
+            target = os.path.join(work, base)
+            with open(target, "wb") as out:
+                subprocess.run(cmd + [path], stdout=out, check=True)
+            pgns = [target]
+        else:
+            if kind == "tar":
+                _require("tar")
+                subprocess.run(["tar", "-xf", path, "-C", work], check=True)
+            elif kind == "zip":
+                _require("unzip")
+                subprocess.run(["unzip", "-qq", "-o", path, "-d", work], check=True)
+            else:  # 7z
+                _require("7z")
+                subprocess.run(["7z", "x", "-y", f"-o{work}", path],
+                               check=True, stdout=subprocess.DEVNULL)
+            pgns = _find_pgns(work)
+            if not pgns:
+                print(f"[warn] no .pgn files found inside {path}", file=sys.stderr)
+        yield pgns
+    finally:
+        if keep:
+            print(f"Keeping decompressed files in {work}", file=sys.stderr)
+        else:
+            shutil.rmtree(work, ignore_errors=True)
+            print(f"Removed decompressed copy of {path}", file=sys.stderr)
 
 
 # --------------------------------------------------------------------------- #
@@ -122,12 +233,12 @@ def game_passes_filters(fields: dict, flt: FilterConfig) -> bool:
     if flt.terminations and fields["termination"].lower() not in flt.terminations:
         return False
     if flt.max_time:
-        # time control as <min>+<seconds>
+        # time control as <base>+<increment>
         try:
-            minutes: int = int(fields["time_control"].split("+")[0])
-            if minutes > flt.max_time:
+            base = int(fields["time_control"].split("+")[0])
+            if base > flt.max_time:
                 return False
-        except:
+        except Exception:
             return False
     return True
 
@@ -141,11 +252,9 @@ def select_games(pgn_path: str, flt: FilterConfig,
     """
     Scan the PGN reading only headers. Returns (offsets, total_games_seen)
     where offsets are file positions of the games that pass the filters.
-    Storing one integer per selected game is very cheap in memory.
     """
     offsets: list[int] = []
     total = 0
-    # newline="" keeps tell()/seek() consistent; errors="replace" survives odd bytes.
     with open(pgn_path, "r", encoding="utf-8", errors="replace", newline="") as fh:
         while True:
             offset = fh.tell()
@@ -188,22 +297,25 @@ def sample_fens(fens: list[str], cfg: SamplingConfig, rng: random.Random) -> lis
     if cfg.mode == MODE_ONE:
         return [fens[rng.randrange(n)]]
     if cfg.mode == MODE_FRACTION:
-        k = max(1, round(n * cfg.fraction))   # at least one state per game
+        k = max(1, round(n * cfg.fraction))            # at least one state per game
         idx = sorted(rng.sample(range(n), min(k, n)))  # keep game order
         return [fens[i] for i in idx]
     raise ValueError(f"Unknown sampling mode: {cfg.mode}")
 
 
-def write_positions(pgn_path: str, offsets: Iterable[int], out_path: str,
+def write_positions(pgn_path: str, offsets: Iterable[int], dst,
                     cfg: SamplingConfig, rng: random.Random,
+                    first_game_number: int = 1,
                     progress_every: int = 50_000) -> tuple[int, int, int]:
     """
-    Re-read each selected game, sample states and write '<fen>, <result>' lines.
+    Re-read each selected game, sample states and write them to the open file `dst`.
+    Unless the mode is MODE_ONE, each game's block starts with '=======GAME n======='.
     Returns (games_written, positions_written, games_skipped).
     """
     games_written = positions_written = skipped = 0
-    with open(pgn_path, "r", encoding="utf-8", errors="replace", newline="") as src, \
-         open(out_path, "w", encoding="utf-8", newline="\n") as dst:
+    use_separator = cfg.mode != MODE_ONE   # one position per game -> no separator needed
+
+    with open(pgn_path, "r", encoding="utf-8", errors="replace", newline="") as src:
         for i, offset in enumerate(offsets, 1):
             src.seek(offset)
             try:
@@ -236,6 +348,8 @@ def write_positions(pgn_path: str, offsets: Iterable[int], out_path: str,
                 skipped += 1
                 continue
 
+            if use_separator:
+                dst.write(f"=======GAME {first_game_number + games_written}=======\n")
             for fen in chosen:
                 dst.write(f"{fen}, {result}\n")
             games_written += 1
@@ -251,39 +365,92 @@ def write_positions(pgn_path: str, offsets: Iterable[int], out_path: str,
 # High-level API + CLI
 # --------------------------------------------------------------------------- #
 
-def run(pgn_path: str, out_path: str, flt: FilterConfig, cfg: SamplingConfig,
-        seed: Optional[int] = None, assume_yes: bool = False,
-        dry_run: bool = False) -> None:
+def _confirm(out_path: str, label: str, state: dict) -> bool:
+    """Ask whether to save. 'a' = yes for this and all remaining files."""
+    if state["yes"]:
+        return True
+    if not sys.stdin.isatty():
+        print("Non-interactive session: use --yes to save without prompting.")
+        return False
+    answer = input(f"Save positions from '{label}' to '{out_path}'? [y/N/a(ll)] ").strip().lower()
+    if answer in {"a", "all"}:
+        state["yes"] = True
+        return True
+    return answer in {"y", "yes"}
+
+
+def run(inputs: list[str], out_path: Optional[str], flt: FilterConfig, cfg: SamplingConfig,
+        seed: Optional[int] = None, assume_yes: bool = False, dry_run: bool = False,
+        tmp_dir: Optional[str] = None, keep_decompressed: bool = False) -> None:
     rng = random.Random(seed)
+    state = {"yes": assume_yes}
+    next_game = 1                       # global game counter across all files
+    grand_games = grand_pos = grand_skipped = 0
 
-    print(f"Scanning {pgn_path} ...", file=sys.stderr)
-    offsets, total = select_games(pgn_path, flt)
-    print(f"Games in file: {total:,}")
-    print(f"Games selected after filtering: {len(offsets):,}")
+    with contextlib.ExitStack() as stack:
+        dst = None                      # output file is opened lazily on first write
 
-    if dry_run or not offsets:
-        return
+        for input_path in inputs:
+            print(f"\n=== {input_path} ===")
+            if not os.path.isfile(input_path):
+                print(f"[warn] not a file, skipping: {input_path}", file=sys.stderr)
+                continue
 
-    # Step "6 -> 7": let the user decide whether to save.
-    if not assume_yes:
-        if not sys.stdin.isatty():
-            print("Non-interactive session: use --yes to save without prompting.")
-            return
-        answer = input(f"Save positions from these games to '{out_path}'? [y/N] ").strip().lower()
-        if answer not in {"y", "yes"}:
-            print("Nothing written.")
-            return
+            try:
+                # 1. decompress (or read directly) ... 3. cleanup happens on exit of `with`
+                with prepared_pgns(input_path, tmp_dir, keep_decompressed) as pgns:
+                    for pgn in pgns:
+                        label = input_path if len(pgns) == 1 and pgn == input_path \
+                            else f"{input_path}:{os.path.basename(pgn)}"
 
-    games_w, pos_w, skipped = write_positions(pgn_path, offsets, out_path, cfg, rng)
-    print(f"Done. Games written: {games_w:,} | positions written: {pos_w:,} "
-          f"| games skipped (parse errors/empty): {skipped:,}")
-    print(f"Output file: {out_path}")
+                        # 2a. gather data (pass 1)
+                        print(f"Scanning {label} ...", file=sys.stderr)
+                        offsets, total = select_games(pgn, flt)
+                        print(f"Games in file: {total:,}")
+                        print(f"Games selected after filtering: {len(offsets):,}")
+
+                        if dry_run or not offsets:
+                            continue
+                        if not _confirm(out_path, label, state):
+                            print("Nothing written for this file.")
+                            continue
+
+                        # 2b. write positions (pass 2)
+                        if dst is None:
+                            dst = stack.enter_context(
+                                open(out_path, "w", encoding="utf-8", newline="\n"))
+                        g, p, s = write_positions(pgn, offsets, dst, cfg, rng,
+                                                  first_game_number=next_game)
+                        dst.flush()
+                        next_game += g
+                        grand_games += g
+                        grand_pos += p
+                        grand_skipped += s
+                        print(f"Written: {g:,} games, {p:,} positions "
+                              f"(skipped {s:,} games with parse errors/empty)")
+            except (subprocess.CalledProcessError, RuntimeError) as exc:
+                print(f"[error] failed to process {input_path}: {exc}", file=sys.stderr)
+                continue    # 4. go to next input
+
+    if not dry_run:
+        print(f"\nDone. Games written: {grand_games:,} | positions written: {grand_pos:,} "
+              f"| games skipped: {grand_skipped:,}")
+        if grand_games:
+            print(f"Output file: {out_path}")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Extract FEN positions + results from a PGN file.")
-    p.add_argument("pgn", help="input PGN file")
-    p.add_argument("output", help="output file (.txt/.csv), lines: '<fen>, <result>'")
+    p = argparse.ArgumentParser(
+        description="Extract FEN positions + results from (compressed) PGN files.")
+    p.add_argument("inputs", nargs="+",
+                   help="input .pgn or compressed archive(s) (.zst, .xz, .gz, .bz2, .tar.*, .zip, .7z)")
+    p.add_argument("-o", "--output",
+                   help="output file (.txt/.csv); required unless --dry-run")
+    p.add_argument("--tmp-dir",
+                   help="where to decompress archives (default: system temp dir; "
+                        "make sure it has enough free space)")
+    p.add_argument("--keep-decompressed", action="store_true",
+                   help="do not delete the decompressed copy after processing")
 
     g = p.add_argument_group("filters")
     g.add_argument("--min-white-elo", type=int, default=2000)
@@ -293,7 +460,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     g.add_argument("--terminations", nargs="*", default=["Normal"],
                    help='allowed Termination values, e.g. Normal "Time forfeit"')
     g.add_argument("--max_time", type=int, default=15,
-                   help='Allowed maximum time in time controls')
+                   help="allowed maximum base time in the TimeControl header")
 
     s = p.add_argument_group("sampling")
     s.add_argument("--mode", choices=[MODE_ALL, MODE_ONE, MODE_FRACTION], default=MODE_ALL,
@@ -313,23 +480,27 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    args = build_arg_parser().parse_args()
+    parser = build_arg_parser()
+    args = parser.parse_args()
     if args.mode == MODE_FRACTION and not (0 < args.fraction <= 1):
         sys.exit("--fraction must be in (0, 1]")
+    if not args.dry_run and not args.output:
+        parser.error("-o/--output is required unless --dry-run is used")
 
     flt = FilterConfig(
         min_white_elo=args.min_white_elo, max_white_elo=args.max_white_elo,
         min_black_elo=args.min_black_elo, max_black_elo=args.max_black_elo,
         terminations={t.lower() for t in args.terminations},
-        max_time = args.max_time,
+        max_time=args.max_time,
     )
     cfg = SamplingConfig(
         mode=args.mode, fraction=args.fraction,
         include_initial_position=args.include_initial,
         skip_games_with_errors=not args.keep_error_games,
     )
-    run(args.pgn, args.output, flt, cfg, seed=args.seed,
-        assume_yes=args.yes, dry_run=args.dry_run)
+    run(args.inputs, args.output, flt, cfg, seed=args.seed,
+        assume_yes=args.yes, dry_run=args.dry_run,
+        tmp_dir=args.tmp_dir, keep_decompressed=args.keep_decompressed)
 
 
 if __name__ == "__main__":
