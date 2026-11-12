@@ -3,19 +3,24 @@
 namespace Texel {
 Gradient::~Gradient() = default;
 
-dvec MixedGradient::evaluate_grad(const dvec &params) const {
+dvec MixedGradient::evaluate_grad(const dvec &params, GradMode mode) const {
     num_grads++;
     dvec grad(params.size());
     assert(params.size() == stepsize.size());
     dvec params_cpy(params);
+    double f0 = mode == GradMode::Forward ? evaluate(params_cpy) : 0.0;
     for (size_t i = 0; i < params.size(); i++) {
         double h = stepsize(i);
         double original = params(i);
         params_cpy(i) += h;
         double ep1 = evaluate(params_cpy);
-        params_cpy(i) -= 2 * h;
-        double em1 = evaluate(params_cpy);
-        grad(i) = (ep1 - em1) / (2 * h);
+        if (mode == GradMode::Central) {
+            params_cpy(i) -= 2 * h;
+            double em1 = evaluate(params_cpy);
+            grad(i) = (ep1 - em1) / (2 * h);
+        } else {
+            grad(i) = (ep1 - f0) / h;
+        }
         params_cpy(i) = original;
     }
     return grad;

@@ -61,8 +61,15 @@ MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validati
 
     dvec x = x0;
     double f = calc.evaluate(x);
-    dvec grad = calc.evaluate_grad(x);
+    const double central_switch_tol = 1e-5;
+    Gradient::GradMode mode = Gradient::GradMode::Forward;
+    dvec grad = calc.evaluate_grad(x, mode);
     dmat H = dmat::Zero(x.size(), x.size());
+
+    if (grad.norm() < central_switch_tol) {
+        mode = Gradient::GradMode::Central;
+        grad = calc.evaluate_grad(x, mode);
+    }
 
     double best_val_f = validation.evaluate(x);
     MinimizeResult best_val{x, f, grad, H, MinimizeResult::max_steps};
@@ -77,55 +84,61 @@ MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validati
 
     constexpr double min_step = 0.1;
     constexpr double max_step = 50.0;
-    constexpr int val_check_interval = 1;  // Check validation every 5 CG steps
-    constexpr int val_patience = 20;       // Stop if no val improvement for 20 steps
+    constexpr int val_check_interval = 1;
+    constexpr int val_patience = 20;
     double step_size = 1.0;
     int steps_since_val_best = 0;
 
     for (int step = 0; step < max_steps; ++step) {
         dvec x_next;
         double f_next = f;
-        bool accepted = false;
 
-        // 1. Backtrack step_size if training objective increases
-        while (true) {
-            x_next = x + step_size * p;
-            f_next = calc.evaluate(x_next);
-
-            if (f_next < f) {
-                accepted = true;
-                break;
-            }
-            if (step_size <= min_step)
-                break;
-
-            step_size = std::max(min_step, step_size * 0.5);
-        }
-
-        // 2. Fallback to steepest descent if conjugate direction stalls
-        if (!accepted) {
-            p = -grad.normalized();
-            step_size = 1.0;
-
+        auto try_backtrack = [&](const dvec &dir, double init_step) -> bool {
+            step_size = init_step;
             while (true) {
-                x_next = x + step_size * p;
+                x_next = x + step_size * dir;
                 f_next = calc.evaluate(x_next);
-
-                if (f_next < f) {
-                    accepted = true;
-                    break;
-                }
+                if (f_next < f)
+                    return true;
                 if (step_size <= min_step)
-                    break;
-
+                    return false;
                 step_size = std::max(min_step, step_size * 0.5);
             }
+        };
 
-            if (!accepted)
-                return best_val;
+        // 1. Try current conjugate direction
+        bool accepted = try_backtrack(p, step_size);
+
+        // 2. Fallback to steepest descent
+        if (!accepted) {
+            p = -grad.normalized();
+            accepted = try_backtrack(p, 1.0);
         }
 
-        dvec grad_next = calc.evaluate_grad(x_next);
+        // 3. Upgrade Forward -> Central if steepest descent stalled
+        if (!accepted && mode == Gradient::GradMode::Forward) {
+            std::cout << "Switching to Central differences at step " << step << " due to stall.\n";
+            mode = Gradient::GradMode::Central;
+            grad = calc.evaluate_grad(x, mode);
+
+            if (grad.norm() < tol) {
+                best_val.flag = MinimizeResult::success;
+                return best_val;
+            }
+
+            p = -grad.normalized();
+            accepted = try_backtrack(p, 1.0);
+        }
+
+        if (!accepted)
+            return best_val;
+
+        if (mode == Gradient::GradMode::Forward && grad.norm() < central_switch_tol) {
+            std::cout << "Switching to Central differences at step " << step << " (||grad|| < " << central_switch_tol << ").\n";
+            mode = Gradient::GradMode::Central;
+        }
+
+        dvec grad_next = calc.evaluate_grad(x_next, mode);
 
         // Polak-Ribiere+
         double beta = grad_next.dot(grad_next - grad) / grad.squaredNorm();

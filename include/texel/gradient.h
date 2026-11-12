@@ -5,9 +5,10 @@
 namespace Texel {
 class Gradient {
  public:
+    enum class GradMode { Central, Forward };
     virtual ~Gradient();
     virtual double evaluate(const dvec &params) const = 0;
-    virtual dvec evaluate_grad(const dvec &params) const = 0;
+    virtual dvec evaluate_grad(const dvec &params, GradMode mode = GradMode::Central) const = 0;
     virtual std::tuple<double, dvec, dmat> eval_grad_hessian(const dvec &params) const = 0;
     mutable int num_evals = 0;
     mutable int num_grads = 0;
@@ -26,7 +27,14 @@ class MixedGradient : public Gradient {
         return f(params);
     }
 
-    dvec evaluate_grad(const dvec &params) const override;
+    /**
+     * @brief
+     *
+     * @param params
+     * @param mode
+     * @return dvec
+     */
+    dvec evaluate_grad(const dvec &params, GradMode mode) const override;
 
     std::tuple<double, dvec, dmat> eval_grad_hessian(const dvec &params) const override;
 
