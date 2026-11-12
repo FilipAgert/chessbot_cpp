@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
     MixedGradient validation_eval(is_float, validate_param_loss);
 
     // Minimize using training data only
-    MinimizeResult param_res = minimize(x0, param_eval, validate_params_loss);
+    MinimizeResult param_res = minimize(x0, param_eval, validation_eval);
 
     EvalParameters optimized_params = create_params(param_res.x);
 
