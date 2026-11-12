@@ -31,6 +31,10 @@ double round_if_int(double a, bool is_float) {
 }
 
 int main(int argc, char *argv[]) {
+    for (int i = 0; i < argc; ++i) {
+        std::cout << "argv[" << i << "]: " << argv[i] << '\n';
+    }
+    std::cout.flush();
     std::cout << "Welcome to texel tuning!\n\n";
     std::cout << "Here we will tune the parameters of the eval function using a dataset of games.\n";
     std::cout << "The goal is to extract positions from labeled high elo games, and using the eval function, predict the winner.\n\n";
