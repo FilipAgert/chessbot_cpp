@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 
     argparse::ArgumentParser parser(ID_name, ID_version);
     parser.add_argument("file").help("File containing <fen>, <result>, <eval>");
-    parser.add_argument("--mode").help("Mode in [result, eval]. Train on game result or stockfish eval.").default_value("result");
+    parser.add_argument("--objective").help("Objective in [result, eval]. Train on game result or stockfish eval.").default_value("result");
     parser.add_argument("--nload").help("Number of positions to load.").scan<'i', int>();
     parser.add_argument("--nvalidation").help("Number of positions to validate on. Subset of nload.").scan<'i', int>();
     try {
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     std::string path = parser.get<std::string>("file");
     int nload = parser.get<int>("--nload");
     int nvalidation = parser.get<int>("--nvalidation");
-    std::string mode = parser.get<std::string>("--mode");
+    std::string objective = parser.get<std::string>("--objective");
 
     // Load dataset
     std::vector<Position> positions = read_dataset(path, {nload});
@@ -94,10 +94,10 @@ int main(int argc, char *argv[]) {
     std::cout << "\nDataset split:" << "\n  Training:    " << training_count << "\n  Verification: " << nvalidation << std::endl;
     // Evaluation constant
     double K = 0.63;
-    auto to_res = [K, mode](std::vector<Position> &res) {
+    auto to_res = [K, objective](std::vector<Position> &res) {
         dvec out(res.size());
         for (size_t i = 0; i < res.size(); i++) {
-            if (mode == "result")
+            if (objective == "result")
                 out(i) = to_win(res[i].res);
             else {
                 if (!res[i].eval)
