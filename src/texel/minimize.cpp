@@ -77,7 +77,7 @@ MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validati
 
     constexpr double min_step = 0.1;
     constexpr double max_step = 50.0;
-    constexpr int val_check_interval = 5;  // Check validation every 5 CG steps
+    constexpr int val_check_interval = 1;  // Check validation every 5 CG steps
     constexpr int val_patience = 20;       // Stop if no val improvement for 20 steps
     double step_size = 1.0;
     int steps_since_val_best = 0;
