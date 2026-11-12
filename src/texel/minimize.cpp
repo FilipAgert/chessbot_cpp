@@ -168,7 +168,6 @@ MinimizeResult minimize(const dvec &x0, const Gradient &calc, std::function<std:
         std::cout << "Warning: stopped without converging (stalled or max outer iterations)\n";
 
     std::cout << "Minimization complete. f=" << best.f << ", an improvement of " << std::abs(best.f - f0) << "\n";
-    std::cout << "Final parameters:\n" << print_fnc(best.x) << "\n";
     std::cout << "Iterations: " << i << "\nEvaluation function calls: " << calc.num_evals << "\nGradient calls: " << calc.num_grads
               << "\nHessian function calls: " << calc.num_h << "\n";
     return best;
