@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
     // Measure initial verification loss
     dvec verification_predictions_before = eval_positions(p0, verification_fens, K);
 
-    double verification_loss_before = loss(validation_results, verification_predictions_before);
+    double validation_loss_before = loss(validation_results, verification_predictions_before);
 
     std::cout << "\n\nNow minimizing parameters" << std::endl;
     std::cout << "Initial parameters:\n" << p0.to_string() << std::endl;
@@ -172,13 +172,13 @@ int main(int argc, char *argv[]) {
     std::cout << "\nOptimized parameters:\n" << optimized_params.to_string() << std::endl;
 
     std::cout << "\nVerification loss:\n";
-    std::cout << "  Before: " << verification_loss_before << std::endl;
+    std::cout << "  Before: " << validation_loss_before << std::endl;
     std::cout << "  After:  " << verification_loss_after << std::endl;
 
-    std::cout << "  Change: " << verification_loss_after - verification_loss_before << std::endl;
+    std::cout << "  Change: " << verification_loss_after - validation_loss_before << std::endl;
 
-    if (verification_loss_before != 0.0) {
-        double improvement = 100.0 * (verification_loss_before - verification_loss_after) / verification_loss_before;
+    if (validation_loss_before != 0.0) {
+        double improvement = 100.0 * (validation_loss_before - verification_loss_after) / validation_loss_before;
 
         std::cout << "  Improvement: " << improvement << "%" << std::endl;
     }
