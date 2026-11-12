@@ -422,7 +422,7 @@ PstItem rook_pst = []() {
 }();
 PstItem queen_pst = []() {
     Symmetry s = Symmetry::EW;
-    std::vector<int> values{-20, -10, -10, -5, -10, 0, 5, 0, -10, 5, 5, 5, -5, 0, 5, 5, 0, 5, 5, 5, -10, 5, 5, 5, -10, 0, 5, 0, -20, -10, -10, -5};
+    std::vector<int> values{-20, -10, -10, -5, -10, 0, 5, 0, -10, 5, 5, 5, -5, 0, 5, 5, -5, 0, 5, 5, -10, 5, 5, 5, -10, 0, 5, 0, -20, -10, -10, -5};
     return PstItem{values, s};
 }();
 PstItem king_pst = []() {
