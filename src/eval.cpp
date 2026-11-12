@@ -405,8 +405,9 @@ PstItem pawn_pst = []() {
     return PstItem{values, s};
 }();
 PstItem knight_pst = []() {
-    Symmetry s = Symmetry::PIZZA;
-    std::vector<int> values{-50, -40, -30, -30, -20, 0, 5, 10, 15, 20};
+    Symmetry s = Symmetry::EW;
+    std::vector<int> values{-50, -40, -30, -30, -40, -20, 0,  5,  -30, 0,   10, 15, -30, 5,   15,  20,
+                            -30, 5,   15,  20,  -30, 0,   15, 15, -40, -20, 0,  5,  -50, -40, -30, -30};
     return PstItem{values, s};
 }();
 PstItem bishop_pst = []() {
@@ -420,8 +421,8 @@ PstItem rook_pst = []() {
     return PstItem{values, s};
 }();
 PstItem queen_pst = []() {
-    Symmetry s = Symmetry::PIZZA;
-    std::vector<int> values{-20, -10, -10, -5, 0, 5, 0, 5, 5, 5};
+    Symmetry s = Symmetry::EW;
+    std::vector<int> values{-20, -10, -10, -5, -10, 0, 5, 0, -10, 5, 5, 5, -5, 0, 5, 5, 0, 5, 5, 5, -10, 5, 5, 5, -10, 0, 5, 0, -20, -10, -10, -5};
     return PstItem{values, s};
 }();
 PstItem king_pst = []() {
