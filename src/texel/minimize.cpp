@@ -78,7 +78,7 @@ MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, 
     p.normalize();
 
     constexpr double min_step = 0.1;
-    constexpr double max_step = 5.0;
+    constexpr double max_step = 30;
     double step_size = 1.0;  // Start with unit step
 
     for (int step = 0; step < max_steps; ++step) {
