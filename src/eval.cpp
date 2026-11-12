@@ -176,7 +176,9 @@ std::string PieceSquareTable::to_string() const {
     os << "    ";
     for (int f = 0; f < 8; ++f)
         os << centered(std::string(1, char('a' + f))) << " ";
-    os << "\n";
+    os << "\n{";
+    for (size_t i = 0; i < params.size(); ++i)
+        os << params[i] << ((i < params.size() - 1) ? ", " : "}\n");
     return os.str();
 }
 
