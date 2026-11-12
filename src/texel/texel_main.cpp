@@ -47,6 +47,8 @@ int main(int argc, char *argv[]) {
     parser.add_argument("--nload").help("Number of positions to load.").scan<'i', int>();
     parser.add_argument("--nvalidation").help("Number of positions to validate on. Subset of nload.").scan<'i', int>();
     parser.add_argument("--method").help("Method to compute evaluation. [direct, quiesence]. Direct is faster but less accurate.").default_value("direct");
+    parser.add_argument("--prior_offset").help("Offset in prior stdev sigma = offset + r * y").default_value(10);
+    parser.add_argument("--prior_relunc").help("Relative uncertainty in prior stdev. r in sigma = offset + r * y").default_value(0.2);
     try {
         parser.parse_args(argc, argv);
     } catch (const std::exception &err) {
@@ -60,6 +62,8 @@ int main(int argc, char *argv[]) {
     int nvalidation = parser.get<int>("--nvalidation");
     std::string objective = parser.get<std::string>("--objective");
     std::string method = parser.get<std::string>("--method");
+    int prior_offset = parser.get<int>("--prior_offset");
+    double prior_relunc = parser.get<double>("--prior_relunc");
 
     // Load dataset
     std::vector<Position> positions = read_dataset(path, {nload});
@@ -137,24 +141,28 @@ int main(int argc, char *argv[]) {
     dvec x0(num_params);
 
     std::vector<int> params = p0.to_vector();
-
-    for (size_t i = 0; i < num_params; i++)
+    dvec prior_var(params.size());
+    for (size_t i = 0; i < num_params; i++) {
         x0(i) = params[i];
+        prior_var(i) = std::pow(prior_offset + std::abs(params[i]) * prior_relunc, 2);
+    }
+
+    std::function<double(const dvec &)> prior = [x0 = x0, prior_var](const dvec &x) { return ((x0 - x).array().square() / prior_var.array()).sum(); };
 
     // Training objective: verification data is never used here.
-    std::function<double(const dvec &)> eval_param_loss = [create_params, training_fens, training_results, K](const dvec &x) {
+    std::function<double(const dvec &)> eval_param_loss = [create_params, training_fens, training_results, K, prior](const dvec &x) {
         const EvalParameters params = create_params(x);
 
         dvec predictions = eval_positions(params, training_fens, K);
 
-        return loss(training_results, predictions);
+        return loss(training_results, predictions) + prior(x);
     };
-    std::function<double(const dvec &)> validate_param_loss = [create_params, validation_fens, validation_results, K](const dvec &x) {
+    std::function<double(const dvec &)> validate_param_loss = [create_params, validation_fens, validation_results, K, prior](const dvec &x) {
         const EvalParameters params = create_params(x);
 
         dvec predictions = eval_positions(params, validation_fens, K);
 
-        return loss(validation_results, predictions);
+        return loss(validation_results, predictions) + prior(x);
     };
 
     // Measure initial verification loss
