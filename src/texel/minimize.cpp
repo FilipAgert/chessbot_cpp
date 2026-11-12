@@ -75,56 +75,92 @@ MinimizeResult conjugate_gradient(const Gradient &calc, dvec x0, int max_steps, 
             p = pn;
     }
 
-    // Unit-length direction.
     p.normalize();
 
+    constexpr double min_step = 0.1;
+    constexpr double max_step = 5.0;
+    double step_size = 1.0;  // Start with unit step
+
     for (int step = 0; step < max_steps; ++step) {
+        dvec x_next;
+        double f_next = f;
+        bool accepted = false;
 
-        // Exactly one unit step.
-        dvec x_next = x + p;
-
-        double f_next = calc.evaluate(x_next);
-        dvec grad_next = calc.evaluate_grad(x_next);
-
-        // If the step increases the objective, try steepest descent.
-        if (f_next >= f) {
-            p = -grad;
-            p.normalize();
-
-            x_next = x + p;
+        // 1. Try current conjugate/Newton direction, shrinking step_size if f increases
+        while (true) {
+            x_next = x + step_size * p;
             f_next = calc.evaluate(x_next);
-            grad_next = calc.evaluate_grad(x_next);
 
-            // No improvement: terminate.
-            if (f_next >= f)
-                return {x, f, grad, H, MinimizeResult::max_steps};
+            if (f_next < f) {
+                accepted = true;
+                break;
+            }
+
+            if (step_size <= min_step)
+                break;
+
+            step_size = std::max(min_step, step_size * 0.5);
         }
+
+        // 2. If conjugate direction failed even at min_step, fall back to steepest descent
+        if (!accepted) {
+            p = -grad.normalized();
+            step_size = 1.0;
+
+            while (true) {
+                x_next = x + step_size * p;
+                f_next = calc.evaluate(x_next);
+
+                if (f_next < f) {
+                    accepted = true;
+                    break;
+                }
+
+                if (step_size <= min_step)
+                    break;
+
+                step_size = std::max(min_step, step_size * 0.5);
+            }
+
+            // No improvement even along steepest descent at min_step: terminate
+            if (!accepted) {
+                double f_fin = calc.evaluate(x);
+                return {x, f_fin, grad, H, MinimizeResult::non_descent};
+            }
+        }
+
+        dvec grad_next = calc.evaluate_grad(x_next);
 
         // Polak-Ribiere+
         double beta = grad_next.dot(grad_next - grad) / grad.squaredNorm();
-
         beta = std::max(0.0, beta);
 
         bool restart = ((step + 1) % n == 0);
-
         dvec p_next = -grad_next + (restart ? 0.0 : beta) * p;
 
-        if (p_next.norm() < 1e-14)
-            return {x_next, f_next, grad_next, H, MinimizeResult::success};
-
-        p = p_next.normalized();
+        // Ensure p_next is a descent direction; otherwise reset to steepest descent
+        if (p_next.norm() < 1e-14 || grad_next.dot(p_next) >= 0.0) {
+            p = -grad_next.normalized();
+        } else {
+            p = p_next.normalized();
+        }
 
         x = x_next;
         f = f_next;
         grad = grad_next;
 
-        std::cout << "CG step " << step << " | f: " << f << " | ||grad||: " << grad.norm() << std::endl;
+        // Greedily grow step_size on successful decrease, clamped to [0.1, 5.0]
+        step_size = std::clamp(step_size * 1.25, min_step, max_step);
 
-        if (grad.norm() < tol)
-            return {x, f, grad, H, MinimizeResult::success};
+        std::cout << "CG step " << step << " | f: " << f << " | ||grad||: " << grad.norm() << " | step_size: " << step_size << std::endl;
+
+        if (grad.norm() < tol) {
+            double f_fin = calc.evaluate(x);
+            return {x, f_fin, grad, H, MinimizeResult::success};
+        }
     }
-
-    return {x, f, grad, H, MinimizeResult::max_steps};
+    double f_fin = calc.evaluate(x);
+    return {x, f_fin, grad, H, MinimizeResult::max_steps};
 }
 
 MinimizeResult minimize(const dvec &x0, const Gradient &calc, std::function<std::string(dvec)> print_fnc) {
@@ -135,8 +171,9 @@ MinimizeResult minimize(const dvec &x0, const Gradient &calc, std::function<std:
     std::string tab = "    ";
 
     double f0 = calc.evaluate(x0);
-    auto [f, grad, H] = calc.eval_grad_hessian(x0);
-    MinimizeResult best{x0, f, grad, H, MinimizeResult::max_steps};
+    dvec grad = calc.evaluate_grad(x0);
+    dmat H;
+    MinimizeResult best{x0, f0, grad, H, MinimizeResult::max_steps};
     if (grad.norm() < tol)
         best.flag = MinimizeResult::success;
 

@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
     parser.add_argument("--objective").help("Objective in [result, eval]. Train on game result or stockfish eval.").default_value("result");
     parser.add_argument("--nload").help("Number of positions to load.").scan<'i', int>();
     parser.add_argument("--nvalidation").help("Number of positions to validate on. Subset of nload.").scan<'i', int>();
+    parser.add_argument("--method").help("Method to compute evaluation. [direct, quiesence]. Direct is faster but less accurate.").default_value("direct");
     try {
         parser.parse_args(argc, argv);
     } catch (const std::exception &err) {
@@ -54,6 +55,7 @@ int main(int argc, char *argv[]) {
     int nload = parser.get<int>("--nload");
     int nvalidation = parser.get<int>("--nvalidation");
     std::string objective = parser.get<std::string>("--objective");
+    std::string method = parser.get<std::string>("--method");
 
     // Load dataset
     std::vector<Position> positions = read_dataset(path, {nload});
