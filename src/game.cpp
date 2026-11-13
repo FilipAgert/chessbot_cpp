@@ -185,7 +185,7 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
         new_msg.nodes = nodes_evaluated + nodes_quiesence_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
         new_msg.depth = depth;
-        new_msg.pv = trans_table.get_pv(board, depth);
+        new_msg.pv = trans_table.get_pv(board, depth, state_stack);
         new_msg.seldepth = seldepth;
         new_msg.hashfill = trans_table.load_factor();
         new_msg.score = eval;

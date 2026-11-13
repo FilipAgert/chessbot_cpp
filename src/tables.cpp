@@ -132,36 +132,44 @@ std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
     }
     return maybe;
 }
-std::vector<Move> TranspositionTable::get_pv(Board &board, int depth) {
+std::vector<Move> TranspositionTable::get_pv(Board &board, int depth, StateStack &stack) {
     std::vector<Move> pv_line;
     std::stack<RestoreMoveInfo> restore_stack;
+    bool exit_early = false;
+    int pre_len = stack.len();
     for (int i = 0; i <= depth; i++) {
         uint64_t hash = ZobroistHasher::get().hash_board(board);
+
         std::optional<TranspositionEntry> entry = get(hash);
         if (entry) {
             if (entry.value().is_valid_move()) {
-                auto it = std::find(pv_line.begin(), pv_line.end(), entry.value().bestmove);  // check if move already found.
-                if (it != pv_line.end()) {
-                    break;  // found move inside.
-                } else {
-                    pv_line.push_back(entry.value().bestmove);
-                    RestoreMoveInfo info;
-                    if (board.get_turn_color() == pieces::white)
-                        info = board.do_move<true>(entry.value().bestmove);
-                    else
-                        info = board.do_move<false>(entry.value().bestmove);
-                    restore_stack.push(info);
-                    if (EvalState::forced_draw_ply(board))
-                        break;
-                }
+                pv_line.push_back(entry.value().bestmove);
+                RestoreMoveInfo info;
+                if (board.get_turn_color() == pieces::white)
+                    info = board.do_move<true>(entry.value().bestmove);
+                else
+                    info = board.do_move<false>(entry.value().bestmove);
+                uint64_t hash = ZobroistHasher::get().hash_board(board);
+                stack.push({hash, board.get_num_pieces()});
+                restore_stack.push(info);
+                if (EvalState::forced_draw_ply(board))
+                    exit_early = true;
+                if (stack.atleast_num(stack.top(), 3))  // repetition.
+                    exit_early = true;
             }
-        }
+        } else
+            exit_early = true;
+
+        if (exit_early)
+            break;
     }
     for (int i = pv_line.size() - 1; i >= 0; i--) {
         RestoreMoveInfo info = restore_stack.top();
         restore_stack.pop();
+        stack.pop();
         board.undo_move(info, pv_line[i]);
     }
+    assert(stack.len() == pre_len);
     return pv_line;
 }
 int TranspositionTable::load_factor() const { return writes > 0 ? (overwrites * 1000) / writes : 0; }

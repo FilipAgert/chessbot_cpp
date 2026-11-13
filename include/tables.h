@@ -33,6 +33,7 @@ class StateStack {
     std::array<HashEntry, max_size> stack;
 
  public:
+    inline int len() { return top_idx + 1; }
     void print() {
         for (int i = 0; i <= top_idx; i++) {
             BitBoard::print(stack[i].hash);
@@ -47,7 +48,7 @@ class StateStack {
      * @param[[TODO:direction]] hash [TODO:description]
      * @return [TODO:description]
      */
-    inline int count_elem(HashEntry hash) {
+    inline int count_elem(HashEntry hash) const {
         int ctr = 0;
         int num_pieces = hash.num_pieces;
         for (int i = std::min(top_idx, max_size - 1); i >= 0; i--) {
@@ -239,6 +240,6 @@ struct TranspositionTable {
      * @param depth
      * @return std::vector<Move>
      */
-    std::vector<Move> get_pv(Board &board, int depth);
+    std::vector<Move> get_pv(Board &board, int depth, StateStack &stack);
 };
 #endif
