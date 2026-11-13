@@ -451,6 +451,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
 
     uint64_t zob_hash = state_stack.top().hash;
     std::optional<TranspositionEntry> maybe_entry = trans_table.get(zob_hash);
+    std::optional<Move> tt_move;
     if (maybe_entry) {
         const TranspositionEntry &entry = maybe_entry.value();
         if (trans_table.is_useable_entry(entry, 0)) {  // depth 0: any stored depth qualifies
@@ -468,6 +469,8 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
                 beta = std::min(beta, tt_score);
             }
         }
+        if (entry.is_valid_move())
+            tt_move = std::make_optional(entry.bestmove);
     }
 
     const bool in_check = board.king_checked<is_white>();
@@ -494,7 +497,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, NUM_KILLER_MOVES> &killers = killer_moves[ply];
-    MoveOrder::move_heuristics<is_white>(eval.params.piecevals, moves, scores, num_moves, board, {}, history, killers);
+    MoveOrder::move_heuristics<is_white>(eval.params.piecevals, moves, scores, num_moves, board, tt_move, history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
     while (picker.has_next()) {
         const auto [i, move] = picker.next();
