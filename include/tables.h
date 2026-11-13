@@ -18,31 +18,41 @@
 /**
  * @brief Class for storing the occured game states for checking 3 move repetion draws.
  */
+struct HashEntry {
+    uint64_t hash;
+    uint8_t num_pieces;
 
+    inline bool operator==(const HashEntry &other) const { return hash == other.hash; }
+    inline bool operator==(uint64_t hsh) const { return hash == hsh; }
+    inline HashEntry operator^(uint64_t other_hash) const { return HashEntry{hash ^ other_hash, num_pieces}; }
+};
 class StateStack {
  private:
     int top_idx = -1;
     constexpr static int max_size = 512;
-    std::array<uint64_t, max_size> stack;
+    std::array<HashEntry, max_size> stack;
 
  public:
     void print() {
         for (int i = 0; i <= top_idx; i++) {
-            BitBoard::print(stack[i]);
+            BitBoard::print(stack[i].hash);
         }
     }
-    inline void push(uint64_t hash) { stack[++top_idx] = hash; }
+    inline void push(HashEntry hash) { stack[++top_idx] = hash; }
     inline void pop() { top_idx--; }
-    inline uint64_t top() { return stack[top_idx]; }
+    inline HashEntry top() { return stack[top_idx]; }
     /**
      * @brief Counts number of occurences of hash in stack.
      *
      * @param[[TODO:direction]] hash [TODO:description]
      * @return [TODO:description]
      */
-    inline int count_elem(uint64_t hash) {
+    inline int count_elem(HashEntry hash) {
         int ctr = 0;
+        int num_pieces = hash.num_pieces;
         for (int i = std::min(top_idx, max_size - 1); i >= 0; i--) {
+            if (stack[i].num_pieces < num_pieces)
+                break;
             ctr += stack[i] == hash;
         }
         return ctr;
@@ -61,14 +71,17 @@ class StateStack {
      * @param[in] num number of hashes in stack
      * @return true if there are at least num hashes of this hash in the stack.
      */
-    inline bool atleast_num(uint64_t hash, int num) {
+    inline int atleast_num(HashEntry hash, int num) {
         int ctr = 0;
-        int idx = std::min(top_idx, max_size - 1);
-        while ((ctr < num) && (idx >= 0)) {
-            ctr += hash == stack[idx];
-            idx--;
+        int num_pieces = hash.num_pieces;
+        for (int i = std::min(top_idx, max_size - 1); i >= 0; i--) {
+            if (stack[i].num_pieces < num_pieces)
+                break;
+            ctr += stack[i] == hash;
+            if (ctr >= num)
+                return true;
         }
-        return ctr == num;
+        return false;
     }
 };
 

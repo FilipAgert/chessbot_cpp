@@ -87,7 +87,7 @@ void insert_killer(Move move, std::array<Move, NUM_KILLER_MOVES> &killers) {
 void Game::reset_state_stack() {
     state_stack.reset();
     uint64_t board_hash = ZobroistHasher::get().hash_board(board);
-    state_stack.push(board_hash);
+    state_stack.push({board_hash, board.get_num_pieces()});
 }
 
 constexpr int MATE_BOUND = EvalState::MATE_SCORE - 256;  // anything beyond this is a mate score
@@ -248,7 +248,7 @@ std::pair<int, uint8_t> Game::alpha_beta(int depth, int ply, int alpha, int beta
     int bestscore = -INF;
     uint8_t nodetype = ub;
 
-    uint64_t zob_hash = state_stack.top();
+    uint64_t zob_hash = state_stack.top().hash;
     std::optional<TranspositionEntry> maybe_entry = trans_table.get(zob_hash);
     std::optional<Move> first_move = {};
     if (maybe_entry) {
@@ -443,7 +443,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
         return {eval.eval(board), exact};
     }
 
-    uint64_t zob_hash = state_stack.top();
+    uint64_t zob_hash = state_stack.top().hash;
     std::optional<TranspositionEntry> maybe_entry = trans_table.get(zob_hash);
     if (maybe_entry) {
         const TranspositionEntry &entry = maybe_entry.value();
@@ -533,7 +533,7 @@ int Game::calculate_extension(const Move move, uint8_t movenum, int num_extensio
 
 bool Game::check_repetition() {
     // Checks if we have repeated this board state.
-    uint64_t hash = state_stack.top();
+    HashEntry hash = state_stack.top();
     constexpr int instances_for_draw = 3;  // How many occurences of this board should have occured for a draw?
     bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
     return atleast2;
@@ -555,14 +555,14 @@ template <bool is_white> void Game::make_nullmove() {
     RestoreMoveInfo info = board.do_move<is_white, pieces::none, moveflag::MOVEFLAG_null_move, pieces::none>(nullmove);
     move_stack.push(nullmove);
     restore_info_stack.push(info);
-    state_stack.push(state_stack.top() ^ ZobroistHasher::get().delta(info.delta));
+    state_stack.push(state_stack.top() ^ ZobroistHasher::get().delta(info.delta));  // same number of pieces due to nullmove
     assert(state_stack.top() == ZobroistHasher::get().hash_board(board));
 }
 template <bool is_white> void Game::make_move(Move move) {
     RestoreMoveInfo info = board.do_move<is_white>(move);
     move_stack.push(move);
     restore_info_stack.push(info);
-    state_stack.push(state_stack.top() ^ ZobroistHasher::get().delta(info.delta));
+    state_stack.push({state_stack.top().hash ^ ZobroistHasher::get().delta(info.delta), board.get_num_pieces()});
     assert(state_stack.top() == ZobroistHasher::get().hash_board(board));
 }
 
