@@ -113,7 +113,7 @@ class Game {
         move_stack.push(move);
         restore_info_stack.push(info);
         uint64_t state_hash = ZobroistHasher::get().hash_board(board);
-        state_stack.push(state_hash);
+        state_stack.push({state_hash, board.get_num_pieces()});
     }
     void make_move(Move move) {
         assert(move.is_valid());
