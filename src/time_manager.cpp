@@ -14,18 +14,18 @@ int TimeManager::get_time_elapsed() const { return calculate_time_elapsed_ms(); 
 
 void TimeManager::start_time_management() {
     int64_t target_time = calculate_target_move_time_ms();
-    this->start = high_resolution_clock::now();
+    start = high_resolution_clock::now();
 
     if (target_time != -1) {
-        this->timer_thread = std::thread(&TimeManager::time_loop_function, this, target_time);
+        timer_thread = std::thread(&TimeManager::time_loop_function, this, target_time);
     }
 }
 int64_t TimeManager::calculate_target_move_time_ms() {
     int64_t target_time;
-    if (this->infinite) {
+    if (infinite) {
         return -1;
     } else {
-        int64_t base_time = remtime / this->remtime_frac;  // Use up 1/20th of the remaining time plus increment.
+        int64_t base_time = remtime / remtime_frac;  // Use up 1/20th of the remaining time plus increment.
 
         target_time = base_time + inc - buffer;
     }
@@ -38,7 +38,7 @@ void TimeManager::time_loop_function(int64_t target_move_time_ms) {
     //
 
     while (true) {
-        if (this->get_should_stop()) {
+        if (get_should_stop()) {
             break;
         }
 
@@ -47,11 +47,11 @@ void TimeManager::time_loop_function(int64_t target_move_time_ms) {
         int64_t elapsed_time = calculate_time_elapsed_ms();
 
         if (elapsed_time >= target_move_time_ms) {
-            this->set_should_stop(true);
+            set_should_stop(true);
             break;
         }
         if (elapsed_time >= target_move_time_ms / 2) {
-            this->set_should_start_next_iteration(false);
+            set_should_start_next_iteration(false);
         }
     }
 }
@@ -59,8 +59,8 @@ void TimeManager::time_loop_function(int64_t target_move_time_ms) {
 // or by the Main Thread (e.g., when receiving 'quit').
 void TimeManager::stop_and_join() {
     // Ensure the stop flag is set so the time_loop_function will break its 'while(true)' loop.
-    this->set_should_stop(true);
-    this->set_should_start_next_iteration(false);
+    set_should_stop(true);
+    set_should_start_next_iteration(false);
 
     // Wait for the thread to finish execution, if it's joinable.
     if (timer_thread.joinable()) {
@@ -72,18 +72,18 @@ void TimeManager::stop_and_join() {
 TimeManager::~TimeManager() { stop_and_join(); }
 int TimeManager::calculate_time_elapsed_ms() const {
     auto stop = high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - this->start);
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     return duration.count();
 }
 
-TimeManager::TimeManager(TimeControl rem_time, int buffer, int remtime_frac, bool is_white) {
-    this->remtime = is_white ? rem_time.wtime : rem_time.btime;
-    this->enemy_remtime = is_white ? rem_time.btime : rem_time.wtime;
-    this->inc = is_white ? rem_time.winc : rem_time.binc;
-    this->enemy_inc = is_white ? rem_time.binc : rem_time.winc;
-    this->infinite = false;
-    this->buffer = buffer;
-    this->remtime_frac = remtime_frac;
-    this->set_should_start_next_iteration(true);
-    this->set_should_stop(false);
+TimeManager::TimeManager(TimeControl rem_time, int buffer_, int remtime_frac_, bool is_white) {
+    remtime = is_white ? rem_time.wtime : rem_time.btime;
+    enemy_remtime = is_white ? rem_time.btime : rem_time.wtime;
+    inc = is_white ? rem_time.winc : rem_time.binc;
+    enemy_inc = is_white ? rem_time.binc : rem_time.winc;
+    infinite = false;
+    buffer = buffer_;
+    remtime_frac = remtime_frac_;
+    set_should_start_next_iteration(true);
+    set_should_stop(false);
 }
