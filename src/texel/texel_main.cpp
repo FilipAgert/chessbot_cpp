@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     parser.add_argument("--nload").help("Number of positions to load.").scan<'i', int>();
     parser.add_argument("--nvalidation").help("Number of positions to validate on. Subset of nload.").scan<'i', int>();
     parser.add_argument("--method").help("Method to compute evaluation. [direct, quiesence]. Direct is faster but less accurate.").default_value("direct");
-    parser.add_argument("--prior_offset").help("Offset in prior stdev sigma = offset + r * y").default_value(50);
+    parser.add_argument("--prior_offset").help("Offset in prior stdev sigma = offset + r * y").default_value(10);
     parser.add_argument("--prior_relunc").help("Relative uncertainty in prior stdev. r in sigma = offset + r * y").default_value(0.3);
     try {
         parser.parse_args(argc, argv);
