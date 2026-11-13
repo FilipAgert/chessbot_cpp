@@ -457,10 +457,16 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
             int tt_score = score_from_tt(entry.eval, ply);
             if (entry.is_exact())
                 return {tt_score, exact};
-            if (entry.is_lb() && tt_score >= beta)
-                return {beta, lb};
-            if (entry.is_ub() && tt_score <= alpha)
-                return {alpha, ub};
+            if (entry.is_lb()) {
+                if (tt_score >= beta)
+                    return {beta, lb};
+                alpha = std::max(alpha, tt_score);
+            }
+            if (entry.is_ub()) {
+                if (tt_score <= alpha)
+                    return {alpha, ub};
+                beta = std::min(beta, tt_score);
+            }
         }
     }
 
