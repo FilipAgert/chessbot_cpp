@@ -84,7 +84,7 @@ MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validati
 
     constexpr double min_step = 0.1;
     constexpr double max_step = 50.0;
-    constexpr int val_check_interval = 1;
+    constexpr int val_check_interval = 10;
     constexpr int val_patience = 20;
     double step_size = 1.0;
     int steps_since_val_best = 0;
@@ -177,6 +177,8 @@ MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validati
                 std::cout << "CG early stop: validation loss stopped improving.\n";
                 return best_val;
             }
+        } else {
+            std::cout << "CG step " << step << " | train: " << f << " | ||grad||: " << grad.norm() << " | step: " << step_size << std::endl;
         }
 
         if (grad.norm() < tol) {

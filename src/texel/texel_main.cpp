@@ -47,8 +47,8 @@ int main(int argc, char *argv[]) {
     parser.add_argument("--nload").help("Number of positions to load.").scan<'i', int>();
     parser.add_argument("--nvalidation").help("Number of positions to validate on. Subset of nload.").scan<'i', int>();
     parser.add_argument("--method").help("Method to compute evaluation. [direct, quiesence]. Direct is faster but less accurate.").default_value("direct");
-    parser.add_argument("--prior_offset").help("Offset in prior stdev sigma = offset + r * y").default_value(10);
-    parser.add_argument("--prior_relunc").help("Relative uncertainty in prior stdev. r in sigma = offset + r * y").default_value(0.2);
+    parser.add_argument("--prior_offset").help("Offset in prior stdev sigma = offset + r * y").default_value(50);
+    parser.add_argument("--prior_relunc").help("Relative uncertainty in prior stdev. r in sigma = offset + r * y").default_value(0.3);
     try {
         parser.parse_args(argc, argv);
     } catch (const std::exception &err) {
@@ -165,10 +165,7 @@ int main(int argc, char *argv[]) {
         return loss(validation_results, predictions) + prior(x);
     };
 
-    // Measure initial verification loss
-    dvec verification_predictions_before = eval_positions(p0, validation_fens, K);
-
-    double validation_loss_before = loss(validation_results, verification_predictions_before);
+    double validation_loss_before = validate_param_loss(x0);
 
     std::cout << "\n\nNow minimizing parameters" << std::endl;
     std::cout << "Initial parameters:\n" << p0.to_string() << std::endl;
@@ -183,9 +180,8 @@ int main(int argc, char *argv[]) {
     EvalParameters optimized_params = create_params(param_res.x);
 
     // Measure final verification loss
-    dvec verification_predictions_after = eval_positions(optimized_params, validation_fens, K);
 
-    double verification_loss_after = loss(validation_results, verification_predictions_after);
+    double verification_loss_after = validate_param_loss(param_res.x);  //(validation_results, verification_predictions_after);
 
     // Results
     std::cout << "\n\n========== RESULTS ==========\n";
