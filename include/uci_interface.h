@@ -16,11 +16,6 @@ class UCIInterface {
     static void process_d_command();
     static void process_ponder_command();
     static void process_self_command(std::string command);
-    /**
-     * @brief Repeatedly plays against itself.
-     *
-     */
-    static void process_repeat_command();
 
     /**
      * @brief Checks if game has info to send, if so: send info. Empties game queue.
@@ -41,7 +36,7 @@ class UCIInterface {
      *
      * @param[[TODO:direction]] command [TODO:description]
      */
-    static void process_go_command(std::string command);
+    static void process_go_command(std::string command, bool assign_worker);
     static void process_position_command(std::string command);
     static void process_fen_command(std::string command);
     static void process_stop_command();

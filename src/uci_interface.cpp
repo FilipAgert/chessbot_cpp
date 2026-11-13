@@ -76,7 +76,7 @@ void UCIInterface::send_info_if_has() {
         UCIInterface::send_info_msg(info);
     }
 }
-void UCIInterface::process_go_command(std::string command) {
+void UCIInterface::process_go_command(std::string command, bool assign_worker) {
     // Initialize board:
     if (debug_mode)
         UCIInterface::uci_response("Processing go command: " + command);
@@ -146,7 +146,7 @@ void UCIInterface::process_go_command(std::string command) {
         }
     }
     TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc});
-    Game::instance().start_thinking(rem_time);  // Enter ponder loop
+    Game::instance().start_thinking(rem_time, assign_worker);  // Enter ponder loop
     // UCIInterface::send_info_if_has();
     // UCIInterface::send_bestmove();
 }
@@ -289,7 +289,7 @@ void UCIInterface::process_self_command(std::string command) {
     int nummoves = std::stoi(parts[0]);
     std::string comm = fen + " moves";
     for (int i = 0; i < nummoves; i++) {
-        process_go_command("wtime 1000 btime 1000 winc 0 binc 0");
+        process_go_command("wtime 1000 btime 1000 winc 0 binc 0", false);
         Move bestmove = Game::instance().get_bestmove();
         if (bestmove.is_valid())
             comm.append(" " + bestmove.toString());
@@ -300,13 +300,6 @@ void UCIInterface::process_self_command(std::string command) {
         uci_response("I received command: position startpos fen " + comm);
         process_position_command("fen " + comm);
         process_d_command();
-    }
-}
-
-void UCIInterface::process_repeat_command() {
-    while (true) {
-        process_position_command("startpos");
-        process_self_command("500");
     }
 }
 

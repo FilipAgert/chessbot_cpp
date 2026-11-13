@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
                 UCIInterface::process_isready_command();
             } else if (command == "go") {
                 waiting_for_move = true;
-                UCIInterface::process_go_command(body);
+                UCIInterface::process_go_command(body, true);
             } else if (command == "position") {
                 UCIInterface::process_position_command(body);
             } else if (command == "bestmove") {
@@ -92,11 +92,9 @@ int main(int argc, char *argv[]) {
             } else if (command == "quit") {
                 UCIInterface::process_quit_command();
                 std::cout.flush();
-                std::_Exit(0);
+                break;
             } else if (command == "self") {
                 UCIInterface::process_self_command(body);
-            } else if (command == "repeat") {
-                UCIInterface::process_repeat_command();
             } else if (command == "debug") {
                 std::cout << "Debug mode is not implemented yet." << std::endl;
             } else if (command == "help") {

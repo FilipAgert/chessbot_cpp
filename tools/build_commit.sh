@@ -28,7 +28,7 @@ trap cleanup EXIT
 if [[ -d "$WT" ]]; then
     git worktree remove --force "$WT" >/dev/null 2>&1 || rm -rf "$WT"
 fi
-git worktree prune
+git worktree prune >&2
 
 mkdir -p "$OUT"
 
@@ -38,12 +38,23 @@ git worktree add --detach "$WT" "$FULL_HASH" >&2
 (
   cd "$WT"
   mkdir -p build bin
-  make -j1 type=release all >&2
+
+  # Check if this revision's Makefile defines a 'pgo' target, then attempt PGO build
+  if grep -qE '^pgo:' Makefile && make -j1 pgo >&2; then
+      echo "Built $HASH with PGO." >&2
+  else
+      echo "PGO unavailable or failed for $HASH, falling back to standard release build..." >&2
+      rm -rf build bin
+      mkdir -p build bin
+      make -j1 type=release all >&2
+  fi
+
   cp bin/filipbot "$BIN"
 )
+
 if [[ -x "$BIN" ]]; then
- echo "$BIN"
- exit 0
+    echo "$BIN"
+    exit 0
 fi
-...
-echo "$BIN"
+
+exit 1

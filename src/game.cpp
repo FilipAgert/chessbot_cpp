@@ -40,18 +40,27 @@ void Game::abort_search_and_wait() {
     search_finished = true;
     stop_requested_ = false;
 }
-void Game::start_thinking(const TimeControl rem_time) {
-    abort_search_and_wait();
+void Game::start_thinking(const TimeControl rem_time, bool assign_worker) {
+    if (assign_worker) {
+        abort_search_and_wait();
 
-    search_finished = false;
-    search_thread_ = std::jthread([this, rem_time](std::stop_token stoken) {
+        search_finished = false;
+        search_thread_ = std::jthread([this, rem_time](std::stop_token stoken) {
+            reset_infos();
+            bool is_white = board.get_turn_color() == pieces::white;
+            if (is_white)
+                think_loop<true>(rem_time);
+            else
+                think_loop<false>(rem_time);
+        });
+    } else {
         reset_infos();
         bool is_white = board.get_turn_color() == pieces::white;
         if (is_white)
             think_loop<true>(rem_time);
         else
             think_loop<false>(rem_time);
-    });
+    }
 }
 
 void Game::reset_infos() {

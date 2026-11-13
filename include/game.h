@@ -63,9 +63,10 @@ class Game {
     /**
      * @brief Enter the game loop logic. This should be called when UCI command GO is received.
      * @param rem_time: Time control structure from input.
+     * @param assign_worker: true if you want to set this work on a worker thread.
      *
      */
-    void start_thinking(const TimeControl rem_time);
+    void start_thinking(const TimeControl rem_time, bool assign_worker = true);
 
     /**
      * @brief Alpha beta pruning. This is quite complicated. alpha is the maximal guaranteed score
