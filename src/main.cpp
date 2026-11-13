@@ -69,6 +69,8 @@ int main(int argc, char *argv[]) {
 
             if (command == "uci") {
                 UCIInterface::process_uci_command();
+            } else if (command == "ucinewgame") {
+                UCIInterface::process_new_game_command();
             } else if (command == "isready") {
                 UCIInterface::process_isready_command();
             } else if (command == "go") {
@@ -81,8 +83,6 @@ int main(int argc, char *argv[]) {
                 UCIInterface::send_bestmove();
             } else if (command == "ponder") {
                 UCIInterface::process_ponder_command();
-            } else if (command == "newgame") {
-                UCIInterface::process_new_game_command();
             } else if (command == "d") {
                 UCIInterface::process_d_command();
             } else if (command == "stop") {

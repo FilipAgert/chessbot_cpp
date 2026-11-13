@@ -116,8 +116,9 @@ class Game {
         uint64_t state_hash = ZobroistHasher::get().hash_board(board);
         state_stack.push({state_hash, board.get_num_pieces()});
     }
-    void make_move(Move move) {
+    void gui_make_move(Move move) {
         assert(move.is_valid());
+        trans_table.increment_age();
         if (board.get_turn_color() == pieces::white)
             make_move_no_flag<true>(move);
         else

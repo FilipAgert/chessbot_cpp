@@ -181,6 +181,7 @@ void TranspositionTable::clear() {
     hits = 0;        // how many times did we access the table and find the board inside?
     misses = 0;      // how many times did we access the table and not find the board?
     collisions = 0;  // how many times did we have a hash collision?
+    age = 0;
 }
 
 void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
@@ -198,7 +199,7 @@ void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t n
     // depth full,   2 empty
     // depth full,   2 full
 
-    TranspositionEntry ne{h, nodetype, depth, eval, bestmove};
+    TranspositionEntry ne{h, nodetype, depth, eval, bestmove, age};
     // benchmark never demoting.
     if (dp_valid && dp.hash == h) {
         if (depth >= dp.depth) {
@@ -209,7 +210,7 @@ void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t n
         return;  // deeper depth already exist for this state.
     }
 
-    if (!dp_valid || depth >= dp.depth) {
+    if (!dp_valid || (static_cast<uint16_t>(age) + depth) >= (static_cast<uint16_t>(dp.depth) + dp.age)) {  // different board states => age matters.
         if (dp_valid) {
             if (ar_valid && ar.hash != dp.hash)
                 overwrites++;
@@ -227,3 +228,5 @@ void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t n
         ar = ne;
     }
 }
+void TranspositionTable::increment_age() { age++; }
+void TranspositionTable::reset_age() { age = 0; }

@@ -24,7 +24,7 @@ void UCIInterface::process_quit_command() {
     Game::instance().abort_search_and_wait();  // quit the game thread.
 }
 
-void UCIInterface::process_new_game_command() { UCIInterface::uci_response("New game started."); }
+void UCIInterface::process_new_game_command() { Game::instance().start_game(); }
 void UCIInterface::send_info_msg(InfoMsg msg) {
     std::vector<std::string> parts = {"info"};
 
@@ -203,7 +203,7 @@ void UCIInterface::process_position_command(std::string command) {
         } else {
             try {
                 Move move = Move(token);
-                Game::instance().make_move(move);
+                Game::instance().gui_make_move(move);
                 if (debug_mode)
                     UCIInterface::uci_response("Move processed: " + move.toString());  // Informative
             } catch (const std::exception &e) {

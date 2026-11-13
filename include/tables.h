@@ -161,6 +161,7 @@ struct TranspositionEntry {
     uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
     int eval = 0;       // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n -
     Move bestmove = Move();
+    uint16_t age = 0;  // what age
     // 1 = an upper bound.
     // same or shallower.
     inline bool is_valid_move() const { return (bestmove.source != bestmove.target); }
@@ -169,7 +170,7 @@ struct TranspositionEntry {
     bool is_lb() const { return nodetype == lb; }
     bool is_ub() const { return nodetype == ub; }
 };
-constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0)};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
+constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0), 0};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 
 struct TranspositionBucket {
     TranspositionEntry depth_pref;
@@ -188,6 +189,7 @@ struct TranspositionTable {
     size_t collisions = 0;  // how many times did we have a hash collision?
     size_t overwrites = 0;
     size_t writes = 0;
+    uint16_t age = 0;  // what is the age of this table?
     int table_size_MB = 0;
     /**
      * @brief Initializes the table to a desired size in MB.
@@ -218,7 +220,9 @@ struct TranspositionTable {
      * @param[in] depth depth this state occured at
      * @return True if the current depth is smaller than or equal the entries depth.
      */
-    static bool is_useable_entry(const TranspositionEntry entry, const int depth) { return depth <= entry.depth; }
+    bool is_useable_entry(const TranspositionEntry entry, const int depth) {
+        return (static_cast<int>(age) + depth) <= entry.depth + static_cast<int>(entry.age);
+    }
     /**
      * @brief Clears the table.
      *
@@ -241,5 +245,8 @@ struct TranspositionTable {
      * @return std::vector<Move>
      */
     std::vector<Move> get_pv(Board &board, int depth, StateStack &stack);
+
+    void increment_age();
+    void reset_age();
 };
 #endif

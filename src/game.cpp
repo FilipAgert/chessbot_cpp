@@ -28,8 +28,14 @@ bool Game::set_fen(std::string FEN) {
     bool success = board.read_fen(FEN);
     assert(board.board_BB_match());
     reset_state_stack();
-    trans_table.clear();
     return success;
+}
+
+void Game::start_game() {
+    reset_state_stack();
+    trans_table.clear();
+    trans_table.reset_age();
+    reset_infos();
 }
 
 void Game::abort_search_and_wait() {
@@ -463,7 +469,7 @@ template <bool is_white> std::pair<int, uint8_t> Game::quiesence(int ply, int al
     std::optional<Move> tt_move;
     if (maybe_entry) {
         const TranspositionEntry &entry = maybe_entry.value();
-        if (trans_table.is_useable_entry(entry, 0)) {  // depth 0: any stored depth qualifies
+        if (trans_table.is_useable_entry(entry, -10000)) {  // depth -1000: any stored depth qualifies
             int tt_score = score_from_tt(entry.eval, ply);
             if (entry.is_exact())
                 return {tt_score, exact};
@@ -587,7 +593,7 @@ template <bool is_white> void Game::make_move(Move move) {
     move_stack.push(move);
     restore_info_stack.push(info);
     state_stack.push({state_stack.top().hash ^ ZobroistHasher::get().delta(info.delta), board.get_num_pieces()});
-    assert(state_stack.top() == ZobroistHasher::get().hash_board(board));
+    assert(state_stack.top().hash == ZobroistHasher::get().hash_board(board));
 }
 
 template <bool is_white> void Game::undo_move() {
