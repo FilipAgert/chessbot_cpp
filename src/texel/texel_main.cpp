@@ -142,12 +142,15 @@ int main(int argc, char *argv[]) {
 
     std::vector<int> params = p0.to_vector();
     dvec prior_var(params.size());
+    double prior_weight = 1.0;
     for (size_t i = 0; i < num_params; i++) {
         x0(i) = params[i];
         prior_var(i) = std::pow(prior_offset + std::abs(params[i]) * prior_relunc, 2);
     }
 
-    std::function<double(const dvec &)> prior = [x0 = x0, prior_var](const dvec &x) { return ((x0 - x).array().square() / prior_var.array()).sum(); };
+    std::function<double(const dvec &)> prior = [x0 = x0, prior_var, prior_weight, training_count](const dvec &x) {
+        return prior_weight * ((x0 - x).array().square() / prior_var.array()).sum() / training_count;
+    };
 
     // Training objective: verification data is never used here.
     std::function<double(const dvec &)> eval_param_loss = [create_params, training_fens, training_results, K, prior](const dvec &x) {
@@ -162,7 +165,7 @@ int main(int argc, char *argv[]) {
 
         dvec predictions = eval_positions(params, validation_fens, K);
 
-        return loss(validation_results, predictions) + prior(x);
+        return loss(validation_results, predictions);
     };
 
     double validation_loss_before = validate_param_loss(x0);
