@@ -148,9 +148,15 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time) {
                 new_msg.string = "draw detected";
             }
             push_msg(std::move(new_msg));
+            search_finished = true;
             return;
         }
+
         set_bestmove(move_arr[0][0]);
+        if (num_moves == 1) {
+            search_finished = true;
+            return;
+        }
     }
     int buffer = STANDARD_TIME_BUFFER;  // ms
     int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
