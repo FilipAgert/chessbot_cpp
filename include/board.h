@@ -725,6 +725,14 @@ struct Board {
      */
     template <bool is_white> inline constexpr uint8_t get_num_pieces() { return BitBoard::bitcount(occupancy<is_white>()); }
     inline constexpr uint8_t get_num_pieces() { return get_num_pieces<true>() + get_num_pieces<false>(); }
+    /**
+     * @brief Get the num pieces for player/piece type.
+     *
+     * @tparam is_white
+     * @tparam p
+     * @return constexpr uint8_t
+     */
+    template <bool is_white, Piece_t p> inline constexpr uint8_t get_num_pieces() { return BitBoard::bitcount(get_piece_bb<p, is_white>()); }
     void print_piece_loc() const;
 
     /**

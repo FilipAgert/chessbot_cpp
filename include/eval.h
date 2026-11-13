@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <board.h>
+#include <optional>
 #include <vector>
 namespace helpers {
 /**
@@ -58,8 +59,8 @@ constexpr int queen_moveval = 0;
 constexpr int king_moveval = -6;
 
 constexpr int bishop_double_bonus = 25;
-constexpr int king_dist = 3;
-constexpr int passed_pawn_eval = 30;
+constexpr int king_dist =
+    10;  // This more or less corresponds to maximum value of king distance score in late game. (8cp/sq at full lategame with maximum material advantage.)
 constexpr int doubled_pawn_punishment = -15;
 constexpr int solo_pawn_punishment = -15;
 }  // namespace DefaultVals
@@ -145,6 +146,7 @@ struct PieceSquareTable {
 };
 
 extern const std::array<std::pair<std::vector<int>, Symmetry>, 7> psq_parameters_base;
+extern const std::array<std::optional<std::pair<std::vector<int>, Symmetry>>, 7> psq_parameters_base_endgame;
 
 #define EVAL_SCALAR_PARAMS(X)                                                                                                                                  \
     X(bishop_double_bonus, DefaultVals::bishop_double_bonus)                                                                                                   \
@@ -167,11 +169,17 @@ struct EvalParameters {
                                          DefaultVals::bishop_moveval,
                                          DefaultVals::pawn_moveval};
     std::array<PieceSquareTable, num_pieces> psts;
+    std::array<std::optional<PieceSquareTable>, num_pieces> psts_endgame;
     std::array<int, 7> passed_dist_to_promotion = {0, 80, 60, 40, 30, 10, 10};
 
     void set_pst(Piece_t p, Symmetry s, std::vector<int> params) {
         assert(p > 0 && p < num_pieces);
         psts[p].set(s, p, std::move(params));
+    }
+    void set_pst_endgame(Piece_t p, Symmetry s, std::vector<int> params) {
+        assert(p > 0 && p < num_pieces);
+        PieceSquareTable pst(s, p, params);
+        psts_endgame[p] = std::make_optional(pst);
     }
     template <bool is_white> int pst(Piece_t p, int sq) const {
         assert(p > 0 && p < num_pieces);
@@ -183,9 +191,15 @@ struct EvalParameters {
 
     size_t num_params() const;
     std::string to_string() const;
-    EvalParameters(std::array<std::pair<std::vector<int>, Symmetry>, num_pieces> psqs = psq_parameters_base) {
+    EvalParameters(std::array<std::pair<std::vector<int>, Symmetry>, num_pieces> psqs = psq_parameters_base,
+                   std::array<std::optional<std::pair<std::vector<int>, Symmetry>>, 7> psqs_endgame = psq_parameters_base_endgame) {
         for (Piece_t p = 1; p < num_pieces; p++) {
             set_pst(p, psqs.at(p).second, psqs.at(p).first);
+        }
+        for (Piece_t p = 1; p < num_pieces; p++) {
+            if (psqs_endgame[p]) {
+                set_pst_endgame(p, psqs_endgame[p].value().second, psqs_endgame[p].value().first);
+            }
         }
     }
 };
@@ -212,8 +226,9 @@ class EvalState {
     const EvalParameters params;
 
  private:
-    int eval_material(Board &board);
-    template <Piece_t p> int eval_single_piece(Board &board);
+    template <Piece_t p = 1> int eval_pst(Board &board, int phase);
+    template <Piece_t p> int eval_single_pst(Board &board, const PieceSquareTable &pst);
+    template <Piece_t p = 1> int eval_material_diff(Board &board) const;
 
     int eval_mobility(Board &board);
     /**
@@ -223,14 +238,7 @@ class EvalState {
      * @param[in] state board state
      * @return evaluation of king distance to centre
      */
-    int eval_king_dist2centre(Board &board);
-    /**
-     * @brief Gets game phase in [0, 1] by linear interpolation of the number of pieces
-     *
-     * @param[in] num_pieces Number of pieces and pawns
-     * @return Game phase. 0 is early game and 1 is end game
-     */
-    constexpr static float eval_game_phase(const int num_pieces) { return 1. - (num_pieces - 1.) / 15.; }
+    int eval_king_distance(Board &board, int mat_diff, int phase);
 
     /**
      * @brief Score for pawn structure. Passed pawns, unprotected pawns, blocking pawns, etc.
@@ -239,6 +247,14 @@ class EvalState {
      * @return score for pawn structure, normalised by white winning is positive.
      */
     int eval_pawn_structure(Board &board);
+    /**
+     * @brief https://chessprogramming.org/Tapered_Eval
+     *
+     * @return phase in [0-256] where 0 is early game, 256 is late game. (king+pawns)
+     */
+    template <bool one_sided = false, bool is_white = false> int get_phase(Board &board) const;
+
+    template <bool one_sided> int eval_phase(int phase, int early_game, int late_game) const;
 };
 
 #endif

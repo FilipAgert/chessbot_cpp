@@ -5,6 +5,7 @@
 #include <cassert>
 #include <eval.h>
 #include <iomanip>
+#include <optional>
 #include <piece.h>
 #include <sstream>
 #include <stdexcept>
@@ -195,6 +196,11 @@ std::vector<int> EvalParameters::to_vector() const {
         v.push_back(movevals[p]);
     for (size_t p = 1; p < num_pieces; ++p)
         v.insert(v.end(), psts[p].params.begin(), psts[p].params.end());
+    for (size_t p = 1; p < num_pieces; ++p) {
+        if (psts_endgame[p]) {
+            v.insert(v.end(), psts_endgame[p].value().params.begin(), psts_endgame[p].value().params.end());
+        }
+    }
     return v;
 }
 
@@ -214,6 +220,13 @@ void EvalParameters::from_vector(const std::vector<int> &v) {
     for (size_t p = 1; p < num_pieces; ++p) {
         const size_t n = psts[p].size();
         psts[p].set(psts[p].symmetry(), p, std::vector<int>(v.begin() + i, v.begin() + i + n));
+        i += n;
+    }
+    for (size_t p = 1; p < num_pieces; ++p) {
+        if (!psts_endgame[p])
+            continue;
+        const size_t n = psts_endgame[p].value().size();
+        psts_endgame[p].value().set(psts_endgame[p].value().symmetry(), p, std::vector<int>(v.begin() + i, v.begin() + i + n));
         i += n;
     }
 }
@@ -239,6 +252,13 @@ std::string EvalParameters::to_string() const {
         os << psts[p].to_string();
         os << "\n";
     }
+    for (size_t p = 1; p < num_pieces; ++p) {
+        if (!psts_endgame[p])
+            continue;
+        os << "\n" << names[p] << " PST_ENDGAME\n";
+        os << psts_endgame[p].value().to_string();
+        os << "\n";
+    }
     return os.str();
 }
 
@@ -250,9 +270,12 @@ int EvalState::eval(Board &board) {
     if (forced_draw_ply(board))
         return 0;
     // Eval by piece scoring.
-    score += eval_material(board);
+    int phase = get_phase(board);
+    int mat_diff = eval_material_diff(board);
+    score = mat_diff;
+    score += eval_pst(board, phase);
     score += eval_mobility(board);
-    score += eval_king_dist2centre(board);
+    score += eval_king_distance(board, mat_diff, phase);
     score += eval_pawn_structure(board);
 
     int color_fac = 1 - 2 * (board.get_turn_color() == pieces::black);
@@ -269,54 +292,89 @@ int EvalState::eval_mobility(Board &board) {
                         knight_mobility * params.movevals[pieces::knight] + queen_mobility * params.movevals[pieces::queen];
     return mobility_eval;
 }
+template <bool one_sided, bool is_white> int EvalState::get_phase(Board &board) const {
+    constexpr int pawn_phase = 0;
+    constexpr int knight_phase = 1;
+    constexpr int bishop_phase = 1;
+    constexpr int rook_phase = 2;
+    constexpr int queen_phase = 4;
+    constexpr int total_phase = 16 * pawn_phase + 4 * knight_phase + 4 * bishop_phase + 4 * rook_phase + 2 * queen_phase;
+    constexpr int max = one_sided ? 128 : 256;
+    int phase = one_sided ? total_phase / 2 : total_phase;
+    if constexpr ((one_sided && is_white) || !one_sided) {
+        phase -= board.get_num_pieces<true, pieces::queen>() * queen_phase;
+        phase -= board.get_num_pieces<true, pieces::rook>() * rook_phase;
+        phase -= board.get_num_pieces<true, pieces::knight>() * knight_phase;
+        phase -= board.get_num_pieces<true, pieces::bishop>() * bishop_phase;
+        phase -= board.get_num_pieces<true, pieces::pawn>() * pawn_phase;
+    }
+    if constexpr ((one_sided && (!is_white)) || (!one_sided)) {
+        phase -= board.get_num_pieces<false, pieces::queen>() * queen_phase;
+        phase -= board.get_num_pieces<false, pieces::rook>() * rook_phase;
+        phase -= board.get_num_pieces<false, pieces::knight>() * knight_phase;
+        phase -= board.get_num_pieces<false, pieces::bishop>() * bishop_phase;
+        phase -= board.get_num_pieces<false, pieces::pawn>() * pawn_phase;
+    }
+    phase = std::max(0, phase);
+    return (phase * max + (total_phase / 2)) / total_phase;
+}
+template <bool one_sided> int EvalState::eval_phase(int phase, int early_game, int late_game) const {
+    constexpr int max = one_sided ? 128 : 256;
+    return (early_game * (max - phase) + late_game * phase) / max;
+}
 bool EvalState::forced_draw_ply(Board &board) {
     if (board.get_ply_moves() >= 100)
         return true;
     else
         return false;
 }
-int EvalState::eval_material(Board &board) {
-    int score = 0;
-    score += eval_single_piece<pieces::king>(board);
-    score += eval_single_piece<pieces::queen>(board);
-    score += eval_single_piece<pieces::rook>(board);
-    score += eval_single_piece<pieces::bishop>(board);
-    score += eval_single_piece<pieces::knight>(board);
-    score += eval_single_piece<pieces::pawn>(board);
-    return score;
+template <Piece_t p> int EvalState::eval_pst(Board &board, int phase) {
+    if constexpr (p <= 6) {
+        int early_game = eval_single_pst<p>(board, params.psts[p]);
+        int pst = early_game;
+        if (params.psts_endgame[p]) {
+            int late_game = eval_single_pst<p>(board, params.psts_endgame[p].value());
+            pst = eval_phase<false>(phase, early_game, late_game);
+        }
+
+        return pst + eval_pst<p + 1>(board, phase);
+    } else {
+        return 0;
+    }
 }
-template <Piece_t p> int EvalState::eval_single_piece(Board &board) {
-    int pvalue = params.piecevals[p];
+template <Piece_t p> int EvalState::eval_material_diff(Board &board) const {
+    if constexpr (p <= 6) {
+        int wpiece_cnt = board.get_num_pieces<true, p>();
+        int bpiece_cnt = board.get_num_pieces<false, p>();
+        int eval = (wpiece_cnt - bpiece_cnt) * params.piecevals[p];
+        if constexpr (p == pieces::bishop) {
+            if (wpiece_cnt > 1)
+                eval += params.bishop_double_bonus;
+            if (bpiece_cnt > 1)
+                eval -= params.bishop_double_bonus;
+        }
+        return eval + eval_material_diff<p + 1>(board);
+    } else {
+        return 0;
+    }
+}
+template <Piece_t p> int EvalState::eval_single_pst(Board &board, const PieceSquareTable &pst) {
     BB wpieces = board.get_piece_bb<p, true>();
     BB bpieces = board.get_piece_bb<p, false>();
-    const PieceSquareTable &pst = params.psts[p];
-    int eval = 0, wpiece_cnt = 0, bpiece_cnt = 0;
-    BitLoop(wpieces) {
-        eval += pst.value<true>(BitBoard::lsb(wpieces));
-        wpiece_cnt++;
-    }
-    BitLoop(bpieces) {
-        eval -= pst.value<false>(BitBoard::lsb(bpieces));
-        bpiece_cnt++;
-    }
-    eval += (wpiece_cnt - bpiece_cnt) * pvalue;
-    if constexpr (p == pieces::bishop) {
-        if (wpiece_cnt > 1)
-            eval += params.bishop_double_bonus;
-        if (bpiece_cnt > 1)
-            eval -= params.bishop_double_bonus;
-    }
+    int eval = 0;
+    BitLoop(wpieces) { eval += pst.value<true>(BitBoard::lsb(wpieces)); }
+    BitLoop(bpieces) { eval -= pst.value<false>(BitBoard::lsb(bpieces)); }
     return eval;
 }
-int EvalState::eval_king_dist2centre(Board &board) {
+int EvalState::eval_king_distance(Board &board, int mat_diff, int phase) {
     uint8_t white_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, true>());
     uint8_t black_king_sq = BitBoard::lsb(board.get_piece_bb<pieces::king, false>());
     uint8_t king_dist = helpers::manhattan(white_king_sq, black_king_sq);
-    float white_endgame = 2 * eval_game_phase(board.get_num_pieces<false>()) - 1;  // eval based on black pieces
-    float black_endgame = 2 * eval_game_phase(board.get_num_pieces<true>()) - 1;   // eval based on white pieces
+    mat_diff = std::clamp(mat_diff, -400, 400);
 
-    float relval = king_dist * (white_endgame - black_endgame) * params.king_dist;
-    return static_cast<int>(relval);
+    int score = -(params.king_dist * king_dist * mat_diff);
+    return eval_phase<false>(phase, 0, score) >>
+           9;  // divide by 512. Pure late game max advantage is 8 centipawns per square. Early game is closer to 1-3 cp per square.
 }
 std::optional<int> EvalState::moves_to_mate(int score) {
     // Negative score should remain negative.
@@ -432,7 +490,17 @@ PstItem king_pst = []() {
     return PstItem{values, s};
 }();
 
+PstItem king_pst_endgame = []() {
+    Symmetry s = Symmetry::EW;
+    std::vector<int> values = {-50, -30, -30, -30, -30, -30, 0,  0,  -30, -10, 20,  30, -30, -10, 30,  40,
+                               -30, -10, 30,  40,  -30, -10, 20, 30, -30, -20, -10, 0,  -50, -40, -30, -20};
+    return PstItem{values, s};
+}();
+
 extern const std::array<PstItem, 7> psq_parameters_base = {
     PstItem{std::vector<int>(), Symmetry::None}, king_pst, queen_pst, rook_pst, knight_pst, bishop_pst, pawn_pst
 
 };
+
+extern const std::array<std::optional<PstItem>, 7> psq_parameters_base_endgame = {
+    std::nullopt, std::make_optional(king_pst_endgame), std::nullopt, std::nullopt, std::nullopt, std::nullopt, std::nullopt};
