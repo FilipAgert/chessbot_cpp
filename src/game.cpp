@@ -66,10 +66,10 @@ void Game::start_thinking(const TimeControl rem_time, std::optional<int> depth, 
         if (pv.size() > 1) {
             Move ponder_move = pv.at(1);
             Move bm = get_bestmove();
-            if (board.is_move_valid(bm)) {
+            if (board.is_move_legal(bm)) {
 
                 RestoreMoveInfo info = board.get_turn_color() ? board.do_move<true>(bm) : board.do_move<false>(bm);
-                bool is_valid = board.is_move_valid(ponder_move);
+                bool is_valid = board.is_move_legal(ponder_move);
                 board.undo_move(info, bm);
                 if (is_valid)
                     set_pondermove(ponder_move);

@@ -453,7 +453,7 @@ std::string Board::fen_from_state() const {
 }
 Board::Board(const std::string &fen) { read_fen(fen); }
 
-bool Board::is_move_valid(const Move move) {
+bool Board::is_move_legal(const Move move) {
     bool is_white = get_turn_color() == pieces::white;
     std::array<Move, 218> arr;
     int n = is_white ? get_moves<full_search, true>(arr) : get_moves<full_search, false>(arr);

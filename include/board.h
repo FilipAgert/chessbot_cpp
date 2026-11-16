@@ -61,7 +61,7 @@ struct Board {
     bool is_move_capture(const Move move) const;
     uint8_t get_check() const { return check; }
     bool board_BB_match();
-    bool is_move_valid(const Move move);
+    bool is_move_legal(const Move move);
     /**
      * @brief Does a move. Required: From and to square. Promotion. Changes board state accordingly
      * and stores information into move.

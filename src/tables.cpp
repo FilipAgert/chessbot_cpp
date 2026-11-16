@@ -70,7 +70,7 @@ static constexpr uint8_t key_of(uint8_t piece) {
 }
 uint64_t ZobroistHasher::delta(const HashDelta &d) const {
     uint64_t h = 0;
-    h = black_number;  // turn flips every move
+    h = black_number; // turn flips every move
     if (d.moved_piece)
         h ^= piece_numbers[key_of(d.moved_piece)][d.from];
     if (d.placed_piece)
@@ -95,7 +95,7 @@ void ZobroistHasher::hash_turn(uint64_t &hash, const Board &board) const {
     }
 }
 TranspositionTable::TranspositionTable(int desired_size_MB) {
-    constexpr size_t HUGE_PAGE = size_t(2) << 20;  // 2 MB
+    constexpr size_t HUGE_PAGE = size_t(2) << 20; // 2 MB
 
     size_t num_entries = size_t(desired_size_MB) * 1024 * 1024 / entry_size;
 
@@ -108,7 +108,7 @@ TranspositionTable::TranspositionTable(int desired_size_MB) {
         throw std::runtime_error("must have more bits in table than in the hash shift");
 
     table_size = size_t(1) << numbits;
-    mask = table_size - 1;  // lowest nbits set high.
+    mask = table_size - 1; // lowest nbits set high.
 
     // bytes, rounded up to a multiple of 2 MB (aligned_alloc requires this)
     arr_bytes = (table_size * entry_size + HUGE_PAGE - 1) & ~(HUGE_PAGE - 1);
@@ -121,7 +121,7 @@ TranspositionTable::TranspositionTable(int desired_size_MB) {
         perror("madvise");
 
     table_size_MB = table_size * entry_size / (1024 * 1024);
-    clear();  // memset touches every page
+    clear(); // memset touches every page
 }
 
 std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
@@ -147,7 +147,7 @@ std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
 std::vector<Move> TranspositionTable::get_pv(Board &board, int depth, StateStack &stack) {
     std::vector<Move> pv_line;
     std::stack<RestoreMoveInfo> restore_stack;
-    std::array<Move, max_legal_moves> legal;  // or reuse a scratch buffer
+    std::array<Move, max_legal_moves> legal; // or reuse a scratch buffer
     int pre_len = stack.len();
 
     for (int i = 0; i <= depth; i++) {
@@ -157,18 +157,10 @@ std::vector<Move> TranspositionTable::get_pv(Board &board, int depth, StateStack
             break;
 
         const bool white = board.get_turn_color() == pieces::white;
-        int n = white ? board.get_moves<full_search, true>(legal) : board.get_moves<full_search, false>(legal);
-
         const Move m = entry->bestmove;
-        bool is_legal = false;
-        for (int j = 0; j < n; j++) {
-            if (m == legal[j]) {
-                is_legal = true;
-                break;
-            }
-        }
+        bool is_legal = board.is_move_legal(m);
         if (!is_legal)
-            break;  // stale entry or hash collision: stop the PV here
+            break; // stale entry or hash collision: stop the PV here
 
         RestoreMoveInfo info = white ? board.do_move<true>(m) : board.do_move<false>(m);
         pv_line.push_back(m);
@@ -197,9 +189,9 @@ void TranspositionTable::clear() {
     //           Move()}});
     writes = 0;
     overwrites = 0;
-    hits = 0;        // how many times did we access the table and find the board inside?
-    misses = 0;      // how many times did we access the table and not find the board?
-    collisions = 0;  // how many times did we have a hash collision?
+    hits = 0;       // how many times did we access the table and find the board inside?
+    misses = 0;     // how many times did we access the table and not find the board?
+    collisions = 0; // how many times did we have a hash collision?
     age = 0;
 }
 
@@ -226,10 +218,10 @@ void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, SearchNod
                 ne.bestmove = dp.bestmove;
             dp = ne;
         }
-        return;  // deeper depth already exist for this state.
+        return; // deeper depth already exist for this state.
     }
 
-    if (!dp_valid || (static_cast<uint16_t>(age) + depth) >= (static_cast<uint16_t>(dp.depth) + dp.age)) {  // different board states => age matters.
+    if (!dp_valid || (static_cast<uint16_t>(age) + depth) >= (static_cast<uint16_t>(dp.depth) + dp.age)) { // different board states => age matters.
         if (dp_valid) {
             if (ar_valid && ar.hash != dp.hash)
                 overwrites++;
