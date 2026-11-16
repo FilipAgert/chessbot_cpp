@@ -54,40 +54,35 @@ void Game::start_thinking(const TimeControl rem_time, std::optional<int> depth, 
     bool is_white = board.get_turn_color() == pieces::white;
     time_manager = std::make_shared<TimeManager>(rem_time, buffer, fraction, is_white, !depth.has_value());
     time_manager->start_time_management();
-    if (assign_worker) {
-
-        search_finished = false;
-        search_thread_ = std::jthread([this, depth, is_white](std::stop_token stoken) {
-            reset_infos();
-            if (is_white)
-                think_loop<true>(depth);
-            else
-                think_loop<false>(depth);
-            // check if we should ponder
-            std::vector<Move> pv = trans_table.get_pv(board, 2, state_stack);
-            Move ponder_move;
-            if (pv.size() > 1) {
-                ponder_move = pv.at(1);
-                set_pondermove(ponder_move);
-            }
-            time_manager->stop_and_join(); // Join time manager thread to this one.
-            search_finished = true;
-        });
-    } else {
+    auto run_search = [this, depth, is_white]() {
         reset_infos();
         if (is_white)
             think_loop<true>(depth);
         else
             think_loop<false>(depth);
+
         // check if we should ponder
         std::vector<Move> pv = trans_table.get_pv(board, 2, state_stack);
-        Move ponder_move;
         if (pv.size() > 1) {
-            ponder_move = pv.at(1);
-            set_pondermove(ponder_move);
+            Move ponder_move = pv.at(1);
+            RestoreMoveInfo info = is_white ? board.do_move<true>(root_best) : board.do_move<false>(root_best);
+            auto &arr = move_arr[1]; // Note: changed to reference to avoid copying the array
+            int n = !is_white ? board.get_moves<full_search, true>(arr) : board.get_moves<full_search, false>(arr);
+            auto it = std::find(arr.begin(), arr.begin() + n, ponder_move);
+            if (it != arr.begin() + n)
+                set_pondermove(ponder_move);
+            board.undo_move(info, root_best);
         }
+
         time_manager->stop_and_join(); // Join time manager thread to this one.
         search_finished = true;
+    };
+
+    search_finished = false;
+    if (assign_worker) {
+        search_thread_ = std::jthread(std::move(run_search));
+    } else {
+        run_search();
     }
 }
 void Game::reset_infos() {
