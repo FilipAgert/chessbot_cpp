@@ -13,6 +13,7 @@ Manage time better
   cp stable (< 20 cp change)
   PV stable over several iterations
   If high effort spent in PV node, can use as signal (e.g. mark effort in each node by order in root search.)
+  Do not allow when root is failing low.
   
 - If unstable search, extend
   PV changed or cp changed by > 20, extend time
