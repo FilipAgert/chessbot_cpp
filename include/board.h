@@ -17,12 +17,12 @@
 #include <stdexcept>
 #include <string>
 struct HashDelta {
-    uint8_t moved_piece = 0, placed_piece = 0;  // full piece value (color | type)
+    uint8_t moved_piece = 0, placed_piece = 0; // full piece value (color | type)
     uint8_t from = 0, to = 0;
-    uint8_t captured_piece = 0, capture_sq = 0;          // 0 = no capture
-    uint8_t rook_piece = 0, rook_from = 0, rook_to = 0;  // rook_piece 0 = not castling
+    uint8_t captured_piece = 0, capture_sq = 0;         // 0 = no capture
+    uint8_t rook_piece = 0, rook_from = 0, rook_to = 0; // rook_piece 0 = not castling
     uint8_t old_castle = 0, new_castle = 0;
-    uint8_t old_ep = 0, new_ep = 0;  // squares, 0 = none
+    uint8_t old_ep = 0, new_ep = 0; // squares, 0 = none
 };
 struct RestoreMoveInfo {
     uint8_t ply_moves = 0;
@@ -32,15 +32,15 @@ struct RestoreMoveInfo {
     HashDelta delta;
 };
 struct Board {
- private:
+  private:
     std::array<Piece, 64> game_board;
     BB white_rooks, white_pawns, white_knights, white_bishops, white_queen, white_king, white_pieces;
     BB black_rooks, black_pawns, black_knights, black_bishops, black_queen, black_king, black_pieces;
     int full_moves;
     uint8_t castleinfo = err_val8;
-    uint8_t turn_color = err_val8;  // 0b01000 for white 0b10000 for black
+    uint8_t turn_color = err_val8; // 0b01000 for white 0b10000 for black
     uint8_t en_passant_square = 0;
-    uint8_t check = 0;  // 0 For no check, white for white checked, black for black checked.
+    uint8_t check = 0; // 0 For no check, white for white checked, black for black checked.
     uint8_t ply_moves;
     bool en_passant = false;
     // Color                 W          B
@@ -48,7 +48,7 @@ struct Board {
     //            Attack: 15         23
     //            All p : 8          16
 
- public:
+  public:
     Board();
     ~Board();
     uint8_t get_turn_color() const { return turn_color; }
@@ -61,6 +61,7 @@ struct Board {
     bool is_move_capture(const Move move) const;
     uint8_t get_check() const { return check; }
     bool board_BB_match();
+    bool is_move_valid(const Move move);
     /**
      * @brief Does a move. Required: From and to square. Promotion. Changes board state accordingly
      * and stores information into move.
@@ -287,7 +288,7 @@ struct Board {
         en_passant = false;
         en_passant_square = 0;
         assert(turn_color == white_to_move ? pieces::white : pieces::black);
-        change_turn();  // Changes turn color from white <-> black.
+        change_turn(); // Changes turn color from white <-> black.
         //
         if constexpr (flag != moveflag::MOVEFLAG_null_move) {
             if constexpr (captured != pieces::none)
@@ -342,8 +343,8 @@ struct Board {
             }
 
             if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
-                if constexpr (white_to_move) {  // if white to move, the enemy pawn is on square
-                                                // - 8
+                if constexpr (white_to_move) { // if white to move, the enemy pawn is on square
+                                               // - 8
                     remove_piece<!white_to_move, pieces::pawn>(old_ep - 8);
                 } else {
                     remove_piece<!white_to_move, pieces::pawn>(old_ep + 8);
@@ -465,9 +466,9 @@ struct Board {
             d.rook_to = get_castle_to_sq<white_to_move, pieces::rook, flag>();
         }
         d.old_castle = old_castle;
-        d.new_castle = castleinfo;  // already updated at this point
+        d.new_castle = castleinfo; // already updated at this point
         d.old_ep = old_ep;
-        d.new_ep = en_passant_square;  // already updated (0 unless double push)
+        d.new_ep = en_passant_square; // already updated (0 unless double push)
         return d;
     }
 
@@ -515,7 +516,7 @@ struct Board {
         case moveflag::MOVEFLAG_null_move:
             if constexpr (!white_moved)
                 full_moves += 1;
-            break;  // do nothing.
+            break; // do nothing.
         default:
             undo_move<white_moved, moveflag::MOVEFLAG_silent>(move, captured);
             break;
@@ -600,7 +601,7 @@ struct Board {
         BB friendly_bb = occupancy<is_white>();
         BB enemy_bb = occupancy<!is_white>();
         BB to_squares = movegen::king_moves(kingsq, friendly_bb, friendly_bb | enemy_bb, get_atk_bb<!is_white, true>(), castleinfo,
-                                            color);  // Already disqualifies squares that are attacked by the enemy so do not need to check for move legality.
+                                            color); // Already disqualifies squares that are attacked by the enemy so do not need to check for move legality.
         size_t num_moves = 0;
         if constexpr (!stype.gen_captures()) {
             to_squares &= (!enemy_bb);
@@ -612,7 +613,7 @@ struct Board {
         // No need to test for move legality.
         if constexpr (ctype.two_checks) {
             return num_moves;
-        } else {  // In case of check, valid moves are: Move king, block the checker if a ray piece, or capture the piece.
+        } else { // In case of check, valid moves are: Move king, block the checker if a ray piece, or capture the piece.
             BB occ = friendly_bb | enemy_bb;
             BB queen_bb = get_piece_bb<pieces::queen, is_white>();
             BB bishop_bb = get_piece_bb<pieces::bishop, is_white>();
@@ -705,8 +706,8 @@ struct Board {
      */
     void change_turn() {
         turn_color ^= pieces::color_mask;
-    }  // Xor with color mask to change
-       // color.
+    } // Xor with color mask to change
+      // color.
 
     void reset() {
         castleinfo = err_val8;
@@ -877,7 +878,7 @@ struct Board {
      * @tparam is_white flag if piece to check is white or not
      * @return number of squares piece of this type and color can move to.
      */
-    template <Piece_t pval, bool omit_pawn_controlled, bool is_white> constexpr int get_piece_mobility() const {  // TODO: Add EP squares, add castling.
+    template <Piece_t pval, bool omit_pawn_controlled, bool is_white> constexpr int get_piece_mobility() const { // TODO: Add EP squares, add castling.
         BB piece_bb = get_piece_bb<pval, is_white>();
 
         int mobility = 0;
@@ -906,7 +907,7 @@ struct Board {
         return possible_pawn_promos > 0;
     }
 
- protected:
+  protected:
     // gets rank that pawn promotes on.
     template <bool is_white> int get_pawn_promote_rank() const {
         if constexpr (is_white)
@@ -1012,9 +1013,9 @@ struct Board {
                            const pininfo pi, const uint64_t ep_bb, const BB king_attacker) {
         BB checker_mask = ~0;
         if constexpr (ctype.slider_check) {
-            checker_mask = rect_lookup[pi.kingloc][BitBoard::lsb(king_attacker)];  // Allowed to go in between, or to capture
+            checker_mask = rect_lookup[pi.kingloc][BitBoard::lsb(king_attacker)]; // Allowed to go in between, or to capture
         } else if constexpr (ctype.one_check) {
-            checker_mask = king_attacker;  // allowed to capture.
+            checker_mask = king_attacker; // allowed to capture.
             //
             // Special case: the king attacker might be a pawn which can be captured en_passant.
             if constexpr (ptype == pieces::pawn) {
@@ -1027,30 +1028,30 @@ struct Board {
         }
         BitLoop(piece_bb) {
             // Compute pins --------------------------
-            BB pin_mask = ~0;                      // mask of allowed squares due to pins
-            BB sqbb = BitBoard::lsb_bb(piece_bb);  // BB with only lsb.
+            BB pin_mask = ~0;                     // mask of allowed squares due to pins
+            BB sqbb = BitBoard::lsb_bb(piece_bb); // BB with only lsb.
             if (pi.rook_pinmask & sqbb) {
                 // Need to find which piece is pinning us by looping through offending pieces
                 BB temp_rooks = pi.rook_pinners;
                 BitLoop(temp_rooks) {
                     uint8_t pinnersq = BitBoard::lsb(temp_rooks);
                     BB mask = rect_lookup[pi.kingloc][pinnersq];
-                    if (mask & sqbb) {  //
+                    if (mask & sqbb) { //
                         pin_mask = mask;
                         break;
                     }
                 }
-            } else if (pi.bishop_pinmask & sqbb) {  // Cannot be both bishop & rook pinned.
+            } else if (pi.bishop_pinmask & sqbb) { // Cannot be both bishop & rook pinned.
                 BB temp_bishops = pi.bishop_pinners;
                 BitLoop(temp_bishops) {
                     uint8_t pinnersq = BitBoard::lsb(temp_bishops);
                     BB mask = rect_lookup[pi.kingloc][pinnersq];
-                    if (mask & sqbb) {  //
+                    if (mask & sqbb) { //
                         pin_mask = mask;
                         break;
                     }
                 }
-            }  // End compute pins -----------------------
+            } // End compute pins -----------------------
 
             uint8_t sq = BitBoard::lsb(piece_bb);
             uint64_t to_sqs = to_squares<ptype, stype, is_white>(sq, friendly_bb, enemy_bb, ep_bb, castleinfo);
@@ -1259,7 +1260,7 @@ struct Board {
             move_piece<white_moved, piece>(move.target, move.source);
         }
         if constexpr (flag == moveflag::MOVEFLAG_pawn_ep_capture) {
-            if constexpr (white_moved)  // if white to move, the enemy pawn was on square - 8
+            if constexpr (white_moved) // if white to move, the enemy pawn was on square - 8
                 add_piece<!white_moved, pieces::pawn>(move.target - 8);
             else
                 add_piece<!white_moved, pieces::pawn>(move.target + 8);

@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include "move.h"
 #include "str.h"
+#include <algorithm>
 #include <board.h>
 #include <cassert>
 #include <exceptions.h>
@@ -21,7 +22,7 @@ bool Board::board_BB_match() {
         if (get_piece_at(lsb) != Piece(pieces::white | pieces::knight)) {
             Display_board();
             BitBoard::print_full(white_knights);
-            assert(false);  // Crash in debug build if mismatch found
+            assert(false); // Crash in debug build if mismatch found
             return false;
         }
     }
@@ -325,9 +326,9 @@ bool Board::read_fen(const std::string &FEN) {
 
     // Side to move
     if (turnPart == "w")
-        turn_color = white;  // white
+        turn_color = white; // white
     else if (turnPart == "b")
-        turn_color = black;  // black
+        turn_color = black; // black
     else
         success = false;
 
@@ -451,3 +452,11 @@ std::string Board::fen_from_state() const {
     return FEN;
 }
 Board::Board(const std::string &fen) { read_fen(fen); }
+
+bool Board::is_move_valid(const Move move) {
+    bool is_white = get_turn_color() == pieces::white;
+    std::array<Move, 218> arr;
+    int n = is_white ? get_moves<full_search, true>(arr) : get_moves<full_search, false>(arr);
+    auto it = std::find(arr.begin(), arr.begin() + n, move);
+    return it != arr.begin() + n;
+}

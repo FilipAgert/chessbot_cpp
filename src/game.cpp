@@ -65,13 +65,15 @@ void Game::start_thinking(const TimeControl rem_time, std::optional<int> depth, 
         std::vector<Move> pv = trans_table.get_pv(board, 2, state_stack);
         if (pv.size() > 1) {
             Move ponder_move = pv.at(1);
-            RestoreMoveInfo info = is_white ? board.do_move<true>(root_best) : board.do_move<false>(root_best);
-            auto &arr = move_arr[1]; // Note: changed to reference to avoid copying the array
-            int n = !is_white ? board.get_moves<full_search, true>(arr) : board.get_moves<full_search, false>(arr);
-            auto it = std::find(arr.begin(), arr.begin() + n, ponder_move);
-            if (it != arr.begin() + n)
-                set_pondermove(ponder_move);
-            board.undo_move(info, root_best);
+            Move bm = get_bestmove();
+            if (board.is_move_valid(bm)) {
+
+                RestoreMoveInfo info = board.get_turn_color() ? board.do_move<true>(bm) : board.do_move<false>(bm);
+                bool is_valid = board.is_move_valid(ponder_move);
+                board.undo_move(info, bm);
+                if (is_valid)
+                    set_pondermove(ponder_move);
+            }
         }
 
         time_manager->stop_and_join(); // Join time manager thread to this one.
