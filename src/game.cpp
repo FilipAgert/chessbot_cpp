@@ -12,7 +12,7 @@
 
 #include "parameters.h"
 #include <board.h>
-#include <climits>  // For infinity
+#include <climits> // For infinity
 #include <config.h>
 #include <eval.h>
 #include <game.h>
@@ -47,28 +47,49 @@ void Game::abort_search_and_wait() {
     stop_requested_ = false;
 }
 void Game::start_thinking(const TimeControl rem_time, std::optional<int> depth, bool assign_worker) {
+    abort_search_and_wait();
+    int buffer = STANDARD_TIME_BUFFER; // ms
+    int fraction = STANDARD_TIME_FRAC; // spend 1/20th of remaining time.
+
+    bool is_white = board.get_turn_color() == pieces::white;
+    time_manager = std::make_shared<TimeManager>(rem_time, buffer, fraction, is_white, !depth.has_value());
+    time_manager->start_time_management();
     if (assign_worker) {
-        abort_search_and_wait();
 
         search_finished = false;
-        search_thread_ = std::jthread([this, rem_time, depth](std::stop_token stoken) {
+        search_thread_ = std::jthread([this, depth, is_white](std::stop_token stoken) {
             reset_infos();
-            bool is_white = board.get_turn_color() == pieces::white;
             if (is_white)
-                think_loop<true>(rem_time, depth);
+                think_loop<true>(depth);
             else
-                think_loop<false>(rem_time, depth);
+                think_loop<false>(depth);
+            // check if we should ponder
+            std::vector<Move> pv = trans_table.get_pv(board, 2, state_stack);
+            Move ponder_move;
+            if (pv.size() > 1) {
+                ponder_move = pv.at(1);
+                set_pondermove(ponder_move);
+            }
+            time_manager->stop_and_join(); // Join time manager thread to this one.
+            search_finished = true;
         });
     } else {
         reset_infos();
-        bool is_white = board.get_turn_color() == pieces::white;
         if (is_white)
-            think_loop<true>(rem_time, depth);
+            think_loop<true>(depth);
         else
-            think_loop<false>(rem_time, depth);
+            think_loop<false>(depth);
+        // check if we should ponder
+        std::vector<Move> pv = trans_table.get_pv(board, 2, state_stack);
+        Move ponder_move;
+        if (pv.size() > 1) {
+            ponder_move = pv.at(1);
+            set_pondermove(ponder_move);
+        }
+        time_manager->stop_and_join(); // Join time manager thread to this one.
+        search_finished = true;
     }
 }
-
 void Game::reset_infos() {
     moves_generated = 0;
     nodes_evaluated = 0;
@@ -105,7 +126,7 @@ void Game::reset_state_stack() {
     state_stack.push({board_hash, board.get_num_pieces()});
 }
 
-constexpr int MATE_BOUND = EvalState::MATE_SCORE - 256;  // anything beyond this is a mate score
+constexpr int MATE_BOUND = EvalState::MATE_SCORE - 256; // anything beyond this is a mate score
 
 inline int score_to_tt(int score, int ply) {
     if (score > MATE_BOUND)
@@ -138,24 +159,14 @@ void Game::push_msg(InfoMsg &&msg) {
     std::lock_guard<std::mutex> lock(queue_mutex);
     info_queue.push(msg);
 }
-template <bool is_white> void Game::think_loop(const TimeControl rem_time, std::optional<int> indepth) {
+
+template <bool is_white> void Game::think_loop(std::optional<int> indepth) {
     trans_table.increment_age();
-    trans_table.increment_age();  // they played a move also.
+    trans_table.increment_age(); // they played a move also.
     int num_moves = board.get_moves<full_search, is_white>(move_arr[0]);
-    if (this->check_repetition()) {
-        InfoMsg new_msg;
-        new_msg.stringmsg = true;
-        new_msg.string = "draw by threefold repetition detected";
-        push_msg(std::move(new_msg));
-        return;
-    } else if (EvalState::forced_draw_ply(board)) {
-        InfoMsg new_msg;
-        new_msg.stringmsg = true;
-        new_msg.string = "draw by excess ply moves.";
-        push_msg(std::move(new_msg));
-        return;
-    } else {
-        int num_moves = board.get_moves<full_search, is_white>(move_arr[0]);
+    if (num_moves > 0)
+        set_bestmove(move_arr[0][0]);
+    else {
         if (num_moves == 0) {
             InfoMsg new_msg;
             new_msg.stringmsg = true;
@@ -170,17 +181,11 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time, std::
             return;
         }
 
-        set_bestmove(move_arr[0][0]);
         // if (num_moves == 1) {
         //     search_finished = true;
         //     return;
         // }
     }
-    int buffer = STANDARD_TIME_BUFFER;  // ms
-    int fraction = STANDARD_TIME_FRAC;  // spend 1/20th of remaining time.
-
-    time_manager = std::make_shared<TimeManager>(rem_time, buffer, fraction, is_white, !indepth.has_value());
-    time_manager->start_time_management();
     int max_depth = indepth.has_value() ? indepth.value() + 1 : 256;
     assert(board.board_BB_match());
     int preveval = 0;
@@ -197,7 +202,8 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time, std::
             int alpha = eval;
             int beta = EvalState::MATE_SCORE;
             Move prev_best = root_best;
-            if (eval > 0) {  // Only do a mate search at shallow depths... need to benchmark but without prunings its slower
+            if (eval > 0) { // Only do a mate search at shallow depths... need to
+                            // benchmark but without prunings its slower
                 int max_dmate = mate_ply - 2;
                 if (max_dmate > 0) {
                     time_manager->set_matesearch_on(false);
@@ -217,7 +223,8 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time, std::
                     }
                 }
             } else {
-                // losing mate: search at depth without pruning to try to find an escape or delay.
+                // losing mate: search at depth without pruning to try to find an escape
+                // or delay.
                 int dmate = std::max(mate_ply, depth);
                 time_manager->set_matesearch_on(true);
                 auto [eval_ms, nt_ms] = alpha_beta<true, is_white, false, true, NodeType::PV>(dmate, 0, alpha, beta, 0);
@@ -234,7 +241,8 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time, std::
 
         if (nt == SearchNodeType::timeout)
             break;
-        // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0, alpha, beta, 0);
+        // std::pair<int, uint8_t> result = alpha_beta<true, is_white>(depth, 0,
+        // alpha, beta, 0);
         InfoMsg new_msg;
         new_msg.nodes = nodes_evaluated + nodes_quiesence_evaluated;
         new_msg.time = time_manager->get_time_elapsed();
@@ -253,14 +261,17 @@ template <bool is_white> void Game::think_loop(const TimeControl rem_time, std::
         if (moves_to_mate) {
             break;
         }
-        // Don't bother searching more if we only have 1 legal move & if we did not specify a depth.
+        // Don't bother searching more if we only have 1 legal move & if we did not
+        // specify a depth.
         if (num_moves == 1 && (!indepth)) {
             break;
         }
     }
-
-    time_manager->stop_and_join();  // Join time manager thread to this one.
-    search_finished = true;
+    // to not send bestmove early if we go to max depth or find mate while in
+    // ponder.
+    while (time_manager->is_pondering() && !should_abort()) {
+        std::this_thread::sleep_for(1ms);
+    }
 }
 
 template <bool is_white> std::pair<int, SearchNodeType> Game::aspiration_search(int preveval, int depth) {
@@ -291,11 +302,8 @@ template <bool is_root, bool is_white, bool is_zw, bool is_mate_search, uint8_t 
 std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions) {
     nodes_evaluated++;
     seldepth = std::max(ply, seldepth);
-    if (check_repetition()) {
-        return {0, SearchNodeType::exact};  // Checks if position is a repeat.
-    }
-    if (EvalState::forced_draw_ply(board)) {
-        return {0, SearchNodeType::exact};
+    if (is_repetition(ply) || EvalState::forced_draw_ply(board)) {
+        return {0, SearchNodeType::exact}; // Checks if position is a repeat.
     }
     if constexpr (!is_root) {
         if (EvalState::insufficient_mating_material(board))
@@ -350,20 +358,23 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
                 int eval = score_from_tt(entry.eval, ply);
                 bool is_mate = std::abs(eval) > MATE_BOUND;
                 if (!is_mate || entry.age == trans_table.age) {
-                    if (entry.is_exact()) {  // if exact value
+                    if (entry.is_exact()) { // if exact value
                         return {eval, SearchNodeType::exact};
                     } else if (entry.is_lb()) {
-                        if (eval >= beta)  // if its a lower bound, but this lower bound is BETTER than
+                        if (eval >= beta) // if its a lower bound, but this lower bound is
+                                          // BETTER than
                             // any move opponent can make
                             return {beta, SearchNodeType::lb};
                         else
-                            alpha = std::max(alpha, eval);  // a lower bound can still tighten alpha./
+                            alpha = std::max(alpha,
+                                             eval); // a lower bound can still tighten alpha./
                     } else if (entry.is_ub()) {
-                        if (eval < alpha)  // if its an upper bound, and this upper bound is worse
-                                           // than any move we could make, dont need to search more.
+                        if (eval < alpha) // if its an upper bound, and this upper bound is worse
+                                          // than any move we could make, dont need to search more.
                             return {alpha, SearchNodeType::ub};
                         else
-                            beta = std::min(beta, eval);  // an upper bound can still tighten beta.
+                            beta = std::min(beta,
+                                            eval); // an upper bound can still tighten beta.
                     }
                 }
             }
@@ -373,9 +384,9 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
     bool may_zugzwang = EvalState::can_zugzwang<is_white>(board);
 
     // null move pruning
-    // If we don't make a move, and the store is still beating beta, we are sure this branch is not worth searching
-    // (Since our score is way too high)
-    // Even doing nothing (worst possible move) is good.
+    // If we don't make a move, and the store is still beating beta, we are sure
+    // this branch is not worth searching (Since our score is way too high) Even
+    // doing nothing (worst possible move) is good.
     if constexpr (node_type != NodeType::CUT && !is_mate_search) {
         const int reduction = Parameters::NULLMOVE_R;
         if (!(king_checked | may_zugzwang) && (depth > reduction + 1) && !in_null) {
@@ -386,7 +397,7 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
             int eval = -res.first;
             undo_move<is_white>();
             in_null = false;
-            if (eval >= beta) {  // even doing nothing is good: prune
+            if (eval >= beta) { // even doing nothing is good: prune
                 return {beta, SearchNodeType::lb};
             }
         }
@@ -431,7 +442,7 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
                     }
                 }
             }
-            picker.reset_head();  // redo search for real.
+            picker.reset_head(); // redo search for real.
         }
     }
 
@@ -466,7 +477,8 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
                 if (depth >= 3 && i >= 3 && move_quiet && (!king_checked) && (!enemy_king_checked) && extension == 0 &&
                     (score.movetype() != MoveOrder::MoveScore::KILLER)) {
                     r = reductions[depth][i];
-                    r = std::min(depth + extension - 2, r);  // clamp to assure we do not go into quiesence.
+                    r = std::min(depth + extension - 2,
+                                 r); // clamp to assure we do not go into quiesence.
                     reductions_total += r;
                     reductions_cnt++;
                 }
@@ -500,9 +512,9 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
             if (eval > alpha)
                 root_best = move;
         }
-        if (eval >= beta) {  // FAIL HIGH.
+        if (eval >= beta) { // FAIL HIGH.
             trans_table.store(zob_hash, best_curr_move, score_to_tt(beta, ply), SearchNodeType::lb,
-                              depth);  // Can update hash to curr depth.
+                              depth); // Can update hash to curr depth.
 
             if (move_quiet)
                 insert_killer(move, killers);
@@ -516,12 +528,14 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
                     }
                 }
             }
-            return {beta, SearchNodeType::lb};  // This move is too good. The minimising player (beta) will never
+            return {beta, SearchNodeType::lb}; // This move is too good. The
+                                               // minimising player (beta) will never
 
             // allow the board to go here. we can return.
         }
-        if (eval > alpha) {  // if alpha is raised, then we have found an exact node.
-            alpha = eval;    // if alpha is never raised, the value returned will be an upper bound.
+        if (eval > alpha) { // if alpha is raised, then we have found an exact node.
+            alpha = eval;   // if alpha is never raised, the value returned will be an
+                            // upper bound.
             nodetype = SearchNodeType::exact;
         }
     }
@@ -531,9 +545,7 @@ std::pair<int, SearchNodeType> Game::alpha_beta(int depth, int ply, int alpha, i
 
 template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> Game::quiesence(int ply, int alpha, int beta) {
     nodes_quiesence_evaluated++;
-    if (check_repetition())
-        return {0, SearchNodeType::exact};  // Checks if position is a repeat.
-    if (EvalState::forced_draw_ply(board))
+    if (is_repetition(ply) || EvalState::forced_draw_ply(board))
         return {0, SearchNodeType::exact};
     if (EvalState::insufficient_mating_material(board))
         return {0, SearchNodeType::exact};
@@ -546,9 +558,10 @@ template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> Gam
     std::optional<Move> tt_move;
     if (maybe_entry) {
         const TranspositionEntry &entry = maybe_entry.value();
-        // transposition table hits may be corrupted. disable them if in mate search.
+        // transposition table hits may be corrupted. disable them if in mate
+        // search.
         if constexpr (!is_mate_search) {
-            if (trans_table.is_useable_entry(entry, -10000)) {  // depth -1000: any stored depth qualifies
+            if (trans_table.is_useable_entry(entry, -10000)) { // depth -1000: any stored depth qualifies
                 int tt_score = score_from_tt(entry.eval, ply);
                 bool is_mate = abs(tt_score) > MATE_BOUND;
                 if (!is_mate || trans_table.age == entry.age) {
@@ -580,7 +593,8 @@ template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> Gam
         }
 
         // delta futility pruning
-        // prune branch if we cannot improve score even with best capture and promotion.
+        // prune branch if we cannot improve score even with best capture and
+        // promotion.
         if (delta_futility_pruning<is_white>(standing_pat, alpha)) {
             return {alpha, SearchNodeType::ub};
         }
@@ -601,12 +615,13 @@ template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> Gam
         const auto [i, move] = picker.next();
         const MoveOrder::MoveScore score = scores[i];
         if (!in_check && score.movetype() <= MoveOrder::MoveScore::SEE_BAD)
-            break;  // do not consider bad captures.
+            break; // do not consider bad captures.
         // delta pruning:
         //  check if delta threshhold is reached
         if ((!in_check) && !(may_zugwang)) {
             int extra = eval.params.piecevals[board.get_piece_at(move.target).get_type()];
-            extra += eval.params.piecevals[move.get_promotion()];  // doesn't detract pawn value if promotion...
+            extra += eval.params.piecevals[move.get_promotion()]; // doesn't detract pawn
+                                                                  // value if promotion...
             extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? eval.params.piecevals[pieces::pawn] : 0;
             assert(extra > 0);
 
@@ -647,21 +662,26 @@ int Game::calculate_extension(const Move move, uint8_t movenum, int num_extensio
     return extension;
 }
 
-bool Game::check_repetition(bool outside_search) {
+bool Game::is_repetition(int ply) {
     // Checks if we have repeated this board state.
-    HashEntry hash = state_stack.top();
-    int instances_for_draw = outside_search ? 3 : 2;
-    bool atleast2 = state_stack.atleast_num(hash, instances_for_draw);
-    return atleast2;
+    return state_stack.is_repetition(state_stack.len() - ply - 1);
 }
 Move Game::get_bestmove() const {
     std::lock_guard<std::mutex> lock(bestmove_mutex);
     return bestmove;
 }
+Move Game::get_pondermove() const {
+    std::lock_guard<std::mutex> lock(pondermove_mutex);
+    return pondermove;
+}
 
 void Game::set_bestmove(Move move) {
     std::lock_guard<std::mutex> lock(bestmove_mutex);
     bestmove = move;
+}
+void Game::set_pondermove(Move move) {
+    std::lock_guard<std::mutex> lock(pondermove_mutex);
+    pondermove = move;
 }
 
 std::string Game::get_fen() const { return board.fen_from_state(); }
@@ -673,7 +693,7 @@ template <bool is_white> void Game::make_nullmove() {
     trans_table.prefetch(hash);
     move_stack.push(nullmove);
     restore_info_stack.push(info);
-    state_stack.push({hash, board.get_num_pieces()});  // same number of pieces due to nullmove
+    state_stack.push({hash, board.get_num_pieces()}); // same number of pieces due to nullmove
     assert(state_stack.top() == ZobroistHasher::get().hash_board(board));
 }
 template <bool is_white> void Game::make_move(Move move) {
@@ -707,3 +727,8 @@ void Game::precompute_reduction() {
     }
 }
 void Game::precompute() { precompute_reduction(); }
+
+void Game::ponderhit() {
+    assert(time_manager != nullptr);
+    time_manager->ponderhit();
+}
