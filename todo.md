@@ -5,6 +5,18 @@
     This lets us track if e.g. a search change is helpful or not.
     It is different from move generation tracking as this also takes into account the search.
 
+# Time management
+
+Manage time better
+
+- If stable search, use less time
+  cp stable (< 20 cp change)
+  PV stable over several iterations
+  If high effort spent in PV node, can use as signal (e.g. mark effort in each node by order in root search.)
+  
+- If unstable search, extend
+  PV changed or cp changed by > 20, extend time
+
 # Threads
 
 Low priority.
