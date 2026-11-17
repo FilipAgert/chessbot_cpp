@@ -58,6 +58,22 @@ class StateStack {
         }
         return ctr;
     }
+    inline bool is_repetition(int root_idx) const {
+        const HashEntry &cur = stack[top_idx];
+        int before_root = 0;
+        assert(root_idx >= 0);
+        for (int i = top_idx - 1; i >= 0; i--) {
+            if (stack[i].num_pieces < cur.num_pieces)
+                break;  // capture happened, can't repeat further back
+            if (stack[i] == cur) {
+                if (i >= root_idx)
+                    return true;  // repeated inside search
+                if (++before_root >= 2)
+                    return true;  // true 3-fold with history
+            }
+        }
+        return false;
+    }
 
     /**
      * @brief Resets stack.
@@ -152,12 +168,12 @@ class ZobroistHasher {
 };
 struct TranspositionEntry {
     static constexpr int keep_hashbits = 48;
-    static constexpr int shift_hash = 64 - 48;
+    static constexpr int shift_hash = 64 - keep_hashbits;
     uint64_t hash : keep_hashbits = 0;
     // Why 48? because the key contains part of the hash anyway. 64-48 = 16 bits minimum in key for this to not destroy information.
     // Key uses rightmost bits, so
     // this must use the leftmost bits.
-    uint8_t nodetype = invalid;
+    SearchNodeType nodetype : 2 = SearchNodeType::invalid;
     uint8_t depth = 0;  // to what depth was this move searched? Can only accept if our depth is
     int eval = 0;       // Integrated bounds and values. 4n = exact eval n. 4n + 1 = a lower bound. 4n -
     Move bestmove = Move();
@@ -166,20 +182,24 @@ struct TranspositionEntry {
     // same or shallower.
     inline bool is_valid_move() const { return (bestmove.source != bestmove.target); }
 
-    bool is_exact() const { return nodetype == exact; }
-    bool is_lb() const { return nodetype == lb; }
-    bool is_ub() const { return nodetype == ub; }
+    bool is_exact() const { return nodetype == SearchNodeType::exact; }
+    bool is_lb() const { return nodetype == SearchNodeType::lb; }
+    bool is_ub() const { return nodetype == SearchNodeType::ub; }
 };
-constexpr TranspositionEntry nullentry = {0, invalid, 0, 0, Move(0, 0), 0};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
+constexpr TranspositionEntry nullentry = {0, SearchNodeType::invalid, 0, 0, Move(0, 0), 0};  // transposition_entry{0, Move(0, 0), 0, 4, 0};
 
-struct TranspositionBucket {
+struct alignas(32) TranspositionBucket {
     TranspositionEntry depth_pref;
     TranspositionEntry always_replace;
 };
+static_assert(sizeof(TranspositionBucket) == 32);
+static_assert(alignof(TranspositionBucket) == 32);
 
 struct TranspositionTable {
  private:
-    std::vector<TranspositionBucket> arr;
+    TranspositionBucket *arr = nullptr;
+    size_t arr_bytes = 0;
+    size_t table_size = 0;
 
  public:
     static constexpr size_t entry_size = sizeof(TranspositionBucket);
@@ -189,14 +209,18 @@ struct TranspositionTable {
     size_t collisions = 0;  // how many times did we have a hash collision?
     size_t overwrites = 0;
     size_t writes = 0;
-    uint16_t age = 0;  // what is the age of this table?
     int table_size_MB = 0;
+
+    uint16_t age = 0;
     /**
      * @brief Initializes the table to a desired size in MB.
      *
      * @param desired_size_MB
      */
     TranspositionTable(int desired_size_MB);
+    TranspositionTable(const TranspositionTable &) = delete;
+    TranspositionTable &operator=(const TranspositionTable &) = delete;
+    ~TranspositionTable();
 
     /**
      * @brief Gets key to access the table with
@@ -212,7 +236,7 @@ struct TranspositionTable {
      */
     std::optional<TranspositionEntry> get(uint64_t hash);
 
-    void store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth);
+    void store(uint64_t hash, Move bestmove, int eval, SearchNodeType nodetype, uint8_t depth);
     /**
      * @brief Gets if the entry provided is
      *
@@ -245,6 +269,13 @@ struct TranspositionTable {
      * @return std::vector<Move>
      */
     std::vector<Move> get_pv(Board &board, int depth, StateStack &stack);
+
+    /**
+     * @brief Fetches the hash from cache. to be done immediately after zobroisthasher hashes on do_move.
+     * 0: read 1: low temporal locality.
+     * @param hash
+     */
+    inline void prefetch(uint64_t hash) { __builtin_prefetch(&arr[get_key(hash)], 0, 1); }
 
     void increment_age();
     void reset_age();

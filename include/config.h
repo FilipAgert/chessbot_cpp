@@ -5,6 +5,7 @@
 #include <string>
 struct ConfigSettings {
     bool aspiration_enable = false;
+    bool should_ponder = false;
 };
 inline std::string const ID_name = "chiral_ebt";
 inline std::string const ID_author = "filipa";

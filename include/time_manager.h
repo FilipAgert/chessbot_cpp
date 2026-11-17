@@ -7,14 +7,18 @@
 using namespace std::chrono;
 struct TimeControl {
     int wtime, btime, winc, binc;
+    bool ponder = false;
 };
 class TimeManager {
  private:
     std::atomic<bool> should_stop;                  // Shared variable between threads.
     std::atomic<bool> should_start_next_iteration;  // Shared variable between threads.
+    std::atomic<bool> is_mate_search = false;
+    std::atomic<bool> desperate_mate_search;
     std::thread timer_thread;
     int remtime, inc, enemy_remtime, enemy_inc, buffer, remtime_frac;
-    bool infinite;
+    std::atomic<bool> pondering;
+    const bool enable_tc;
     time_point<high_resolution_clock> start;
     int calculate_time_elapsed_ms() const;
     void time_loop_function(int64_t target_move_time_ms);
@@ -60,7 +64,28 @@ class TimeManager {
      */
     void stop_and_join();
 
-    TimeManager(TimeControl rem_time, int buffer, int remtime_frac, bool is_white);
+    /**
+     * @brief Flag that we are currently performing a matesearch.
+     *
+     * @param desperate desperate: true -> we allow to spend more time to try to avoid mate (half remaining clock)
+     * @return true
+     * @return false
+     */
+    void set_matesearch_on(bool desperate);
+    void set_matesearch_off();
+    /**
+     * @brief Do we have time to start another deepening iteration for finding shallower mate?
+     *
+     * @return true
+     * @return false
+     */
+    bool has_mate_search_time();
+
+    void ponderhit();
+
+    bool is_pondering() const;
+
+    TimeManager(TimeControl rem_time, int buffer, int remtime_frac, bool is_white, bool enable_tc);
 
     ~TimeManager();
 };

@@ -112,13 +112,16 @@ TEST(BoardTest, doUndoMoveEnPassant) {
 
     m1 = Move("e7e5");
     m2 = Move("d5e6");
-    RestoreMoveInfo info1 = modified.do_move_no_flag<false>(m1);
-    RestoreMoveInfo info2 = modified.do_move_no_flag<true>(m2);
+    m1.flag = moveflag::MOVEFLAG_pawn_double_push;
+    m2.flag = moveflag::MOVEFLAG_pawn_ep_capture;
+    RestoreMoveInfo info1 = modified.do_move<false>(m1);
+    RestoreMoveInfo info2 = modified.do_move<true>(m2);
     ASSERT_EQ(modified.get_num_pieces(), 3);
     modified.undo_move<true>(info2, m2);
     modified.undo_move<false>(info1, m1);
     ASSERT_EQ(modified.get_turn_color(), original.get_turn_color());
     ASSERT_EQ(modified.get_castling(), original.get_castling());
+    ASSERT_EQ(modified.get_num_pieces(), 4);
     ASSERT_EQ(modified.get_en_passant(), original.get_en_passant());
     ASSERT_EQ(modified.get_castling(), original.get_castling());
     ASSERT_EQ(modified, original);
@@ -131,8 +134,9 @@ TEST(BoardTest, doUndoMoveEnPassantFEN) {
     Move ep_move;
     ep_move.source = NotationInterface::idx_from_string("e5");
     ep_move.target = NotationInterface::idx_from_string("d6");
+    ep_move.flag = moveflag::MOVEFLAG_pawn_ep_capture;
 
-    RestoreMoveInfo info = board.do_move_no_flag<true>(ep_move);
+    RestoreMoveInfo info = board.do_move<true>(ep_move);
 
     ASSERT_TRUE(board.is_square_empty(NotationInterface::idx_from_string("e5")));
     ASSERT_EQ(board.get_piece_at(NotationInterface::idx_from_string("d6")), Piece('P'));
@@ -214,18 +218,21 @@ TEST(BoardTest, chainedMovesCapturePromotionUndoEquality) {
     Move m1, m2, m3, m4, m5, m6;
 
     m1 = Move("e7e5");
+    m1.flag = moveflag::MOVEFLAG_pawn_double_push;
     m2 = Move("d5e6");
+    m2.flag = moveflag::MOVEFLAG_pawn_ep_capture;
     m3 = Move("g7f6");
     m4 = Move("e6e7");
     m5 = Move("f6f7");
     m6 = Move("e7e8Q");
+    m6.flag = moveflag::MOVEFLAG_promote_queen;
 
-    auto info1 = modified.do_move_no_flag<false>(m1);
-    auto info2 = modified.do_move_no_flag<true>(m2);
-    auto info3 = modified.do_move_no_flag<false>(m3);
-    auto info4 = modified.do_move_no_flag<true>(m4);
-    auto info5 = modified.do_move_no_flag<false>(m5);
-    auto info6 = modified.do_move_no_flag<true>(m6);
+    auto info1 = modified.do_move<false>(m1);
+    auto info2 = modified.do_move<true>(m2);
+    auto info3 = modified.do_move<false>(m3);
+    auto info4 = modified.do_move<true>(m4);
+    auto info5 = modified.do_move<false>(m5);
+    auto info6 = modified.do_move<true>(m6);
 
     modified.undo_move<true>(info6, m6);
     modified.undo_move<false>(info5, m5);
@@ -235,6 +242,10 @@ TEST(BoardTest, chainedMovesCapturePromotionUndoEquality) {
     modified.undo_move<false>(info1, m1);
 
     // Should match the  exactly
+    if (modified != original) {
+        modified.Display_board();
+        original.Display_board();
+    }
     ASSERT_TRUE(modified == original);
 }
 

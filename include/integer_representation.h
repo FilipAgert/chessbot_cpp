@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 
-enum nodetype { exact = 4, lb = 3, ub = 2, invalid = 1, timeout = 0 };
+enum class SearchNodeType : uint8_t { invalid = 0, lb = 1, ub = 2, exact = 3, timeout = 4 };
 namespace castling {
 static constexpr uint8_t cast_white_kingside = 0b1;
 static constexpr uint8_t cast_white_queenside = 0b10;

@@ -9,19 +9,48 @@
 #include <optional>
 #include <utility>
 namespace MoveOrder {
+/**
+ * @brief For ordering moves.
+ * 1. TT moves always go first
+ * 2. Loud move: Static exchange evaluation > 0. Sorted by SEE.
+ * 3. Loud move: SEE = 0.
+ * 4. Killer moves.
+ * 5. Quiet SAFE MOVES (See >= 0) (Sorted by history).
+ * 6. Loud moves: SEE < 0.
+ * 7. Quiet unsafe moves (See < 0)
+ *
+ * Within bucket 2&3, we sort higher if its a killer move, even if see score is smaller.
+ * Bucket 5. sorted by history
+ * BUcket 6. sorted by see score
+ * Bucket 7. sorted by history.
+ * This is solved by
+ */
 struct MoveScore {
-    int score;
-    enum MoveType {
-        Capture,
-        Killer,
-        TT,
-        Normal,
-    };
-    MoveType movetype : 8;
+    uint32_t key;
+    static constexpr uint8_t TT = 0b10000000;
+    static constexpr uint8_t SEE = 0b01000000;
+    static constexpr uint8_t SEE_NEUTRAL = 0b00100000;
+    static constexpr uint8_t KILLER = 0b00010000;
+    static constexpr uint8_t QUIET_SAFE = 0b00001000;
+    static constexpr uint8_t SEE_BAD = 0b00000100;
+    static constexpr uint8_t QUIET_UNSAFE = 0b00000000;
+
+    MoveScore(int16_t score, uint8_t movetype) : key((uint32_t(movetype) << 16) | uint16_t(score ^ 0x8000)) {}
+    MoveScore() : key(0) {}
+    int16_t score() const { return int16_t((key & 0xFFFF) ^ 0x8000); }
+    uint8_t movetype() const { return key >> 16; }
+
+    /**
+     * @brief Sorts by type, then score.
+     *
+     * @param o
+     * @return true
+     * @return false
+     */
+    bool operator<(MoveScore o) const { return key < o.key; }
+    bool operator>(MoveScore o) const { return key > o.key; }
 };
-constexpr int TT_MOVE_SCORE = 2'000'000'000;
-constexpr int CAPTURE_SCORE = 10'000;
-constexpr int KILLER_MOVE_SCORE = 10000;
+static const std::array<uint16_t, 7> moveorder_piecevals = {0, std::numeric_limits<int16_t>::max() / 2, 900, 500, 300, 300, 100};
 /**
  * @brief Rate move by Heuristics
  *
@@ -29,32 +58,7 @@ constexpr int KILLER_MOVE_SCORE = 10000;
  * @param[in] board board
  * @return score of move to sort by
  */
-template <bool is_white>
-MoveScore move_heuristics(const std::array<int, 7> &piecevals, Move &move, Board &board, BB enemy_pawn_atk_bb, const History &history) {
-    int score = 0;
-    MoveScore::MoveType type = MoveScore::Normal;
-    Piece_t pt = board.get_piece_at(move.source).get_type();
-    if (move.flag == moveflag::MOVEFLAG_pawn_ep_capture) {
-        score += CAPTURE_SCORE * (piecevals[pieces::pawn] * 10 - piecevals[pieces::pawn]);
-        type = MoveScore::Capture;
-    } else if (!board.is_square_empty(move.target)) {
-        score += CAPTURE_SCORE * (piecevals[board.get_piece_at(move.target).get_type()] * 10 - piecevals[pt] + piecevals[move.get_promotion()]);
-        type = MoveScore::Capture;
-
-    } else {
-        score += history.get<is_white>(pt, move.target);
-    }
-    // if (move.is_promotion()) {
-    //     score += PieceValue::piecevals[move.get_promotion()] *10;
-    // } commented out since we take history for all non-captures.
-
-    // if ((BitBoard::one_high(move.target) & enemy_pawn_atk_bb) > 0) {
-    //     score -= PieceValue::piecevals[pt];  // penalize if target square is on a
-    //                                                            // square defended by a pawn.
-    // }
-
-    return {score, type};
-}
+template <bool is_white> MoveScore move_heuristics(const std::array<int, 7> &piecevals, Move &move, Board &board, BB enemy_pawn_atk_bb, const History &history);
 /**
  * @brief Gets true if move is in killer moves.
  *
@@ -63,21 +67,10 @@ MoveScore move_heuristics(const std::array<int, 7> &piecevals, Move &move, Board
  * @return true
  * @return false
  */
-bool in_killers(const Move &move, const std::array<Move, NUM_KILLER_MOVES> &killers);
+bool in_killers(const Move move, const std::array<Move, NUM_KILLER_MOVES> &killers);
 template <bool is_white>
 void move_heuristics(const std::array<int, 7> &piecevals, std::array<Move, max_legal_moves> &moves, std::array<MoveScore, max_legal_moves> &scores,
-                     size_t num_moves, Board &board, std::optional<Move> tt_move, const History &history, const std::array<Move, NUM_KILLER_MOVES> &killers) {
-    BB enemy_pawn_atk_bb = movegen::pawn_atk_bb<!is_white>(board.get_piece_bb<pieces::pawn, !is_white>());
-    for (size_t m = 0; m < num_moves; m++) {
-        MoveScore move_score = move_heuristics<is_white>(piecevals, moves[m], board, enemy_pawn_atk_bb, history);
-        scores[m] = move_score;
-        if (tt_move && moves[m] == *tt_move) {
-            scores[m] = {TT_MOVE_SCORE, MoveScore::TT};
-        } else if (move_score.movetype != MoveScore::Capture && in_killers(moves[m], killers)) {
-            scores[m] = {KILLER_MOVE_SCORE, MoveScore::Killer};
-        }
-    }
-}
+                     size_t num_moves, Board &board, std::optional<Move> tt_move, const History &history, const std::array<Move, NUM_KILLER_MOVES> &killers);
 
 class MovePicker {
  private:
@@ -98,7 +91,14 @@ class MovePicker {
      *
      * @return std::pair<size_t, Move&>  index of and move.
      */
-    std::pair<size_t, Move &> next();
+    inline std::pair<size_t, Move> next() {
+        const int i = current_index_++;
+        if (i >= sorted_count_)
+            select_best(i);
+        return {static_cast<size_t>(i), moves_[i]};
+    }
+
+    void select_best(int i);
 
     /**
      * @brief Reset counter to 0

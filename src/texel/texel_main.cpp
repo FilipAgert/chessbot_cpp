@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     double prior_weight = 1.0;
     for (size_t i = 0; i < num_params; i++) {
         x0(i) = params[i];
-        prior_var(i) = std::pow(prior_offset + std::abs(params[i]) * prior_relunc, 2);
+        prior_var(i) = (std::pow(prior_offset + std::abs(params[i]) * prior_relunc, 2) / training_count);
     }
 
     std::function<double(const dvec &)> prior = [x0 = x0, prior_var, prior_weight, training_count](const dvec &x) {

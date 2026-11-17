@@ -51,6 +51,11 @@ class Game {
     }
     void start_game();
     void end_game();
+    /**
+     * @brief Should be called by gui thread when we have a ponderhit.
+     *
+     */
+    void ponderhit();
 
     /**
      * @brief Returns true if this board state has occured already in the tree. This means that if
@@ -59,14 +64,14 @@ class Game {
      *
      * @return true if this position already occured.
      */
-    bool check_repetition();
+    bool is_repetition(int ply);
     /**
      * @brief Enter the game loop logic. This should be called when UCI command GO is received.
      * @param rem_time: Time control structure from input.
      * @param assign_worker: true if you want to set this work on a worker thread.
      *
      */
-    void start_thinking(const TimeControl rem_time, bool assign_worker = true);
+    void start_thinking(const TimeControl rem_time, std::optional<int> depth, bool assign_worker = true);
 
     /**
      * @brief Alpha beta pruning. This is quite complicated. alpha is the maximal guaranteed score
@@ -83,8 +88,8 @@ class Game {
      * @param[in] num_extensions - number of move extensions performed so far
      * @return Pair of the eval and bound type.
      */
-    template <bool is_root, bool is_white, bool is_zw, uint8_t node_type>
-    std::pair<int, uint8_t> alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
+    template <bool is_root, bool is_white, bool is_zw, bool is_matesearch = false, uint8_t node_type>
+    std::pair<int, SearchNodeType> alpha_beta(int depth, int ply, int alpha, int beta, int num_extensions);
     /**
      * @brief Quiesence search. Only evaluates captures
      * @param [in] ply - Number of ply moves deep. 0 is root node and counting up.
@@ -92,7 +97,7 @@ class Game {
      * @param[in] beta Minimum guaranteeds core of minimising player
      * @return Score of current state.
      */
-    template <bool is_white> std::pair<int, uint8_t> quiesence(int ply, int alpha, int beta);
+    template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> quiesence(int ply, int alpha, int beta);
 
     /**
      * @brief Computes the extension for this move
@@ -109,6 +114,7 @@ class Game {
      *
      */
     Move get_bestmove() const;
+    Move get_pondermove() const;
     template <bool is_white> void make_move_no_flag(Move move) {
         RestoreMoveInfo info = board.do_move_no_flag<is_white>(move);
         move_stack.push(move);
@@ -118,7 +124,6 @@ class Game {
     }
     void gui_make_move(Move move) {
         assert(move.is_valid());
-        trans_table.increment_age();
         if (board.get_turn_color() == pieces::white)
             make_move_no_flag<true>(move);
         else
@@ -194,8 +199,11 @@ class Game {
     void reset_state_stack();
     StateStack state_stack;
     mutable std::mutex bestmove_mutex;
+    mutable std::mutex pondermove_mutex;
     Move bestmove;
+    Move pondermove;
     void set_bestmove(Move move);
+    void set_pondermove(Move move);
     Board board;
     uint64_t moves_generated;
     uint64_t nodes_evaluated;
@@ -222,7 +230,7 @@ class Game {
      */
     inline bool should_abort() const { return stop_requested_ || (!must_finish && time_manager->get_should_stop()); }
 
-    template <bool is_white> void think_loop(const TimeControl rem_time);
+    template <bool is_white> void think_loop(std::optional<int> depth);
 
     /**
      * @brief Launches an aspiration search and handles the aspiration window
@@ -230,12 +238,18 @@ class Game {
      * @param[in] preveval previous iteration's evaluation.
      * @param[in] depth Depth of search.
      */
-    template <bool is_white> std::pair<int, uint8_t> aspiration_search(int preveval, int depth);
+    template <bool is_white> std::pair<int, SearchNodeType> aspiration_search(int preveval, int depth);
 
     template <bool is_white> bool delta_futility_pruning(int standing_pat, int alpha) const {
         const EvalParameters &params = eval.params;
         const int queen = params.piecevals[pieces::queen];
-        int big_delta = queen + Parameters::DELTA_THRESHHOLD;
+        Piece_t most_valuable_piece =
+            board.get_piece_bb<pieces::queen, !is_white>() > 0
+                ? pieces::queen
+                : (board.get_piece_bb<pieces::rook, !is_white>() > 0                                                         ? pieces::rook
+                   : (board.get_piece_bb<pieces::bishop, !is_white>() | board.get_piece_bb<pieces::knight, !is_white>()) > 0 ? pieces::bishop
+                                                                                                                             : pieces::pawn);
+        int big_delta = params.piecevals[most_valuable_piece] + Parameters::DELTA_THRESHHOLD;
         if (board.has_pawn_promotion<is_white>()) {
             big_delta += queen - params.piecevals[pieces::pawn];
         }

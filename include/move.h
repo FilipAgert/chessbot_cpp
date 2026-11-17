@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <string>
-using Flag_t = uint8_t;
+using Flag_t = uint16_t;
 namespace moveflag {
 const Flag_t MOVEFLAG_silent = 0;
 const Flag_t MOVEFLAG_remove_short_castle = 1;
@@ -34,8 +34,8 @@ inline constexpr bool is_promotion(Flag_t flag) {
 }  // namespace moveflag
 struct Move {
     Flag_t flag : 4 = 0;
-    uint8_t source : 6 = 0;
-    uint8_t target : 6 = 0;
+    uint16_t source : 6 = 0;
+    uint16_t target : 6 = 0;
 
     inline constexpr bool is_promotion() const { return moveflag::is_promotion(flag); }
     inline constexpr Piece_t get_promotion() const {

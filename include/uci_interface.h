@@ -1,20 +1,21 @@
 // Copyright 2025 Filip Agert
 #ifndef UCI_INTERFACE_H
 #define UCI_INTERFACE_H
+#include "config.h"
 #include <game.h>
 
 #include <string>
 #include <vector>
 class UCIInterface {
  public:
-    static void process_uci_command();
+    static void process_uci_command(ConfigSettings settings);
     static void uci_response(std::string response);
     static void process_isready_command();
     static void process_quit_command();
     static void process_new_game_command();
-    static void send_bestmove();
+    static void send_bestmove(bool pondering);
     static void process_d_command();
-    static void process_ponder_command();
+    static void process_ponderhit_command();
     static void process_self_command(std::string command);
 
     /**
@@ -40,6 +41,7 @@ class UCIInterface {
     static void process_position_command(std::string command);
     static void process_fen_command(std::string command);
     static void process_stop_command();
+    static void process_setoption_command(std::string command, ConfigSettings &settings);
     /**
      * @brief Enters benchmarking mode. This evaluates to a certain depth all possible moves.
      * @param[in] command: String with three parts: <fentype> <depth> <threads>

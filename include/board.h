@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <move.h>
 #include <notation_interface.h>
+#include <optional>
 #include <piece.h>
 #include <stdexcept>
 #include <string>
@@ -56,8 +57,8 @@ struct Board {
     uint8_t get_en_passant_square() const { return en_passant_square; }
     uint8_t get_castling() const { return castleinfo; }
     int get_full_moves() const { return full_moves; }
-    bool is_move_quiet(const Move &move) const;
-    bool is_move_capture(const Move &move) const;
+    bool is_move_quiet(const Move move) const;
+    bool is_move_capture(const Move move) const;
     uint8_t get_check() const { return check; }
     bool board_BB_match();
     /**
@@ -119,7 +120,7 @@ struct Board {
      * @param[in] move move to flag
      * @return restore_move_info
      */
-    template <bool white_to_move> RestoreMoveInfo do_move_no_flag(Move &move) {
+    template <bool white_to_move> RestoreMoveInfo do_move_no_flag(Move move) {
         assert(move.is_valid());
         Piece_t moved = get_piece_at(move.source).get_type();
         assert(moved != pieces::none);
@@ -656,6 +657,45 @@ struct Board {
             gen_add_all_moves<pieces::knight, stype, ctype, is_white>(moves, num_moves, knight_bb, friendly_bb, enemy_bb, pi, ep_bb, king_attackers);
             gen_add_all_moves<pieces::pawn, stype, ctype, is_white>(moves, num_moves, pawn_bb, friendly_bb, enemy_bb, pi, ep_bb, king_attackers);
             return num_moves;
+        }
+    }
+
+    /**
+     * @brief Helper function for SEE. Gets attacking piece of color which is worth the least
+     pawn -> bishop-> knight -> rook -> queen -> king
+     * For SEE, this cannot en passant, since the previous move was a capture.
+     * This does NOT check for move legality except for king move legality.
+     * @param to_sq
+     * @return Move
+     */
+    template <bool is_white, Piece_t p = pieces::pawn> std::optional<Move> get_smallest_attacking_move(uint8_t to_sq) {
+        if constexpr (p == pieces::none) {
+            return std::nullopt;
+        } else if constexpr (p == pieces::king) {
+            uint8_t kingloc = BitBoard::lsb(get_piece_bb<pieces::king, is_white>());
+            BB king_atk = movegen::king_atk(kingloc) & ~(get_atk_bb<!is_white, false>());
+            if ((king_atk & BitBoard::one_high(to_sq)) > 0) {
+                return Move(kingloc, to_sq);
+            }
+            return std::nullopt;
+
+        } else {
+            BB occ = occupancy();
+            BB atk;
+            if constexpr (p == pieces::pawn) {
+                atk = movegen::get_atk_bb<p, !is_white>(to_sq, occ);
+            } else {
+                atk = movegen::get_atk_bb<p, is_white>(to_sq, occ);
+            }
+            BB overlap = atk & get_piece_bb<p, is_white>();
+            if (overlap > 0) {
+                uint8_t from = BitBoard::lsb(overlap);
+                if constexpr (p == pieces::pawn)
+                    return Move(from, to_sq, NotationInterface::row(to_sq) % 7 == 0 ? moveflag::MOVEFLAG_promote_queen : moveflag::MOVEFLAG_silent);
+                else
+                    return Move(from, to_sq);
+            }
+            return get_smallest_attacking_move<is_white, static_cast<Piece_t>(p - 1)>(to_sq);
         }
     }
     /**
@@ -1242,6 +1282,7 @@ struct Board {
     template <bool white_moved, Flag_t flag> constexpr void undo_move(const Move move, const Piece_t captured) {
         Piece_t moved = get_piece_at(move.target).get_type();
         ASSUME(moved >= 1 && moved <= 6);
+        assert(moved >= 1 && moved <= 6);
         switch (moved) {
         case pieces::pawn:
             undo_move<white_moved, pieces::pawn, flag>(move, captured);

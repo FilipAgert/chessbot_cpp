@@ -275,6 +275,7 @@ int EvalState::eval(Board &board) {
     score = mat_diff;
     score += eval_pst(board, phase);
     score += eval_mobility(board);
+    score += eval_king_safety(board, phase);
     score += eval_king_distance(board, mat_diff, phase);
     score += eval_pawn_structure(board);
 
@@ -376,6 +377,34 @@ int EvalState::eval_king_distance(Board &board, int mat_diff, int phase) {
     return eval_phase<false>(phase, 0, score) >>
            9;  // divide by 512. Pure late game max advantage is 8 centipawns per square. Early game is closer to 1-3 cp per square.
 }
+int EvalState::eval_king_safety(Board &board, int phase) const {
+    // king safety evaluation...
+    // eval if we have friendly pieces near us.
+    //    - Pawns in front of us.
+    bool white_has_queen = board.get_piece_bb<pieces::queen, true>() > 0;
+    bool black_has_queen = board.get_piece_bb<pieces::queen, false>() > 0;
+
+    int eval = 0;
+    if (black_has_queen) {
+        int wkingsq = BitBoard::lsb(board.get_piece_bb<pieces::king, true>());
+        BB wking_front = masks::NS_wall_lookup[wkingsq + 64];
+        eval += BitBoard::bitcount(wking_front & board.get_piece_bb<pieces::pawn, true>());
+    }
+    if (white_has_queen) {
+        int bkingsq = BitBoard::lsb(board.get_piece_bb<pieces::king, false>());
+        BB bking_front = masks::NS_wall_lookup[bkingsq];
+        eval -= BitBoard::bitcount(bking_front & board.get_piece_bb<pieces::pawn, false>());
+    }
+    eval = eval_phase<false>(phase, params.king_pawn_proximity_score * eval, 0);
+
+    // // eval squares under attack near us
+    // BB white_attacks = board.get_atk_bb<true, false>();
+    // BB black_attacks = board.get_atk_bb<false, false>();
+    // int w_danger = BitBoard::bitcount(black_attacks & masks::three_x_three[wkingsq]);
+    // int b_danger = BitBoard::bitcount(white_attacks & masks::three_x_three[bkingsq]);
+    // eval += (w_danger - b_danger) * params.king_attacked_square_score;
+    return eval;
+}
 std::optional<int> EvalState::moves_to_mate(int score) {
     // Negative score should remain negative.
     int dist = abs(abs(score) - MATE_SCORE);
@@ -452,6 +481,36 @@ int EvalState::eval_pawn_structure(Board &board) {
     return eval + (wdoubled - bdoubled) * params.doubled_pawn_punishment + (nsolow - nsolob) * params.solo_pawn_punishment;
 }
 
+bool EvalState::insufficient_mating_material(Board &board) {
+    int black_num_pieces = board.get_num_pieces<false>();
+    int white_num_pieces = board.get_num_pieces<true>();
+    if (black_num_pieces > 2 || white_num_pieces > 2)
+        return false;
+    // K vs K is drawn
+    // K + B vs K is drawn
+    // K + N vs K is drawn
+    // K + B vs K + B is drawn if both bishop are same color.
+    if (black_num_pieces == white_num_pieces) {
+        if (black_num_pieces == 1)
+            return true;
+
+        // 2 pieces each: check if both are same color bishops
+        BB wbishop = board.get_piece_bb<pieces::bishop, true>();
+        BB bbishop = board.get_piece_bb<pieces::bishop, false>();
+        // if both are on white squares (or neither) we have a forced draw.
+        BB both = wbishop | bbishop;
+        if (wbishop == 0 | bbishop == 0)
+            return false;
+        return BitBoard::bitcount(both & masks::white_squares) % 2 == 0;
+    } else {
+        // one has 1 one has 2
+        // drawn if the second piece is a bishop or knight.
+        if (white_num_pieces == 1) {
+            return (board.get_piece_bb<pieces::bishop, false>() | board.get_piece_bb<pieces::knight, false>()) > 0;
+        }
+        return (board.get_piece_bb<pieces::bishop, true>() | board.get_piece_bb<pieces::knight, true>()) > 0;
+    }
+}
 /**
  * Collection of piece square tables.
  *

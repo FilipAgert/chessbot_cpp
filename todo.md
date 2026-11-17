@@ -30,21 +30,27 @@ High priority
   
 ## Quiesence
 
-- Null move pruning
-- SEE pruning of bad captures.
+- Null move pruning?
 
 ## Move ordering
 
-Medium priority
-
-- Static exchange evaluation <https://chessprogramming.org/Static_Exchange_Evaluation>
-    Sees the likely exchange of material when chain taking.
 - Mate killers <https://chessprogramming.org/Mate_Killers>
     DO NOT IMPLEMENT: -ELO: -17 +/- 37. 18% chance of being better.
     Causing a beta-cutoff with value saying we will get a mate. These are ranked higher than killers.
-- Order even losing captures above all else. Currently we may give a negative score. This can be avoided. May not help though.
 
 # Evaluation
+
+High priority:
+
+- Pawn structure eval. Use a transposition table keyed only on pawns for this.
+  - Update hash incrementally.
+- Full tapered eval.
+
+- Rooks on open files / doubled rooks
+
+- King safety
+  - Pawn shield only for castled king
+  - Open files near king bad
 
 Medium priority
 

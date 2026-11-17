@@ -17,6 +17,7 @@ struct SearchType {
     static constexpr uint8_t Captures = 0b00000010;  // ep capture included.
     static constexpr uint8_t QueenPromotion = 0b00000100;
     static constexpr uint8_t OtherPromotion = 0b00001000;
+    static constexpr uint8_t DisableBadSEE = 0b00010000;
     static constexpr uint8_t AllPromotion = QueenPromotion | OtherPromotion;
     static constexpr uint8_t All = Quiet | Captures | AllPromotion;
     constexpr inline bool gen_quiet() const { return (data & Quiet) == Quiet; }
@@ -24,6 +25,7 @@ struct SearchType {
     constexpr inline bool gen_captures() const { return (data & Captures) == Captures; }
     constexpr inline bool gen_all_promotions() const { return (data & AllPromotion) == AllPromotion; }
     constexpr inline bool gen_queen_promotions() const { return (data & QueenPromotion) == QueenPromotion; }
+    constexpr inline bool disable_bad_see() const { return (data & DisableBadSEE) == DisableBadSEE; }
 };
 struct check_type {
     bool no_check : 1;
@@ -35,7 +37,7 @@ struct check_type {
 constexpr SearchType full_search = {SearchType::All};
 constexpr SearchType full_search_qp = {SearchType::Quiet | SearchType::Captures | SearchType::QueenPromotion};
 // only queen promos
-constexpr SearchType quiesence_search = {SearchType::Captures | SearchType::QueenPromotion};
+constexpr SearchType quiesence_search = {SearchType::Captures | SearchType::QueenPromotion | SearchType::DisableBadSEE};
 constexpr SearchType quiet_search = {SearchType::Quiet};
 constexpr SearchType non_quiet_search = {SearchType::Captures | SearchType::AllPromotion};
 constexpr check_type no_check = {true, false, false, false};
@@ -561,7 +563,10 @@ template <bool is_white> uint64_t pawn_moves(const uint64_t pawn_bb, const uint6
  * @return bitboard of all attacked squares by rooks
  */
 inline uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
-    return BitBoard::bitboard_operate_or<uint64_t, decltype(&rook_atk)>(rook_bb, occ, &rook_atk);
+    uint64_t out = 0;
+    BitLoop(rook_bb) { out |= rook_atk(BitBoard::lsb(rook_bb), occ); }
+    return out;
+    // return BitBoard::bitboard_operate_or<uint64_t, decltype(&rook_atk)>(rook_bb, occ, &rook_atk);
 }
 /**
  * @brief Generate all squares that all bishop atk
@@ -571,7 +576,9 @@ inline uint64_t rook_atk_bb(uint64_t rook_bb, const uint64_t occ) {
  * @return bitboard of all attacked squares by bishops
  */
 inline uint64_t bishop_atk_bb(uint64_t bishop_bb, const uint64_t occ) {
-    return BitBoard::bitboard_operate_or<uint64_t, decltype(&bishop_atk)>(bishop_bb, occ, &bishop_atk);
+    uint64_t out = 0;
+    BitLoop(bishop_bb) { out |= bishop_atk(BitBoard::lsb(bishop_bb), occ); }
+    return out;
 }
 template <Piece_t pval, bool is_white> BB get_atk_bb(uint8_t sq, uint64_t occ) {
     constexpr Piece_t ptype = pval & pieces::piece_mask;

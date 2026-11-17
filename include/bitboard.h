@@ -146,6 +146,15 @@ static constexpr uint64_t sides = left | right;
 static constexpr uint64_t topbot = top | bottom;
 static constexpr uint64_t fill = 0xFFFFFFFFFFFFFFFF;
 static constexpr uint64_t around = sides | topbot;
+static constexpr uint64_t black_squares = []() {
+    uint64_t out = 0;
+    // a1 is black.
+    for (size_t i = 0; i < 64; i += 2) {
+        out |= BitBoard::one_high(i);
+    }
+    return out;
+}();
+static constexpr uint64_t white_squares = ~black_squares;
 [[nodiscard("The return value should be handled as a uint64_t.")]]
 static inline constexpr uint64_t row(uint8_t r) {
     return bottom << 8 * r;
@@ -231,11 +240,19 @@ constexpr BB xray(const BB origin, const int dir, const BB occ) {
     return hit;
 }
 /**
+ * @brief For king safety. Looksup bitboard of the three squares in front of a square.
+ *  Indexed by square + 64*is_white
+ */
+alignas(64) extern const std::array<BB, 128> NS_wall_lookup;
+/**
  * @brief Mask of squares in between from (exclusive) to (inclusive). If rect_lookup[i][i] return 0.
  *
  * @param[in] from from square. not included in mask
  * @param[in] to to square. included in mask.
  */
 alignas(64) extern const std::array<std::array<BB, 64>, 64> rect_lookup;
+
+// 3x3 blob on top of square.
+alignas(64) extern const std::array<BB, 64> three_x_three;
 }  // namespace masks
 #endif

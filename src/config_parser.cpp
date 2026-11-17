@@ -59,6 +59,11 @@ ConfigSettings ConfigParser::get_settings() {
     if (read_string("aspiration/enable") == "yes") {
         settings.aspiration_enable = true;
     }
+    if (read_string("ponder/enable") == "yes") {
+        settings.should_ponder = true;
+    } else {
+        settings.should_ponder = false;
+    }
 
     return settings;
 }

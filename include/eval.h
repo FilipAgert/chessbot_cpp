@@ -63,6 +63,10 @@ constexpr int king_dist =
     10;  // This more or less corresponds to maximum value of king distance score in late game. (8cp/sq at full lategame with maximum material advantage.)
 constexpr int doubled_pawn_punishment = -15;
 constexpr int solo_pawn_punishment = -15;
+
+// king safety
+constexpr int king_pawn_proximity_score = 10;    // 10 per pawn in front of king.
+constexpr int king_attacked_square_score = -15;  // -15 per attacked square near the king.
 }  // namespace DefaultVals
    //
 enum class Symmetry : unsigned { None = 0, EW = 1, NS = 2, EWNS = 3, PIZZA };
@@ -152,7 +156,9 @@ extern const std::array<std::optional<std::pair<std::vector<int>, Symmetry>>, 7>
     X(bishop_double_bonus, DefaultVals::bishop_double_bonus)                                                                                                   \
     X(king_dist, DefaultVals::king_dist)                                                                                                                       \
     X(doubled_pawn_punishment, DefaultVals::doubled_pawn_punishment)                                                                                           \
-    X(solo_pawn_punishment, DefaultVals::solo_pawn_punishment)
+    X(solo_pawn_punishment, DefaultVals::solo_pawn_punishment)                                                                                                 \
+    X(king_pawn_proximity_score, DefaultVals::king_pawn_proximity_score)                                                                                       \
+    X(king_attacked_square_score, DefaultVals::king_attacked_square_score)
 
 struct EvalParameters {
 #define X(name, def) int name = def;
@@ -225,11 +231,21 @@ class EvalState {
 
     const EvalParameters params;
 
+    /**
+     * @brief Check if drawn by insufficient mating material.
+     *
+     * @param board
+     * @return true
+     * @return false
+     */
+    static bool insufficient_mating_material(Board &board);
+
  private:
     template <Piece_t p = 1> int eval_pst(Board &board, int phase);
     template <Piece_t p> int eval_single_pst(Board &board, const PieceSquareTable &pst);
     template <Piece_t p = 1> int eval_material_diff(Board &board) const;
 
+    int eval_king_safety(Board &board, int phase) const;
     int eval_mobility(Board &board);
     /**
      * @brief Evaluates king distance to centre score. At early game its negative, encouraging

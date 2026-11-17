@@ -3,9 +3,12 @@
 #include <bitboard.h>
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
+#include <new>
 #include <piece.h>
 #include <random>
 #include <stdexcept>
+#include <sys/mman.h>
 #include <tables.h>
 void ZobroistHasher::initialize_engine() {
     std::random_device sd;
@@ -65,9 +68,9 @@ static constexpr uint8_t key_of(uint8_t piece) {
     uint8_t col_offset = ((piece & pieces::color_mask) == pieces::black) ? 6 : 0;
     return col_offset + (piece & pieces::piece_mask) - 1;
 }
-
 uint64_t ZobroistHasher::delta(const HashDelta &d) const {
-    uint64_t h = black_number;  // turn flips every move
+    uint64_t h = 0;
+    h = black_number;  // turn flips every move
     if (d.moved_piece)
         h ^= piece_numbers[key_of(d.moved_piece)][d.from];
     if (d.placed_piece)
@@ -92,35 +95,44 @@ void ZobroistHasher::hash_turn(uint64_t &hash, const Board &board) const {
     }
 }
 TranspositionTable::TranspositionTable(int desired_size_MB) {
-    size_t num_entries = desired_size_MB * 1000000 / entry_size;
-    int msb = 0;
-    int val = num_entries;
-    while (val >>= 1)
-        msb++;
+    constexpr size_t HUGE_PAGE = size_t(2) << 20;  // 2 MB
 
-    int numbits;
-    if (num_entries & ~(1ULL << msb)) {  // if other bits were set high too.
-        numbits = msb + 1;
-    } else {
-        numbits = msb;
-    }
-    int table_size = 1ULL << numbits;
+    size_t num_entries = size_t(desired_size_MB) * 1024 * 1024 / entry_size;
+
+    // round up to the next power of two
+    int numbits = 0;
+    while ((size_t(1) << numbits) < num_entries)
+        numbits++;
+
     if (!(numbits > TranspositionEntry::shift_hash))
         throw std::runtime_error("must have more bits in table than in the hash shift");
-    mask = (1ULL << numbits) - 1;  // lowest nbits set high.
 
-    table_size_MB = table_size * entry_size / 1000000;
-    arr.resize(table_size);
+    table_size = size_t(1) << numbits;
+    mask = table_size - 1;  // lowest nbits set high.
+
+    // bytes, rounded up to a multiple of 2 MB (aligned_alloc requires this)
+    arr_bytes = (table_size * entry_size + HUGE_PAGE - 1) & ~(HUGE_PAGE - 1);
+
+    arr = static_cast<TranspositionBucket *>(std::aligned_alloc(HUGE_PAGE, arr_bytes));
+    if (!arr)
+        throw std::bad_alloc();
+
+    if (madvise(arr, arr_bytes, MADV_HUGEPAGE) != 0)
+        perror("madvise");
+
+    table_size_MB = table_size * entry_size / (1024 * 1024);
+    clear();  // memset touches every page
 }
+
 std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
     size_t key = get_key(hash);
     TranspositionBucket &curr = arr[key];
     std::optional<TranspositionEntry> maybe;
     uint64_t shifted = hash >> TranspositionEntry::shift_hash;
-    if (curr.depth_pref.hash == shifted && curr.depth_pref.nodetype != invalid) {
+    if (curr.depth_pref.hash == shifted && curr.depth_pref.nodetype != SearchNodeType::invalid) {
         hits++;
         maybe = std::make_optional(curr.depth_pref);
-    } else if (curr.always_replace.hash == shifted && curr.always_replace.nodetype != invalid) {
+    } else if (curr.always_replace.hash == shifted && curr.always_replace.nodetype != SearchNodeType::invalid) {
         hits++;
         maybe = std::make_optional(curr.always_replace);
     } else {
@@ -135,35 +147,39 @@ std::optional<TranspositionEntry> TranspositionTable::get(uint64_t hash) {
 std::vector<Move> TranspositionTable::get_pv(Board &board, int depth, StateStack &stack) {
     std::vector<Move> pv_line;
     std::stack<RestoreMoveInfo> restore_stack;
-    bool exit_early = false;
+    std::array<Move, max_legal_moves> legal;  // or reuse a scratch buffer
     int pre_len = stack.len();
+
     for (int i = 0; i <= depth; i++) {
         uint64_t hash = ZobroistHasher::get().hash_board(board);
-
         std::optional<TranspositionEntry> entry = get(hash);
-        if (entry) {
-            if (entry.value().is_valid_move()) {
-                pv_line.push_back(entry.value().bestmove);
-                RestoreMoveInfo info;
-                if (board.get_turn_color() == pieces::white)
-                    info = board.do_move<true>(entry.value().bestmove);
-                else
-                    info = board.do_move<false>(entry.value().bestmove);
-                uint64_t hash = ZobroistHasher::get().hash_board(board);
-                stack.push({hash, board.get_num_pieces()});
-                restore_stack.push(info);
-                if (EvalState::forced_draw_ply(board))
-                    exit_early = true;
-                if (stack.atleast_num(stack.top(), 3))  // repetition.
-                    exit_early = true;
-            }
-        } else
-            exit_early = true;
+        if (!entry || !entry->is_valid_move())
+            break;
 
-        if (exit_early)
+        const bool white = board.get_turn_color() == pieces::white;
+        int n = white ? board.get_moves<full_search, true>(legal) : board.get_moves<full_search, false>(legal);
+
+        const Move m = entry->bestmove;
+        bool is_legal = false;
+        for (int j = 0; j < n; j++) {
+            if (m == legal[j]) {
+                is_legal = true;
+                break;
+            }
+        }
+        if (!is_legal)
+            break;  // stale entry or hash collision: stop the PV here
+
+        RestoreMoveInfo info = white ? board.do_move<true>(m) : board.do_move<false>(m);
+        pv_line.push_back(m);
+        restore_stack.push(info);
+        stack.push({ZobroistHasher::get().hash_board(board), board.get_num_pieces()});
+
+        if (EvalState::forced_draw_ply(board) || stack.atleast_num(stack.top(), 2))
             break;
     }
-    for (int i = pv_line.size() - 1; i >= 0; i--) {
+
+    for (int i = (int)pv_line.size() - 1; i >= 0; i--) {
         RestoreMoveInfo info = restore_stack.top();
         restore_stack.pop();
         stack.pop();
@@ -175,7 +191,10 @@ std::vector<Move> TranspositionTable::get_pv(Board &board, int depth, StateStack
 int TranspositionTable::load_factor() const { return writes > 0 ? (overwrites * 1000) / writes : 0; }
 
 void TranspositionTable::clear() {
-    std::fill(arr.begin(), arr.end(), TranspositionBucket{TranspositionEntry{0, invalid, 0, 0, Move()}, TranspositionEntry{0, invalid, 0, 0, Move()}});
+    std::memset(arr, 0, arr_bytes);
+    // std::fill(arr.begin(), arr.end(),
+    //           TranspositionBucket{TranspositionEntry{0, SearchNodeType::invalid, 0, 0, Move()}, TranspositionEntry{0, SearchNodeType::invalid, 0, 0,
+    //           Move()}});
     writes = 0;
     overwrites = 0;
     hits = 0;        // how many times did we access the table and find the board inside?
@@ -184,15 +203,15 @@ void TranspositionTable::clear() {
     age = 0;
 }
 
-void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t nodetype, uint8_t depth) {
+void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, SearchNodeType nodetype, uint8_t depth) {
     uint64_t h = (hash >> TranspositionEntry::shift_hash);
     size_t key = get_key(hash);
     writes++;
     TranspositionBucket &bucket = arr[key];
     TranspositionEntry &dp = bucket.depth_pref;
     TranspositionEntry &ar = bucket.always_replace;
-    bool dp_valid = dp.nodetype != nodetype::invalid;
-    bool ar_valid = ar.nodetype != nodetype::invalid;
+    bool dp_valid = dp.nodetype != SearchNodeType::invalid;
+    bool ar_valid = ar.nodetype != SearchNodeType::invalid;
     // 1. Fill up buckets (Do not if same hash on both)
     // cases:
     // depth empty,  2 empty
@@ -217,7 +236,7 @@ void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t n
             ar = dp;
             // move into always replace slot.
         } else if (ar_valid && ar.hash == h) {
-            ar.nodetype = invalid;
+            ar.nodetype = SearchNodeType::invalid;
             // invalidate.
         }
 
@@ -230,3 +249,5 @@ void TranspositionTable::store(uint64_t hash, Move bestmove, int eval, uint8_t n
 }
 void TranspositionTable::increment_age() { age++; }
 void TranspositionTable::reset_age() { age = 0; }
+
+TranspositionTable::~TranspositionTable() { std::free(arr); }

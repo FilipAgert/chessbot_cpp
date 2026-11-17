@@ -12,12 +12,26 @@
 #include <string>
 #include <time_manager.h>
 
-void UCIInterface::process_uci_command() {
+void UCIInterface::process_uci_command(ConfigSettings settings) {
     UCIInterface::uci_response("id name " + ID_name);
     UCIInterface::uci_response("id author " + ID_author);
+    UCIInterface::uci_response("option name Ponder type check default true");
     UCIInterface::uci_response("uciok");
 }
 
+void UCIInterface::process_setoption_command(std::string command, ConfigSettings &settings) {
+    auto name_pos = command.find("name ");
+    auto value_pos = command.find(" value ");
+    if (name_pos == std::string::npos || value_pos == std::string::npos) {
+        return;
+    }
+
+    std::string name = Utils::trim(command.substr(name_pos + 5, value_pos - (name_pos + 5)));
+    std::string value = Utils::trim(command.substr(value_pos + 6));
+    if (name == "Ponder") {
+        settings.should_ponder = (value == "true");
+    }
+}
 void UCIInterface::process_isready_command() { UCIInterface::uci_response("readyok"); }
 void UCIInterface::process_quit_command() {
     UCIInterface::uci_response("Exiting...");
@@ -81,9 +95,11 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
     if (debug_mode)
         UCIInterface::uci_response("Processing go command: " + command);
     int wtime, btime, winc, binc;
+    std::optional<int> depth;
     wtime = btime = STANDARD_TIME;
     winc = binc = STANDARD_TINC;
     auto parts = Utils::split(command, ' ');
+    bool ponder = false;
     if (parts.size() > 0) {
         if (parts[0] == "perft") {
             if (parts.size() < 3) {
@@ -108,12 +124,20 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
         } else {
 
             // Process wtime <> btime <> winc <> binc<>
+            // also process depth.
             // Alterantively infinite
             size_t idx = 0;
             while (idx < parts.size()) {
                 std::string token = parts[idx];
                 std::optional<int> oint;
-                if (token == "wtime") {
+                if (token == "depth") {
+                    oint = Utils::try_process_int(parts[idx + 1]);
+                    if (oint) {
+                        depth = oint.value();
+                        idx++;
+                    }
+
+                } else if (token == "wtime") {
                     oint = Utils::try_process_int(parts[idx + 1]);
                     if (oint) {
                         wtime = oint.value();
@@ -140,13 +164,15 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
                     }
                 } else if (token == "infinite") {
                     NotImplemented("Infinite time control is not implemented yet");  // TODO: Implement.
+                } else if (token == "ponder") {
+                    ponder = true;
                 }
                 idx++;
             }
         }
     }
-    TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc});
-    Game::instance().start_thinking(rem_time, assign_worker);  // Enter ponder loop
+    TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc, .ponder = ponder});
+    Game::instance().start_thinking(rem_time, depth, assign_worker);  // Enter ponder loop
     // UCIInterface::send_info_if_has();
     // UCIInterface::send_bestmove();
 }
@@ -215,12 +241,16 @@ void UCIInterface::process_position_command(std::string command) {
     }
 }
 
-void UCIInterface::process_ponder_command() { UCIInterface::uci_response("Processing ponder command."); }
-void UCIInterface::send_bestmove() {
+void UCIInterface::process_ponderhit_command() { Game::instance().ponderhit(); }
+void UCIInterface::send_bestmove(bool pondering) {
     Move bestmove = Game::instance().get_bestmove();
     assert(bestmove.is_valid());
-    UCIInterface::uci_response("bestmove " + bestmove.toString());
-    // TODO: handle if there is no best move (mate).
+    Move pondermove = Game::instance().get_pondermove();
+    if (pondering && pondermove.is_valid()) {
+        UCIInterface::uci_response("bestmove " + bestmove.toString() + " ponder " + pondermove.toString());
+    } else {
+        UCIInterface::uci_response("bestmove " + bestmove.toString());
+    }
 }
 
 void UCIInterface::process_d_command() {

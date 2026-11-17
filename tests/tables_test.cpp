@@ -1,5 +1,6 @@
 
 #include "config.h"
+#include "move.h"
 #include <board.h>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -63,6 +64,64 @@ TEST(ZobroistTest, nullMoveHashDelta) {
 
     board.undo_move<true>(info, null_move);
     EXPECT_EQ(before, ZobroistHasher::get().hash_board(board));
+}
+TEST(ZobroistTest, multiMoveIncrementalHashDelta) {
+    Board board;
+    board.read_fen(NotationInterface::starting_FEN());
+
+    const uint64_t initial_hash = ZobroistHasher::get().hash_board(board);
+    uint64_t incremental_hash = initial_hash;
+
+    // 5 moves covering:
+    // 1. White double pawn push (sets en passant target square)
+    // 2. Black double pawn push (replaces en passant target square)
+    // 3. White knight move (clears en passant, standard piece move)
+    // 4. Black knight move (standard piece move)
+    // 5. White king move (revokes White castling rights)
+    const std::array<Move, 5> moves = {{
+        Move(NotationInterface::idx_from_string("e2"), NotationInterface::idx_from_string("e4"), moveflag::MOVEFLAG_pawn_double_push),
+        Move(NotationInterface::idx_from_string("c7"), NotationInterface::idx_from_string("c5"), moveflag::MOVEFLAG_pawn_double_push),
+        Move(NotationInterface::idx_from_string("g1"), NotationInterface::idx_from_string("f3"), moveflag::MOVEFLAG_silent),
+        Move(NotationInterface::idx_from_string("b8"), NotationInterface::idx_from_string("c6"), moveflag::MOVEFLAG_silent),
+        Move(NotationInterface::idx_from_string("e1"), NotationInterface::idx_from_string("e2"), moveflag::MOVEFLAG_silent),
+    }};
+
+    std::vector<RestoreMoveInfo> history;
+    std::vector<uint64_t> expected_hashes = {initial_hash};
+
+    // Forward pass: apply 5 moves and verify incremental delta hash matches full hash_board()
+    for (size_t ply = 0; ply < moves.size(); ++ply) {
+        const Move m = moves[ply];
+        const bool is_white = (ply % 2 == 0);
+
+        RestoreMoveInfo info = is_white ? board.do_move<true>(m) : board.do_move<false>(m);
+        uint64_t delta = is_white ? ZobroistHasher::get().delta(info.delta) : ZobroistHasher::get().delta(info.delta);
+
+        incremental_hash ^= delta;
+        uint64_t full_hash = ZobroistHasher::get().hash_board(board);
+
+        EXPECT_EQ(incremental_hash, full_hash) << "Hash mismatch after move at ply " << ply;
+
+        history.push_back(info);
+        expected_hashes.push_back(full_hash);
+    }
+
+    // Backward pass: undo all 5 moves in reverse and verify hashes restore cleanly
+    for (int ply = static_cast<int>(moves.size()) - 1; ply >= 0; --ply) {
+        const Move m = moves[ply];
+        const bool is_white = (ply % 2 == 0);
+
+        if (is_white) {
+            board.undo_move<true>(history[ply], m);
+        } else {
+            board.undo_move<false>(history[ply], m);
+        }
+
+        uint64_t restored_hash = ZobroistHasher::get().hash_board(board);
+        EXPECT_EQ(restored_hash, expected_hashes[ply]) << "Hash mismatch after undoing ply " << ply;
+    }
+
+    EXPECT_EQ(ZobroistHasher::get().hash_board(board), initial_hash);
 }
 
 TEST(TransTest, optionalReturn) {

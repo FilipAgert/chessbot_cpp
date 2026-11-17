@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
             }
 
             if (command == "uci") {
-                UCIInterface::process_uci_command();
+                UCIInterface::process_uci_command(settings);
             } else if (command == "ucinewgame") {
                 UCIInterface::process_new_game_command();
             } else if (command == "isready") {
@@ -80,9 +80,9 @@ int main(int argc, char *argv[]) {
                 UCIInterface::process_position_command(body);
             } else if (command == "bestmove") {
                 waiting_for_move = false;
-                UCIInterface::send_bestmove();
-            } else if (command == "ponder") {
-                UCIInterface::process_ponder_command();
+                UCIInterface::send_bestmove(false);
+            } else if (command == "ponderhit") {
+                UCIInterface::process_ponderhit_command();
             } else if (command == "d") {
                 UCIInterface::process_d_command();
             } else if (command == "stop") {
@@ -93,6 +93,9 @@ int main(int argc, char *argv[]) {
                 UCIInterface::process_quit_command();
                 std::cout.flush();
                 break;
+            } else if (command == "setoption") {
+                UCIInterface::process_setoption_command(body, settings);
+                Game::instance().set_settings(settings);
             } else if (command == "self") {
                 UCIInterface::process_self_command(body);
             } else if (command == "debug") {
@@ -107,7 +110,7 @@ int main(int argc, char *argv[]) {
         }
         UCIInterface::send_info_if_has();
         if (waiting_for_move && Game::instance().search_finished) {
-            UCIInterface::send_bestmove();
+            UCIInterface::send_bestmove(settings.should_ponder);
             waiting_for_move = false;
         }
         std::this_thread::sleep_for(sleeptime);

@@ -1,4 +1,5 @@
 // Copyright 2025 Filip Agert
+#include "notation_interface.h"
 #include <bitboard.h>
 #include <iostream>
 #include <sstream>
@@ -110,6 +111,56 @@ alignas(64) const std::array<std::array<BB, 64>, 64> rect_lookup = [] {
                 arr[i][j] = mask & ~startsq;
             }
         }
+    }
+    return arr;
+}();
+alignas(64) extern const std::array<BB, 128> NS_wall_lookup = []() {
+    std::array<BB, 128> arr;
+    auto safe_shift = [](BB bb, int dir) constexpr -> BB { return (dir >= 0) ? (bb << dir) : (bb >> -dir); };
+    for (size_t i = 0; i < 64; i++) {
+        BB sq = BitBoard::one_high(i);
+        for (size_t c = 0; c <= 1; c++) {
+            int dir_ns = (c == 0) ? dirs::S : dirs::N;
+            int dir_w = (c == 0) ? dirs::SW : dirs::NW;
+            int dir_e = (c == 0) ? dirs::SE : dirs::NE;
+
+            BB out_ns = safe_shift(sq & ~edge_mask(dir_ns), dir_ns);
+            BB out_w = safe_shift(sq & ~edge_mask(dir_w), dir_w);
+            BB out_e = safe_shift(sq & ~edge_mask(dir_e), dir_e);
+
+            arr[i + 64 * c] = out_ns | out_w | out_e;
+        }
+    }
+    return arr;
+}();
+alignas(64) extern const std::array<BB, 64> three_x_three = []() {
+    std::array<BB, 64> arr;
+    for (size_t i = 0; i < 64; i++) {
+        BB out = BitBoard::one_high(i);
+        out |= NS_wall_lookup[i] | NS_wall_lookup[i + 64];
+        int col = NotationInterface::col(i);
+        int row = NotationInterface::row(i);
+
+        int uprow = std::min(row + 1, 7);
+        int downrow = std::max(0, row - 1);
+        int leftcol = std::max(col - 1, 0);
+        int rightcol = std::min(col + 1, 7);
+        // left
+        out |= BitBoard::one_high(NotationInterface::idx(uprow, leftcol));
+        out |= BitBoard::one_high(NotationInterface::idx(row, leftcol));
+        out |= BitBoard::one_high(NotationInterface::idx(downrow, leftcol));
+
+        // right
+        out |= BitBoard::one_high(NotationInterface::idx(uprow, rightcol));
+        out |= BitBoard::one_high(NotationInterface::idx(row, rightcol));
+        out |= BitBoard::one_high(NotationInterface::idx(downrow, rightcol));
+
+        // up
+        out |= BitBoard::one_high(NotationInterface::idx(uprow, col));
+        // down
+        out |= BitBoard::one_high(NotationInterface::idx(downrow, col));
+
+        arr[i] = out;
     }
     return arr;
 }();

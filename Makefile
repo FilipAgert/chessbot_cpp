@@ -44,10 +44,17 @@ else ifeq ($(type),dev)
   FLAGS := -DDEBUG -g -Wall -std=c++23 -O2 -march=native -fsanitize=address
 else ifeq ($(type),debug)
   FLAGS := -DDEBUG -g -Wall -std=c++23 -O0 -march=native -fsanitize=address
-else ifeq ($(type),perft)
-  FLAGS := -Wall -std=c++23 -O2 -g -DNDEBUG -march=native
+else ifeq ($(type),profile)
+   FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -g -fno-omit-frame-pointer -fno-optimize-sibling-calls
 else
-  $(error Invalid type '$(type)'. Must be release, pgo, dev, debug or perft)
+  $(error Invalid type '$(type)'. Must be release, pgo, dev, debug or profile)
+endif
+
+# Binary name suffix: none for release/pgo, _<type> for everything else
+ifeq ($(filter $(type),release pgo),)
+  SUFFIX := _$(type)
+else
+  SUFFIX :=
 endif
 
 # Separate object dir per build type, so switching type never mixes objects
@@ -127,7 +134,7 @@ $(ARGPARSE_DIR):
 # ---------- targets ----------
 .PHONY: all test runtest magic tune run clean FORCE pgo
 
-all: $(DEXE)/$(EXE)
+all: $(DEXE)/$(EXE)$(SUFFIX)
 
 # ---- link into build/<type>/ ----
 $(DOBJ)/$(EXE): $(CORE_OBJ) $(MAIN_OBJ)
@@ -143,7 +150,7 @@ $(DOBJ)/$(TEST_EXE): $(CORE_OBJ) $(TEST_OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # ---- copy into bin/ (FORCE makes it copy every time) ----
-$(DEXE)/%: $(DOBJ)/% FORCE
+$(DEXE)/%$(SUFFIX): $(DOBJ)/% FORCE
 	@mkdir -p $(DEXE)
 	@cmp -s $< $@ || cp -f $< $@
 
@@ -164,7 +171,7 @@ pgo:
 	@rm -rf $(PGO_DIR) build/release-use
 	@$(MAKE) type=pgo all
 	@echo "=== [2/4] Running self-play workload to collect profile ==="
-	@printf "position startpos\nself 100\nquit\n" | LLVM_PROFILE_FILE="$(PGO_DIR)/default_%p.profraw" ./$(DEXE)/$(EXE) > /dev/null
+	@printf "position startpos\nself 200\nquit\n" | LLVM_PROFILE_FILE="$(PGO_DIR)/default_%p.profraw" ./$(DEXE)/$(EXE) > /dev/null
 	@echo "=== [3/4] Merging raw profile data ==="
 	@$(PROFTOOL) merge -output=$(PROFDATA) $(PGO_DIR)/*.profraw
 	@echo "=== [4/4] Recompiling optimized release binary ==="
@@ -174,9 +181,11 @@ pgo:
 # ---------- convenience ----------
 filter ?= *
 
-test: $(DEXE)/$(TEST_EXE)
-magic: $(DEXE)/$(MAGIC_EXE)
-tune: $(DEXE)/$(TEXEL_EXE)
+test: $(DEXE)/$(TEST_EXE)$(SUFFIX)
+magic: $(DEXE)/$(MAGIC_EXE)$(SUFFIX)
+tune: $(DEXE)/$(TEXEL_EXE)$(SUFFIX)
 
 clean:
-	rm -rf build $(DEXE)/$(EXE) $(DEXE)/$(TEST_EXE) $(DEXE)/$(MAGIC_EXE) $(DEXE)/$(TEXEL_EXE) libraries
+	rm -rf build $(DEXE)/$(EXE)$(SUFFIX) $(DEXE)/$(TEST_EXE)$(SUFFIX) $(DEXE)/$(MAGIC_EXE)$(SUFFIX) $(DEXE)/$(TEXEL_EXE)$(SUFFIX)
+clean_all:
+	rm -rf build $(DEXE)/$(EXE)$(SUFFIX) $(DEXE)/$(TEST_EXE)$(SUFFIX) $(DEXE)/$(MAGIC_EXE)$(SUFFIX) $(DEXE)/$(TEXEL_EXE)$(SUFFIX) libraries

@@ -82,7 +82,7 @@ MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validati
     const int n = static_cast<int>(x.size());
     dvec p = -grad.normalized();
 
-    constexpr double min_step = 0.1;
+    constexpr double min_step = 0.01;
     constexpr double max_step = 50.0;
     constexpr int val_check_interval = 10;
     constexpr int val_patience = 20;
@@ -103,6 +103,7 @@ MinimizeResult conjugate_gradient(const Gradient &calc, const Gradient &validati
                 if (step_size <= min_step)
                     return false;
                 step_size = std::max(min_step, step_size * 0.5);
+                std::cout << "Backtrack: " << step_size << std::endl;
             }
         };
 
