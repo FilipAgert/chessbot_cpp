@@ -1,19 +1,20 @@
 
-#include "config.h"
-#include "move.h"
-#include <board.h>
+#include "core/board.h"
+#include "core/integer_representation.h"
+#include "core/move.h"
+#include "core/notation_interface.h"
+#include "core/zobrist.h"
+#include "search/TT.h"
+#include "utils/config.h"
 #include <gtest/gtest.h>
-#include <iostream>
 #include <memory>
-#include <moveorder.h>
-#include <notation_interface.h>
-#include <tables.h>
 
 TEST(ZobroistTest, rand) {
     int numhi = 0;
     int numtest = 10000;
+    ZobroistHasher hasher;
     for (int i = 0; i < numtest; i++) {
-        uint64_t number = ZobroistHasher::get().rand_uint64_t();
+        uint64_t number = hasher.rand_uint64_t();
         numhi += BitBoard::bitcount(number);
     }
 
@@ -25,51 +26,55 @@ TEST(ZobroistTest, rand) {
     ASSERT_LE(nstdev, expected);
 }
 TEST(ZobroistTest, test_hash_nbr_grt0) {
-    ASSERT_GT(ZobroistHasher::get().black_number, 0);
+    ZobroistHasher hasher;
+    ASSERT_GT(hasher.black_number, 0);
 
-    for (std::array<uint64_t, 64> arr : ZobroistHasher::get().piece_numbers) {
+    for (std::array<uint64_t, 64> arr : hasher.piece_numbers) {
         for (uint64_t n : arr) {
-            assert(n > 0);
+            ASSERT_GT(n, 0);
         }
     }
-    for (uint64_t n : ZobroistHasher::get().castle_numbers) {
-        assert(n > 0);
+    for (uint64_t n : hasher.castle_numbers) {
+        ASSERT_GT(n, 0);
     }
-    for (uint64_t n : ZobroistHasher::get().ep_numbers) {
-        assert(n > 0);
+    for (uint64_t n : hasher.ep_numbers) {
+        ASSERT_GT(n, 0);
     }
 }
 
 TEST(ZobroistTest, hashState) {
+    ZobroistHasher hasher;
     Board state;
     state.read_fen(NotationInterface::starting_FEN());
-    uint64_t hash = ZobroistHasher::get().hash_board(state);
-    assert(hash > 0);
+    uint64_t hash = hasher.hash_board(state);
+    ASSERT_GT(hash, 0);
     int bitcount = BitBoard::bitcount(hash);
 
-    assert(bitcount > 15);
-    assert(bitcount < 64 - 15);
+    ASSERT_GT(bitcount, 15);
+    ASSERT_LT(bitcount, 64 - 15);
 }
 
 TEST(ZobroistTest, nullMoveHashDelta) {
+    ZobroistHasher hasher;
     Board board;
     board.read_fen(NotationInterface::starting_FEN());
 
-    uint64_t before = ZobroistHasher::get().hash_board(board);
+    uint64_t before = hasher.hash_board(board);
     Move null_move(0, 0, moveflag::MOVEFLAG_null_move);
     auto info = board.do_move<true, pieces::none, moveflag::MOVEFLAG_null_move, pieces::none>(null_move);
 
-    uint64_t after = ZobroistHasher::get().hash_board(board);
-    EXPECT_EQ(after, before ^ ZobroistHasher::get().delta(info.delta));
+    uint64_t after = hasher.hash_board(board);
+    EXPECT_EQ(after, before ^ hasher.delta(info.delta));
 
     board.undo_move<true>(info, null_move);
-    EXPECT_EQ(before, ZobroistHasher::get().hash_board(board));
+    EXPECT_EQ(before, hasher.hash_board(board));
 }
 TEST(ZobroistTest, multiMoveIncrementalHashDelta) {
+    ZobroistHasher hasher;
     Board board;
     board.read_fen(NotationInterface::starting_FEN());
 
-    const uint64_t initial_hash = ZobroistHasher::get().hash_board(board);
+    const uint64_t initial_hash = hasher.hash_board(board);
     uint64_t incremental_hash = initial_hash;
 
     // 5 moves covering:
@@ -95,10 +100,10 @@ TEST(ZobroistTest, multiMoveIncrementalHashDelta) {
         const bool is_white = (ply % 2 == 0);
 
         RestoreMoveInfo info = is_white ? board.do_move<true>(m) : board.do_move<false>(m);
-        uint64_t delta = is_white ? ZobroistHasher::get().delta(info.delta) : ZobroistHasher::get().delta(info.delta);
+        uint64_t delta = is_white ? hasher.delta(info.delta) : hasher.delta(info.delta);
 
         incremental_hash ^= delta;
-        uint64_t full_hash = ZobroistHasher::get().hash_board(board);
+        uint64_t full_hash = hasher.hash_board(board);
 
         EXPECT_EQ(incremental_hash, full_hash) << "Hash mismatch after move at ply " << ply;
 
@@ -117,20 +122,21 @@ TEST(ZobroistTest, multiMoveIncrementalHashDelta) {
             board.undo_move<false>(history[ply], m);
         }
 
-        uint64_t restored_hash = ZobroistHasher::get().hash_board(board);
+        uint64_t restored_hash = hasher.hash_board(board);
         EXPECT_EQ(restored_hash, expected_hashes[ply]) << "Hash mismatch after undoing ply " << ply;
     }
 
-    EXPECT_EQ(ZobroistHasher::get().hash_board(board), initial_hash);
+    EXPECT_EQ(hasher.hash_board(board), initial_hash);
 }
 
 TEST(TransTest, optionalReturn) {
+    ZobroistHasher hasher;
     Board state;
     state.read_fen(NotationInterface::starting_FEN());
-    uint64_t hash = ZobroistHasher::get().hash_board(state);
-    std::unique_ptr<TranspositionTable> tab = std::make_unique<TranspositionTable>(TT_SIZE_MB);
+    uint64_t hash = hasher.hash_board(state);
+    std::unique_ptr<TranspositionTable> tab = std::make_unique<TranspositionTable>(hasher, TT_SIZE_MB);
     ASSERT_FALSE(tab->get(hash));
-    tab->store(hash, Move{2, 9}, 0, exact, 0);
+    tab->store(hash, Move{2, 9}, 0, SearchNodeType::exact, 0);
     ASSERT_TRUE(tab->get(hash));
 }
 TEST(ZobroistTest, TranspositionIdentity) {
@@ -148,44 +154,45 @@ TEST(ZobroistTest, TranspositionIdentity) {
     // E2=12, E4=28, E7=52, E5=36, G1=6, F3=21, B8=57, C6=42, B1=1, C3=18, G8=62, F6=45
 
     std::vector<Move> moves_A = {
-        Move{12, 28},  // 1. e4
-        Move{52, 36},  // 1... e5
-        Move{6, 21},   // 2. Nf3
-        Move{57, 42},  // 2... Nc6
-        Move{1, 18},   // 3. Nc3
-        Move{62, 45}   // 3... Nf6
+        Move{12, 28}, // 1. e4
+        Move{52, 36}, // 1... e5
+        Move{6, 21},  // 2. Nf3
+        Move{57, 42}, // 2... Nc6
+        Move{1, 18},  // 3. Nc3
+        Move{62, 45}  // 3... Nf6
     };
 
-    board_A.do_move<false>(moves_A[0]);  // 1. e4
-    board_A.do_move<true>(moves_A[1]);   // 1... e5
-    board_A.do_move<false>(moves_A[2]);  // 2. Nf3
-    board_A.do_move<true>(moves_A[3]);   // 2... Nc6
-    board_A.do_move<false>(moves_A[4]);  // 3. Nc3
-    board_A.do_move<true>(moves_A[5]);   // 3... Nf6
+    board_A.do_move<false>(moves_A[0]); // 1. e4
+    board_A.do_move<true>(moves_A[1]);  // 1... e5
+    board_A.do_move<false>(moves_A[2]); // 2. Nf3
+    board_A.do_move<true>(moves_A[3]);  // 2... Nc6
+    board_A.do_move<false>(moves_A[4]); // 3. Nc3
+    board_A.do_move<true>(moves_A[5]);  // 3... Nf6
 
-    uint64_t hash_A = ZobroistHasher::get().hash_board(board_A);
+    ZobroistHasher hasher;
+    uint64_t hash_A = hasher.hash_board(board_A);
 
     // --- SETUP: Swapped Move Order (B) ---
     Board board_B;
     board_B.read_fen(NotationInterface::starting_FEN());
 
     std::vector<Move> moves_B = {
-        Move{12, 28},  // 1. e4
-        Move{52, 36},  // 1... e5
-        Move{1, 18},   // 2. Nc3  <-- Swapped
-        Move{62, 45},  // 2... Nf6 <-- Swapped
-        Move{6, 21},   // 3. Nf3
-        Move{57, 42}   // 3... Nc6
+        Move{12, 28}, // 1. e4
+        Move{52, 36}, // 1... e5
+        Move{1, 18},  // 2. Nc3  <-- Swapped
+        Move{62, 45}, // 2... Nf6 <-- Swapped
+        Move{6, 21},  // 3. Nf3
+        Move{57, 42}  // 3... Nc6
     };
 
     // Apply moves_B with alternating template parameter: false, true, false, true, false, true
-    board_B.do_move<false>(moves_B[0]);  // 1. e4
-    board_B.do_move<true>(moves_B[1]);   // 1... e5
-    board_B.do_move<false>(moves_B[2]);  // 2. Nc3
-    board_B.do_move<true>(moves_B[3]);   // 2... Nf6
-    board_B.do_move<false>(moves_B[4]);  // 3. Nf3
-    board_B.do_move<true>(moves_B[5]);   // 3... Nc6
-    uint64_t hash_B = ZobroistHasher::get().hash_board(board_B);
+    board_B.do_move<false>(moves_B[0]); // 1. e4
+    board_B.do_move<true>(moves_B[1]);  // 1... e5
+    board_B.do_move<false>(moves_B[2]); // 2. Nc3
+    board_B.do_move<true>(moves_B[3]);  // 2... Nf6
+    board_B.do_move<false>(moves_B[4]); // 3. Nf3
+    board_B.do_move<true>(moves_B[5]);  // 3... Nc6
+    uint64_t hash_B = hasher.hash_board(board_B);
 
     // --- ASSERTION ---
     // The final positions are identical, so their Zobrist hashes must be identical.
@@ -208,19 +215,20 @@ TEST(ZobristTest, TranspositionIdentity) {
 
     // Apply moves_A with alternating template parameter: true, false, true, false, true, false
     m = Move(moves_A[0]);
-    board_A.do_move<true>(m);  // 1. e4 (White)
+    board_A.do_move<true>(m); // 1. e4 (White)
     m = Move(moves_A[1]);
-    board_A.do_move<false>(m);  // 1... e5 (Black)
+    board_A.do_move<false>(m); // 1... e5 (Black)
     m = Move(moves_A[2]);
-    board_A.do_move<true>(m);  // 2. Nf3 (White)
+    board_A.do_move<true>(m); // 2. Nf3 (White)
     m = Move(moves_A[3]);
-    board_A.do_move<false>(m);  // 2... Nc6 (Black)
+    board_A.do_move<false>(m); // 2... Nc6 (Black)
     m = Move(moves_A[4]);
-    board_A.do_move<true>(m);  // 3. Nc3 (White)
+    board_A.do_move<true>(m); // 3. Nc3 (White)
     m = Move(moves_A[5]);
-    board_A.do_move<false>(m);  // 3... Nf6 (Black)
+    board_A.do_move<false>(m); // 3... Nf6 (Black)
 
-    uint64_t hash_A = ZobroistHasher::get().hash_board(board_A);
+    ZobroistHasher hasher;
+    uint64_t hash_A = hasher.hash_board(board_A);
 
     // --- SETUP: Swapped Move Order (B) ---
     Board board_B;
@@ -231,19 +239,19 @@ TEST(ZobristTest, TranspositionIdentity) {
 
     // Apply moves_B with alternating template parameter: true, false, true, false, true, false
     m = Move(moves_B[0]);
-    board_B.do_move<true>(m);  // 1. e4 (White)
+    board_B.do_move<true>(m); // 1. e4 (White)
     m = Move(moves_B[1]);
-    board_B.do_move<false>(m);  // 1... e5 (Black)
+    board_B.do_move<false>(m); // 1... e5 (Black)
     m = Move(moves_B[2]);
-    board_B.do_move<true>(m);  // 2. Nc3 (White)
+    board_B.do_move<true>(m); // 2. Nc3 (White)
     m = Move(moves_B[3]);
-    board_B.do_move<false>(m);  // 2... Nf6 (Black)
+    board_B.do_move<false>(m); // 2... Nf6 (Black)
     m = Move(moves_B[4]);
-    board_B.do_move<true>(m);  // 3. Nf3 (White)
+    board_B.do_move<true>(m); // 3. Nf3 (White)
     m = Move(moves_B[5]);
-    board_B.do_move<false>(m);  // 3... Nc6 (Black)
+    board_B.do_move<false>(m); // 3... Nc6 (Black)
 
-    uint64_t hash_B = ZobroistHasher::get().hash_board(board_B);
+    uint64_t hash_B = hasher.hash_board(board_B);
 
     // ASSERTION: The hashes MUST be the same
     ASSERT_EQ(hash_A, hash_B) << "Transposition failed: Identical positions have different hashes.";
@@ -255,20 +263,21 @@ TEST(ZobristTest, MoveUndoIntegrity) {
     Board board;
     board.read_fen(NotationInterface::starting_FEN());
 
-    uint64_t hash_A = ZobroistHasher::get().hash_board(board);
+    ZobroistHasher hasher;
+    uint64_t hash_A = hasher.hash_board(board);
 
     std::string move_uci_string = "d2d4";
 
     // Create and perform the move
     Move move_object = Move(move_uci_string);
     auto info = board.do_move<true>(move_object);
-    uint64_t hash_B = ZobroistHasher::get().hash_board(board);
+    uint64_t hash_B = hasher.hash_board(board);
 
     ASSERT_NE(hash_A, hash_B) << "Hash did not change after move " << move_uci_string;
 
     // Undo the move
     board.undo_move<true>(info, move_object);
-    uint64_t hash_C = ZobroistHasher::get().hash_board(board);
+    uint64_t hash_C = hasher.hash_board(board);
 
     // ASSERTION 2: Hash must return to the original value
     ASSERT_EQ(hash_A, hash_C) << "Hash failed to revert after undo_move.";

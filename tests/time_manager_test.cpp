@@ -1,17 +1,17 @@
 
+#include "search/time_manager.h"
 #include <chrono>
 #include <gtest/gtest.h>
 #include <thread>
-#include <time_manager.h>
 TEST(TimeManagerTest, ontime) {
     int buffer = 50;
     int remtime = 1000;
     int timeinc = 50;
     int remtime_frac = 20;
     TimeControl rem_time = TimeControl(remtime, remtime, timeinc, timeinc);
-    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true);
+    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true, true);
     auto start = std::chrono::high_resolution_clock::now();
-    int target = remtime / remtime_frac + timeinc - buffer;  // Here is where we want to go.
+    int target = remtime / remtime_frac + timeinc - buffer; // Here is where we want to go.
 
     auto sleeptime = 1ms;
     manager.start_time_management();
@@ -40,7 +40,7 @@ TEST(TimeManagerTest, thread_stop_test) {
     int timeinc = 50;
     int remtime_frac = 20;
     TimeControl rem_time = TimeControl(remtime, timeinc, remtime, timeinc);
-    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true);
+    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true, true);
 
     auto start = std::chrono::high_resolution_clock::now();
     manager.start_time_management();

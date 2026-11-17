@@ -1,16 +1,15 @@
 // Copyright 2025 Filip Agert
+#include "core/bitboard.h"
+#include "core/board.h"
+#include "core/move.h"
+#include "core/movegen.h"
+#include "core/notation_interface.h"
+#include "tools/movegen_benchmark.h"
+#include "utils/constants.h"
 #include <algorithm>
 #include <array>
-#include <bitboard.h>
-#include <board.h>
-#include <constants.h>
 #include <cstdint>
 #include <gtest/gtest.h>
-#include <integer_representation.h>
-#include <move.h>
-#include <movegen.h>
-#include <movegen_benchmark.h>
-#include <notation_interface.h>
 #include <string>
 #include <vector>
 using namespace BitBoard;
@@ -105,7 +104,7 @@ TEST(Movegentest, mated) {
     std::array<Move, max_legal_moves> moves;
     size_t num_moves = board.get_moves<full_search, false>(moves);
 
-    size_t expected = 1;  // First position offers 20 legal moves;
+    size_t expected = 1; // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 1. Actual found moves is" << num_moves;
 }
 
@@ -116,10 +115,10 @@ TEST(Movegentest, promo_BUG) {
     std::array<Move, max_legal_moves> moves;
     size_t num_moves = board.get_moves<full_search, true>(moves);
 
-    size_t expected = 41;  // First position offers 20 legal moves;
+    size_t expected = 41; // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 41. Actual found moves is" << num_moves;
 }
-TEST(magic_test, get_rook_magic_idx) {  // test that the array indices work correctly.
+TEST(magic_test, get_rook_magic_idx) { // test that the array indices work correctly.
 
     for (int i = 0; i < 64; i++) {
         uint64_t occmask = rook_occupancy_table[i];
@@ -131,8 +130,8 @@ TEST(magic_test, get_rook_magic_idx) {  // test that the array indices work corr
         for (int j = 0; j < nelems; j++) {
             int key = get_rook_magic_idx(i, occvar[j]);
 
-            ASSERT_GE(key, offset) << "sq:" << i << "\n";       // Assert key grt or equal offset
-            ASSERT_LT(key, offset + sz) << "sq:" << i << "\n";  // Assert key LT offset
+            ASSERT_GE(key, offset) << "sq:" << i << "\n";      // Assert key grt or equal offset
+            ASSERT_LT(key, offset + sz) << "sq:" << i << "\n"; // Assert key LT offset
         }
     }
 }
@@ -211,7 +210,7 @@ TEST(Movegentest, gen_moves) {
     std::array<Move, max_legal_moves> moves;
     size_t num_moves = board.get_moves<full_search, true>(moves);
 
-    size_t expected = 20;  // First position offers 20 legal moves;
+    size_t expected = 20; // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 20. Actual found moves is" << num_moves;
 }
 TEST(Movegentest, double_check) {
@@ -258,7 +257,7 @@ TEST(Movegentest, two_deep) {
     int depth = 1;
     std::string starting_fen = NotationInterface::starting_FEN();
     int num_moves = movegen_benchmark::gen_num_moves(starting_fen, depth);
-    size_t expected = 20;  // First position offers 20 legal moves;
+    size_t expected = 20; // First position offers 20 legal moves;
     ASSERT_EQ(expected, num_moves) << "Expected number of moves is 20. Actual found moves is" << num_moves;
 
     depth = 2;
@@ -337,10 +336,10 @@ TEST(castle_test, Allowed_White_Kingside_Queenside) {
     size_t num_moves = board.get_moves<full_search, true>(moves_array);
 
     // Expected moves include O-O (e1g1) and O-O-O (e1c1), plus King/Rook normal moves
-    std::vector<std::string> expected_moves = {         // Castling Moves
-                                               "e1g1",  // White Kingside (O-O)
-                                               "e1c1",  // White Queenside (O-O-O)
-                                                        // King Moves
+    std::vector<std::string> expected_moves = {        // Castling Moves
+                                               "e1g1", // White Kingside (O-O)
+                                               "e1c1", // White Queenside (O-O-O)
+                                                       // King Moves
                                                "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
                                                // Rook moves (a1)
                                                "a1b1", "a1c1", "a1d1", "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
@@ -403,14 +402,14 @@ TEST(castle_test, Disallowed_White_Queenside_Blocked1) {
         "e1d1", "e1f1", "e1d2", "e1e2", "e1f2",
 
         // Rook Moves (a1) - Blocked horizontally past c1, but free vertically
-        "a1b1",  // Path stops at c1
+        "a1b1", // Path stops at c1
         "a1a2", "a1a3", "a1a4", "a1a5", "a1a6", "a1a7", "a1a8",
 
         // Rook Moves (h1) - Full range
         "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8",
 
         // Knight Moves (c1)
-        "c1b3", "c1d3", "c1a2", "c1e2"  // Added c1a2, c1b2 for completeness
+        "c1b3", "c1d3", "c1a2", "c1e2" // Added c1a2, c1b2 for completeness
     };
 
     std::vector<std::string> generated_moves;
@@ -448,7 +447,7 @@ TEST(castle_test, Disallowed_White_Queenside_Blocked) {
         "h1g1", "h1f1", "h1h2", "h1h3", "h1h4", "h1h5", "h1h6", "h1h7", "h1h8",
 
         // Knight Moves (c1)
-        "b1a3", "b1c3", "b1d2"  // Added c1a2, c1b2 for completeness
+        "b1a3", "b1c3", "b1d2" // Added c1a2, c1b2 for completeness
     };
 
     std::vector<std::string> generated_moves;

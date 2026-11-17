@@ -1,10 +1,9 @@
 // board_test.cpp
-#include "constants.h"
-#include <board.h>
+#include "core/board.h"
+#include "core/integer_representation.h"
+#include "core/move.h"
+#include "core/notation_interface.h"
 #include <gtest/gtest.h>
-#include <integer_representation.h>
-#include <move.h>
-#include <notation_interface.h>
 #include <string>
 
 using namespace pieces;
@@ -90,7 +89,7 @@ TEST(BoardTest, do_move_move_ctr) {
     std::string fen = "8/4p1k1/8/3P4/8/8/8/5K2 b - - 0 1";
 
     modified.read_fen(fen);
-    Move m1, m2, m3, m4, m5, m6;
+    Move m1;
 
     m1 = Move("e7e5");
     RestoreMoveInfo info1 = modified.do_move_no_flag<false>(m1);
@@ -108,7 +107,7 @@ TEST(BoardTest, doUndoMoveEnPassant) {
     original.read_fen(fen);
     modified.read_fen(fen);
 
-    Move m1, m2, m3, m4, m5, m6;
+    Move m1, m2;
 
     m1 = Move("e7e5");
     m2 = Move("d5e6");

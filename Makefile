@@ -82,7 +82,7 @@ LIBS     := -lgtest -lgtest_main -pthread
 
 # ---------- source discovery ----------
 MAIN_SRC  := $(DSRC)/main.cpp
-MAGIC_SRC := $(DSRC)/gen_magic_nums.cpp
+MAGIC_SRC := $(DSRC)/tools/gen_magic_nums.cpp
 TEXEL_SRC := $(shell find $(DSRC)/texel -name '*.cpp' 2>/dev/null)
 
 ALL_SRC   := $(shell find $(DSRC) -name '*.cpp')

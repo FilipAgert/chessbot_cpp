@@ -1,4 +1,4 @@
-#include "notation_interface.h"
+#include "core/notation_interface.h"
 #include <gtest/gtest.h>
 
 TEST(idx_test, flip_idx) {

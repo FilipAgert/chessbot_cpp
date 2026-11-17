@@ -30,7 +30,6 @@ out/
 # Logs and debug
 *.log
 *.stackdump
-core
 
 # Editor and OS junk
 .DS_Store

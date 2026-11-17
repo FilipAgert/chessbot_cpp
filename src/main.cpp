@@ -1,17 +1,19 @@
 // Copyright 2025 Filip Agert
-#include "config.h"
-#include "config_parser.h"
-#include "game.h"
+#include "eval/hce/hceval.h"
+#include "interface/uci_interface.h"
 #include "iostream"
+#include "search/game.h"
 #include "string"
 #include "thread"
-#include "uci_interface.h"
+#include "utils/config.h"
+#include "utils/config_parser.h"
+#include <queue>
 class ThreadSafeCommandQueue {
- private:
+  private:
     std::queue<std::string> queue_;
     mutable std::mutex mutex_;
 
- public:
+  public:
     void push(const std::string &cmd) {
         std::lock_guard<std::mutex> lock(mutex_);
         queue_.push(cmd);
@@ -35,7 +37,10 @@ int main(int argc, char *argv[]) {
     ConfigParser parser;
     parser.load(config_file);
     ConfigSettings settings = parser.get_settings();
-    Game::instance().set_settings(settings);
+
+    Eval::HCE::HCEval eval;
+    Game game(settings, eval);
+    UCIInterface uci(game);
 
     static ThreadSafeCommandQueue input_queue;
 
@@ -49,7 +54,7 @@ int main(int argc, char *argv[]) {
         }
         input_queue.push("quit");
     });
-    input_thread.detach();  // Let it run independently
+    input_thread.detach(); // Let it run independently
 
     std::cout << "Welcome to the UCI interface!" << std::endl;
     std::string input, command, body;
@@ -68,36 +73,36 @@ int main(int argc, char *argv[]) {
             }
 
             if (command == "uci") {
-                UCIInterface::process_uci_command(settings);
+                uci.process_uci_command(settings);
             } else if (command == "ucinewgame") {
-                UCIInterface::process_new_game_command();
+                uci.process_new_game_command();
             } else if (command == "isready") {
-                UCIInterface::process_isready_command();
+                uci.process_isready_command();
             } else if (command == "go") {
                 waiting_for_move = true;
-                UCIInterface::process_go_command(body, true);
+                uci.process_go_command(body, true);
             } else if (command == "position") {
-                UCIInterface::process_position_command(body);
+                uci.process_position_command(body);
             } else if (command == "bestmove") {
                 waiting_for_move = false;
-                UCIInterface::send_bestmove(false);
+                uci.send_bestmove(false);
             } else if (command == "ponderhit") {
-                UCIInterface::process_ponderhit_command();
+                uci.process_ponderhit_command();
             } else if (command == "d") {
-                UCIInterface::process_d_command();
+                uci.process_d_command(eval);
             } else if (command == "stop") {
-                UCIInterface::process_stop_command();
+                uci.process_stop_command();
             } else if (command == "bench") {
-                UCIInterface::process_bench_command(body);
+                uci.process_bench_command(body);
             } else if (command == "quit") {
-                UCIInterface::process_quit_command();
+                uci.process_quit_command();
                 std::cout.flush();
                 break;
             } else if (command == "setoption") {
-                UCIInterface::process_setoption_command(body, settings);
-                Game::instance().set_settings(settings);
+                uci.process_setoption_command(body, settings);
+                game.set_settings(settings);
             } else if (command == "self") {
-                UCIInterface::process_self_command(body);
+                uci.process_self_command(eval, body);
             } else if (command == "debug") {
                 std::cout << "Debug mode is not implemented yet." << std::endl;
             } else if (command == "help") {
@@ -108,9 +113,9 @@ int main(int argc, char *argv[]) {
                 std::cout << "Unknown command: " << input << std::endl;
             }
         }
-        UCIInterface::send_info_if_has();
-        if (waiting_for_move && Game::instance().search_finished) {
-            UCIInterface::send_bestmove(settings.should_ponder);
+        uci.send_info_if_has();
+        if (waiting_for_move && game.search_finished) {
+            uci.send_bestmove(settings.should_ponder);
             waiting_for_move = false;
         }
         std::this_thread::sleep_for(sleeptime);

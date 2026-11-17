@@ -1,4 +1,3 @@
-#include "config.h"
 #include "eval.h"
 #include "integer_representation.h"
 #include "str.h"
@@ -8,6 +7,7 @@
 #include "texel/gradient.h"
 #include "texel/input_reader.h"
 #include "texel/minimize.h"
+#include "utils/config.h"
 #include "utils/str.h"
 #include <argparse/argparse.hpp>
 #include <iostream>
@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
 
     // Measure final verification loss
 
-    double verification_loss_after = validate_param_loss(param_res.x);  //(validation_results, verification_predictions_after);
+    double verification_loss_after = validate_param_loss(param_res.x); //(validation_results, verification_predictions_after);
 
     // Results
     std::cout << "\n\n========== RESULTS ==========\n";
