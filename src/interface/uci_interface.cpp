@@ -1,5 +1,5 @@
 #include "interface/uci_interface.h"
-#include "search/game.h"
+#include "interface/engine.h"
 #include "search/time_manager.h"
 #include "tools/movegen_benchmark.h"
 #include "utils/config.h"
@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 void UCIInterface::process_uci_command(ConfigSettings settings) {
@@ -33,14 +34,14 @@ void UCIInterface::process_setoption_command(std::string command, ConfigSettings
 void UCIInterface::process_isready_command() { UCIInterface::uci_response("readyok"); }
 void UCIInterface::process_quit_command() {
     UCIInterface::uci_response("Exiting...");
-    game.abort_search_and_wait(); // quit the game thread.
+    engine.abort_search_and_wait(); // quit the game thread.
 }
 
-void UCIInterface::process_new_game_command() { game.start_game(); }
+void UCIInterface::process_new_game_command() { engine.start_game(); }
 void UCIInterface::send_info_msg(InfoMsg msg) {
     std::vector<std::string> parts = {"info"};
 
-    if (msg.stringmsg) { // custom string should only print this
+    if (msg.string.size() > 0) { // custom string should only print this
         parts.push_back("string " + msg.string);
     } else {
         parts.push_back("depth " + std::to_string(msg.depth));
@@ -83,8 +84,8 @@ void UCIInterface::send_info_msg(InfoMsg msg) {
     UCIInterface::uci_response(final_str);
 }
 void UCIInterface::send_info_if_has() {
-    for (; !game.info_queue_empty(); game.info_queue_pop()) {
-        InfoMsg info = game.info_queue_front();
+    for (; !engine.info_queue_empty(); engine.info_queue_pop()) {
+        InfoMsg info = engine.info_queue_front();
         UCIInterface::send_info_msg(info);
     }
 }
@@ -115,7 +116,7 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
                 UCIInterface::uci_response("Error: \"perft\" command should be followed by an integer but found: " + int_token);
                 return;
             }
-            int nodes = movegen_benchmark::gen_num_moves(game.get_board(), depth, print_depth);
+            int nodes = movegen_benchmark::gen_num_moves(engine.get_board(), depth, print_depth);
             std::string nodes_searched = std::to_string(nodes);
             UCIInterface::uci_response("\nNodes searched: " + nodes_searched);
             return;
@@ -170,7 +171,7 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
         }
     }
     TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc, .ponder = ponder});
-    game.start_thinking(rem_time, depth, assign_worker); // Enter ponder loop
+    engine.start_thinking(rem_time, depth, rem_time.ponder, assign_worker); // Enter ponder loop
     // UCIInterface::send_info_if_has();
     // UCIInterface::send_bestmove();
 }
@@ -178,7 +179,7 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
 void UCIInterface::process_position_command(std::string command) {
     // Example: "position startpos moves e2e4 e7e5"
     // Initialize board:
-    game.abort_search_and_wait();
+    engine.abort_search_and_wait();
     size_t pos = 0;
     while (pos < command.size()) {
         while (pos < command.size() && command[pos] == ' ')
@@ -193,7 +194,7 @@ void UCIInterface::process_position_command(std::string command) {
 
         std::string token = command.substr(start, pos - start);
         if (token == "startpos") {
-            game.set_fen(NotationInterface::starting_FEN());
+            engine.set_fen(NotationInterface::starting_FEN());
         } else if (token == "moves") {
         } else if (token == "fen") {
             while (pos < command.size() && command[pos] != ' ') // Start of fen
@@ -227,7 +228,7 @@ void UCIInterface::process_position_command(std::string command) {
         } else {
             try {
                 Move move = Move(token);
-                game.gui_make_move(move);
+                engine.gui_make_move(move);
                 if (debug_mode)
                     UCIInterface::uci_response("Move processed: " + move.toString()); // Informative
             } catch (const std::exception &e) {
@@ -239,11 +240,14 @@ void UCIInterface::process_position_command(std::string command) {
     }
 }
 
-void UCIInterface::process_ponderhit_command() { game.ponderhit(); }
+void UCIInterface::process_ponderhit_command() { engine.ponderhit(); }
 void UCIInterface::send_bestmove(bool pondering) {
-    Move bestmove = game.get_bestmove();
+    Move bestmove = engine.get_bestmove();
     assert(bestmove.is_valid());
-    Move pondermove = game.get_pondermove();
+    if (!bestmove.is_valid() || !engine.get_board().is_move_legal(bestmove)) {
+        throw std::runtime_error("Invalid move!" + bestmove.toString());
+    }
+    Move pondermove = engine.get_pondermove();
     if (pondering && pondermove.is_valid()) {
         UCIInterface::uci_response("bestmove " + bestmove.toString() + " ponder " + pondermove.toString());
     } else {
@@ -252,9 +256,9 @@ void UCIInterface::send_bestmove(bool pondering) {
 }
 
 void UCIInterface::process_d_command(Eval::Eval &eval) {
-    game.display_board();
-    UCIInterface::uci_response(game.get_fen());
-    Board board = game.get_board();
+    engine.display_board();
+    UCIInterface::uci_response(engine.get_fen());
+    Board board = engine.get_board();
     int evaluation = eval.evaluate(board);
     UCIInterface::uci_response("Board evaluation (0 depth): " + std::to_string(evaluation));
 }
@@ -270,11 +274,11 @@ void UCIInterface::process_bench_command(std::string command) {
             fenparts[i] = parts[i];
         depthloc = fenl;
         std::string fen = Utils::join(fenparts, ' ');
-        game.set_fen(fen);
+        engine.set_fen(fen);
     } else if (parts.size() == 3) {
         if (parts[0] == "current") {
         } else if (parts[0] == "default") {
-            game.set_startpos();
+            engine.set_startpos();
         } else {
             UCIInterface::uci_response("fentype must be one of: current, default, or a literal <fen> string ");
             return;
@@ -288,7 +292,7 @@ void UCIInterface::process_bench_command(std::string command) {
     // int threads = std::stoi(parts[depthloc + 1]);
     UCIInterface::uci_response("Generating moves to depth: " + std::to_string(depth));
     auto start = std::chrono::high_resolution_clock::now();
-    int64_t nummoves = movegen_benchmark::gen_num_moves(game.get_board(), depth, -1);
+    int64_t nummoves = movegen_benchmark::gen_num_moves(engine.get_board(), depth, -1);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     UCIInterface::uci_response(std::to_string(nummoves) + " nodes found at this depth.");
@@ -299,7 +303,7 @@ void UCIInterface::process_bench_command(std::string command) {
 
 void UCIInterface::process_fen_command(std::string command) {
     UCIInterface::uci_response("Processing FEN command: " + command);
-    bool success = game.set_fen(command);
+    bool success = engine.set_fen(command);
     if (!success)
         UCIInterface::uci_response("Invalid FEN command: " + command);
     UCIInterface::uci_response("FEN command processed.");
@@ -308,7 +312,7 @@ void UCIInterface::process_fen_command(std::string command) {
 void UCIInterface::uci_response(std::string response) { std::cout << response << std::endl; }
 
 void UCIInterface::process_self_command(Eval::Eval &eval, std::string command) {
-    std::string fen = game.get_fen();
+    std::string fen = engine.get_fen();
     std::vector<std::string> parts = Utils::split(command, ' ');
     if (parts.size() == 0) {
         UCIInterface::uci_response("Correct syntax is self <nmoves>");
@@ -318,12 +322,16 @@ void UCIInterface::process_self_command(Eval::Eval &eval, std::string command) {
     std::string comm = fen + " moves";
     for (int i = 0; i < nummoves; i++) {
         process_go_command("wtime 1000 btime 1000 winc 0 binc 0", false);
-        Move bestmove = game.get_bestmove();
-        if (bestmove.is_valid())
+        Move bestmove = engine.get_bestmove();
+        if (bestmove.is_valid() && engine.get_board().is_move_legal(bestmove))
             comm.append(" " + bestmove.toString());
-        else {
-            std::cout << "No valid move available. Game over." << std::endl;
-            break;
+        else if (!engine.get_board().is_move_legal((bestmove))) {
+
+            std::cout << "Bestmove sent was not legal: " << bestmove.toString() << std::endl;
+            comm = fen + " moves";
+        } else {
+            // game over: restart
+            comm = fen + " moves";
         }
         uci_response("I received command: position startpos fen " + comm);
         process_position_command("fen " + comm);
@@ -331,4 +339,4 @@ void UCIInterface::process_self_command(Eval::Eval &eval, std::string command) {
     }
 }
 
-void UCIInterface::process_stop_command() { game.abort_search_and_wait(); }
+void UCIInterface::process_stop_command() { engine.abort_search_and_wait(); }

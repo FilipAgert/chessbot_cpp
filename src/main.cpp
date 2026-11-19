@@ -1,8 +1,8 @@
 // Copyright 2025 Filip Agert
 #include "eval/hce/hceval.h"
+#include "interface/engine.h"
 #include "interface/uci_interface.h"
 #include "iostream"
-#include "search/game.h"
 #include "string"
 #include "thread"
 #include "utils/config.h"
@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
     ConfigSettings settings = parser.get_settings();
 
     Eval::HCE::HCEval eval;
-    Game game(settings, eval);
-    UCIInterface uci(game);
+    Engine engine(settings, eval);
+    UCIInterface uci(engine);
 
     static ThreadSafeCommandQueue input_queue;
 
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
                 break;
             } else if (command == "setoption") {
                 uci.process_setoption_command(body, settings);
-                game.set_settings(settings);
+                engine.set_settings(settings);
             } else if (command == "self") {
                 uci.process_self_command(eval, body);
             } else if (command == "debug") {
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
             }
         }
         uci.send_info_if_has();
-        if (waiting_for_move && game.search_finished) {
+        if (waiting_for_move && engine.search_finished) {
             uci.send_bestmove(settings.should_ponder);
             waiting_for_move = false;
         }

@@ -39,7 +39,16 @@ struct alignas(32) TranspositionBucket {
 };
 static_assert(sizeof(TranspositionBucket) == 32);
 static_assert(alignof(TranspositionBucket) == 32);
-
+/**
+ * @brief Return type for probing TT.
+ *
+ */
+struct TTProbeResult {
+    std::optional<int> score = std::nullopt;
+    std::optional<Move> tt_move = std::nullopt;
+    SearchNodeType bound = SearchNodeType::invalid;
+    bool cutoff = false;
+};
 struct TranspositionTable {
   private:
     TranspositionBucket *arr = nullptr;
@@ -90,9 +99,7 @@ struct TranspositionTable {
      * @param[in] depth depth this state occured at
      * @return True if the current depth is smaller than or equal the entries depth.
      */
-    bool is_useable_entry(const TranspositionEntry entry, const int depth) {
-        return (static_cast<int>(age) + depth) <= entry.depth + static_cast<int>(entry.age);
-    }
+    bool is_useable_entry(const TranspositionEntry entry, const int depth) { return (depth) <= entry.depth; }
     /**
      * @brief Clears the table.
      *

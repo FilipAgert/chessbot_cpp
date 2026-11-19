@@ -3,27 +3,33 @@
 #define TIME_MANAGER_H
 #include <atomic>
 #include <chrono>
+#include <mutex>
 #include <thread>
 using namespace std::chrono;
 struct TimeControl {
     int wtime, btime, winc, binc;
     bool ponder = false;
 };
+struct TimeSettings {
+    int buffer;
+    int remtime_frac;
+};
 class TimeManager {
   private:
-    std::atomic<bool> should_stop;                 // Shared variable between threads.
-    std::atomic<bool> should_start_next_iteration; // Shared variable between threads.
+    std::atomic<bool> should_stop = false;                // Shared variable between threads.
+    std::atomic<bool> should_start_next_iteration = true; // Shared variable between threads.
     std::atomic<bool> is_mate_search = false;
-    std::atomic<bool> desperate_mate_search;
+    std::atomic<bool> desperate_mate_search = true;
+    std::mutex tm_mutex;
     std::thread timer_thread;
     int remtime, inc, enemy_remtime, enemy_inc, buffer, remtime_frac;
     std::atomic<bool> pondering;
-    const bool enable_tc;
-    time_point<high_resolution_clock> start;
-    int calculate_time_elapsed_ms() const;
+    time_point<high_resolution_clock> starttime;
+    time_point<high_resolution_clock> inittime;
+    int calculate_time_elapsed_ms(bool use_inittime) const;
     void time_loop_function(int64_t target_move_time_ms);
     int64_t calculate_target_move_time_ms();
-    void set_should_start_next_iteration(bool start_flag);
+    void start_clock(std::optional<int64_t> t_target);
 
   public:
     /**
@@ -39,7 +45,7 @@ class TimeManager {
      *
      * @return True if we can start a new iteration, else false.
      */
-    bool get_should_start_new_iteration() const;
+    bool get_should_start_new_iteration(int depth) const;
 
     /**
      * @brief Gets time elapsed at latest update of time clock.
@@ -47,16 +53,6 @@ class TimeManager {
      * @return Time elapsed.
      */
     int get_time_elapsed() const;
-
-    /**
-     * @brief Set the stop flag. If time class, this will stop game loop. If game loop class, this
-     * will stop time thread.
-     *
-     * @param[in] stop_flag true if loops should stop.
-     */
-    void set_should_stop(bool stop_flag);
-
-    void start_time_management();
 
     /**
      * @brief Called by e.g. calculation thread once it breaks from searching enough depth.
@@ -85,8 +81,11 @@ class TimeManager {
 
     bool is_pondering() const;
 
-    TimeManager(TimeControl rem_time, int buffer, int remtime_frac, bool is_white, bool enable_tc);
-
+    TimeManager(TimeSettings settings);
     ~TimeManager();
+
+    void init_search(TimeControl limits, bool is_white);
+
+    void reset();
 };
 #endif

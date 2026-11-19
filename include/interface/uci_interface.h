@@ -2,7 +2,7 @@
 #ifndef UCI_INTERFACE_H
 #define UCI_INTERFACE_H
 #include "eval/eval.h"
-#include "search/game.h"
+#include "interface/engine.h"
 #include "utils/config.h"
 
 #include <string>
@@ -51,9 +51,9 @@ class UCIInterface {
      */
     void process_bench_command(std::string command);
 
-    UCIInterface(Game &game) : game(game){};
+    UCIInterface(Engine &engine) : engine(engine){};
 
   private:
-    Game &game;
+    Engine &engine;
 };
 #endif

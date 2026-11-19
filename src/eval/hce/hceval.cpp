@@ -146,7 +146,7 @@ int HCEval::eval_pawn_structure(const Board &board) {
 
     BitLoop(wpassed) {
         uint8_t row = NotationInterface::row(BitBoard::lsb(wpassed));
-        uint8_t dist_to_promote = 8 - row;
+        uint8_t dist_to_promote = 7 - row;
         eval += params.passed_dist_to_promotion[dist_to_promote];
     }
     BitLoop(bpassed) {
