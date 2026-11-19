@@ -624,7 +624,7 @@ template <bool can_cutoff> TTProbeResult Searcher::probe_tt(uint64_t hash, int d
                                             // BETTER than
                             // any move opponent can make
                             // a lower bound can tighten alpha
-                            res.score = alpha;
+                            res.score = beta;
                             res.cutoff = true;
                             res.bound = SearchNodeType::lb;
                         }
