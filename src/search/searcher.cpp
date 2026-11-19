@@ -1,6 +1,4 @@
 #include "search/searcher.h"
-#include "TT.h"
-#include "eval.h"
 #include "integer_representation.h"
 #include "search/time_manager.h"
 #include <algorithm>
@@ -262,7 +260,7 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
     SearchNodeType nodetype = SearchNodeType::ub;
 
     uint64_t zob_hash = state_stack.top().hash;
-    TTProbeResult tt_probe = probe_tt < !is_root && !is_mate_search > (zob_hash, depth, ply, alpha, beta);
+    TTProbeResult tt_probe = probe_tt < !is_root && !is_mate_search && node_type != NodeType::PV > (zob_hash, depth, ply, alpha, beta);
     if (tt_probe.cutoff)
         return {tt_probe.score, tt_probe.bound};
     std::optional<Move> first_move = tt_probe.tt_move;
