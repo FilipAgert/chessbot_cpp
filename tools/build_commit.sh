@@ -40,7 +40,7 @@ git worktree add --detach "$WT" "$FULL_HASH" >&2
   mkdir -p build bin
 
   # Check if this revision's Makefile defines a 'pgo' target, then attempt PGO build
-  if grep -qE '^pgo:' Makefile && make -j1 pgo >&2; then
+  if grep -qE '^pgo:' Makefile && make -j1 type=release all >&2; then
       echo "Built $HASH with PGO." >&2
   else
       echo "PGO unavailable or failed for $HASH, falling back to standard release build..." >&2
