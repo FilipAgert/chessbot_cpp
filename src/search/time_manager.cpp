@@ -48,7 +48,7 @@ int64_t TimeManager::calculate_target_move_time_ms() {
 
     int64_t base_time = remtime / remtime_frac; // Use up 1/20th of the remaining time plus increment.
 
-    target_time = base_time + inc / 2 - buffer;
+    target_time = base_time + inc - buffer;
     // inc/2 to get some spare.
 
     int64_t mintime = 10;
@@ -77,7 +77,7 @@ void TimeManager::time_loop_function(int64_t target_move_time_ms) {
             should_stop = true;
             break;
         }
-        if (elapsed_time >= target_move_time / 2) {
+        if (elapsed_time >= target_move_time) {
             should_start_next_iteration = false;
         }
     }
