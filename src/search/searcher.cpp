@@ -1,5 +1,7 @@
 #include "search/searcher.h"
-#include "integer_representation.h"
+#include "core/integer_representation.h"
+#include "eval/eval.h"
+#include "search/TT.h"
 #include "search/time_manager.h"
 #include <algorithm>
 #include <cmath>
@@ -210,7 +212,7 @@ template <bool is_white> std::pair<int, SearchNodeType> Searcher::aspiration_sea
             alpha = (++fails > 2) ? -INF : std::max(-INF, score - delta);
         else
             beta = (++fails > 2) ? INF : std::min(INF, score + delta);
-        delta += delta / 2;
+        delta *= 4;
     }
     return {0, SearchNodeType::timeout};
 }
