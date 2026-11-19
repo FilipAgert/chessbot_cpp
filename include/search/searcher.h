@@ -114,7 +114,7 @@ class Searcher {
     bool is_repetition(int ply);
 
     bool is_draw(int ply);
-    template <bool can_cutoff> TTProbeResult probe_tt(uint64_t hash, int depth, int ply, int alpha, int beta);
+    template <bool can_cutoff> TTProbeResult probe_tt(uint64_t hash, int depth, int ply, int &alpha, int &beta);
     // definitions
     static constexpr int MAX_PLY = 128;
     static constexpr int INF = 10000000;

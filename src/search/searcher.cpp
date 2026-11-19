@@ -265,10 +265,6 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
     TTProbeResult tt_probe = probe_tt < !is_root && !is_mate_search > (zob_hash, depth, ply, alpha, beta);
     if (tt_probe.cutoff)
         return {tt_probe.score.value(), tt_probe.bound};
-    else if (tt_probe.score) {
-        alpha = std::max(alpha, tt_probe.score.value());
-        beta = std::min(beta, tt_probe.score.value());
-    }
     std::optional<Move> first_move = tt_probe.tt_move;
 
     bool king_checked = board.king_checked<is_white>();
@@ -465,10 +461,6 @@ template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> Sea
     TTProbeResult probe = probe_tt<!is_mate_search>(zob_hash, 0, ply, alpha, beta);
     if (probe.cutoff)
         return {probe.score.value(), probe.bound};
-    else if (probe.score) {
-        alpha = std::max(alpha, probe.score.value());
-        beta = std::min(beta, probe.score.value());
-    }
     std::optional<Move> tt_move = probe.tt_move;
 
     const bool in_check = board.king_checked<is_white>();
@@ -609,7 +601,7 @@ void Searcher::reset_killers() {
 
 void Searcher::ponderhit() { time_manager.ponderhit(); }
 
-template <bool can_cutoff> TTProbeResult Searcher::probe_tt(uint64_t hash, int depth, int ply, int alpha, int beta) {
+template <bool can_cutoff> TTProbeResult Searcher::probe_tt(uint64_t hash, int depth, int ply, int &alpha, int &beta) {
     TTProbeResult res;
     std::optional<TranspositionEntry> maybe_entry = tt.get(hash);
     if (maybe_entry) {
@@ -631,13 +623,17 @@ template <bool can_cutoff> TTProbeResult Searcher::probe_tt(uint64_t hash, int d
                         if (eval >= beta) { // if its a lower bound, but this lower bound is
                                             // BETTER than
                             // any move opponent can make
+                            // a lower bound can tighten alpha
+                            alpha = std::max(alpha, eval);
                             res.cutoff = true;
                             res.bound = SearchNodeType::lb;
                         }
                     } else if (entry.is_ub()) {
                         if (eval < alpha) { // if its an upper bound, and this upper bound is worse
+                                            //
                             res.cutoff = true;
                             res.bound = SearchNodeType::ub;
+                            beta = std::min(beta, eval);
                             // than any move we could make, dont need to search more.
                         }
                     }
