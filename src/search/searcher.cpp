@@ -270,6 +270,28 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
     bool king_checked = board.king_checked<is_white>();
     bool may_zugzwang = Eval::can_zugzwang<is_white>(board);
     int standing_pat = eval.evaluate(board);
+    // reverse futilty pruning
+    // conditions: not PV
+    //             not in check
+    //             tt move is not capture and exists.
+    if constexpr (node_type != NodeType::PV) {
+        if (first_move && !king_checked && !board.is_move_capture(first_move.value())) {
+            int rfp;
+            const int rfp_lim = beta + Parameters::RFP_DEPTH_SCALE * depth;
+            if (tt_probe.bound == SearchNodeType::exact || tt_probe.bound == SearchNodeType::ub) {
+                standing_pat = tt_probe.score;
+                rfp = standing_pat;
+            } else if (tt_probe.bound == SearchNodeType::lb && tt_probe.score > rfp_lim) {
+                rfp = tt_probe.score;
+            } else {
+                rfp = standing_pat;
+            }
+            if (rfp > rfp_lim) {
+                return {beta, SearchNodeType::lb};
+            }
+        }
+    }
+
     // null move pruning
     // If we don't make a move, and the store is still beating beta, we are sure
     // this branch is not worth searching (Since our score is way too high) Even
@@ -620,6 +642,8 @@ template <bool can_cutoff> TTProbeResult Searcher::probe_tt(uint64_t hash, int d
         const TranspositionEntry &entry = maybe_entry.value();
         if (entry.is_valid_move())
             res.tt_move = entry.bestmove;
+        res.score = entry.eval;
+        res.bound = entry.nodetype;
 
         if constexpr (can_cutoff) {
             if (tt.is_useable_entry(entry, depth)) {
@@ -629,7 +653,6 @@ template <bool can_cutoff> TTProbeResult Searcher::probe_tt(uint64_t hash, int d
                 if (!is_mate || entry.age == tt.age) {
                     if (entry.is_exact()) { // if exact value
                         res.cutoff = true;
-                        res.bound = SearchNodeType::exact;
                         res.score = eval;
                     } else if (entry.is_lb()) {
                         if (eval >= beta) { // if its a lower bound, but this lower bound is
@@ -638,14 +661,12 @@ template <bool can_cutoff> TTProbeResult Searcher::probe_tt(uint64_t hash, int d
                             // a lower bound can tighten alpha
                             res.score = beta;
                             res.cutoff = true;
-                            res.bound = SearchNodeType::lb;
                         }
                         alpha = std::max(alpha, eval);
                     } else if (entry.is_ub()) {
                         if (eval < alpha) { // if its an upper bound, and this upper bound is worse
                                             //
                             res.cutoff = true;
-                            res.bound = SearchNodeType::ub;
                             res.score = alpha;
                             // than any move we could make, dont need to search more.
                         }

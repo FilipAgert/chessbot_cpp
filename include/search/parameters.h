@@ -14,6 +14,7 @@ inline const int MC_C = 3; // Counter. If num moves >= beta in first M moves, pr
 inline const int MC_M = 6; // M > C, number of moves to check
 
 inline const int FUTILITY_PRUNING_MARGIN = 50;
+inline const int RFP_DEPTH_SCALE = 80;
 inline size_t const NUM_KILLER_MOVES = 2;
 
 }; // namespace Parameters
