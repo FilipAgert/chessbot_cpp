@@ -44,7 +44,7 @@ static_assert(alignof(TranspositionBucket) == 32);
  *
  */
 struct TTProbeResult {
-    std::optional<int> score = std::nullopt;
+    int score = 0;
     std::optional<Move> tt_move = std::nullopt;
     SearchNodeType bound = SearchNodeType::invalid;
     bool cutoff = false;
