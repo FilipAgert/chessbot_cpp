@@ -18,4 +18,4 @@ fastchess \
   -recover \
   -openings file=opening_books/8moves_v3.pgn format=pgn order=random \
   -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 \
-  -log file="results/${ENGINE1_NAME}_vs_${ENGINE2_NAME}.log" --trace
+  -log file="results/${ENGINE1_NAME}_vs_${ENGINE2_NAME}.log"

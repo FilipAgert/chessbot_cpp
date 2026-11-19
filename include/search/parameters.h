@@ -13,6 +13,7 @@ inline const int MC_R = 4; // Reduced search depth.
 inline const int MC_C = 3; // Counter. If num moves >= beta in first M moves, prune branch.
 inline const int MC_M = 6; // M > C, number of moves to check
 
+inline const int FUTILITY_PRUNING_MARGIN = 50;
 inline size_t const NUM_KILLER_MOVES = 2;
 
 }; // namespace Parameters

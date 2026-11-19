@@ -269,7 +269,7 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
 
     bool king_checked = board.king_checked<is_white>();
     bool may_zugzwang = Eval::can_zugzwang<is_white>(board);
-
+    int standing_pat = eval.evaluate(board);
     // null move pruning
     // If we don't make a move, and the store is still beating beta, we are sure
     // this branch is not worth searching (Since our score is way too high) Even
@@ -346,6 +346,7 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
         bool move_quiet = board.is_move_quiet(move);
         make_move<is_white>(move);
         bool enemy_king_checked = board.king_checked<!is_white>();
+
         int extension = 0;
         if constexpr (!is_mate_search) {
             extension = calculate_extension(move, i, num_extensions, enemy_king_checked);
@@ -360,6 +361,17 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
             constexpr NodeType child_node = node_type == NodeType::PV ? NodeType::PV : (node_type == NodeType::CUT ? NodeType::ALL : NodeType::CUT);
             res = alpha_beta<false, !is_white, is_zw, is_mate_search, child_node>(depth - 1 + extension, ply + 1, -beta, -alpha, num_extensions + extension);
         } else {
+            // futility pruning:
+            //  if move is quiet, and standing pat + margin*depth < alpha,
+            //  if move does not check, it will likely not raise alpha.
+            uint8_t mt = score.movetype();
+            int margin = Parameters::FUTILITY_PRUNING_MARGIN;
+            if (depth <= 4 && !king_checked && !enemy_king_checked && (standing_pat + margin * depth <= alpha) &&
+                ((mt & (MoveOrder::MoveScore::QUIET_SAFE | MoveOrder::MoveScore::QUIET_UNSAFE)) > 0)) {
+                undo_move<is_white>();
+                continue;
+            }
+
             constexpr NodeType child_node = node_type == NodeType::CUT ? NodeType::ALL : NodeType::CUT;
             // PVS: Run null window search.
             int r = 0;
