@@ -386,12 +386,14 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
             // futility pruning:
             //  if move is quiet, and standing pat + margin*depth < alpha,
             //  if move does not check, it will likely not raise alpha.
-            uint8_t mt = score.movetype();
-            int margin = Parameters::FUTILITY_PRUNING_MARGIN;
-            if (depth <= 4 && !king_checked && !enemy_king_checked && (standing_pat + margin * depth <= alpha) &&
-                ((mt & (MoveOrder::MoveScore::QUIET_SAFE | MoveOrder::MoveScore::QUIET_UNSAFE)) > 0)) {
-                undo_move<is_white>();
-                continue;
+            if constexpr (node_type != NodeType::PV) {
+                uint8_t mt = score.movetype();
+                int margin = Parameters::FUTILITY_PRUNING_MARGIN;
+                if (depth <= 4 && !king_checked && !enemy_king_checked && (standing_pat + margin * depth <= alpha) &&
+                    ((mt & (MoveOrder::MoveScore::QUIET_SAFE | MoveOrder::MoveScore::QUIET_UNSAFE)) > 0)) {
+                    undo_move<is_white>();
+                    continue;
+                }
             }
 
             constexpr NodeType child_node = node_type == NodeType::CUT ? NodeType::ALL : NodeType::CUT;
