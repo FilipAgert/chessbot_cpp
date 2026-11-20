@@ -33,7 +33,7 @@ struct MoveScore {
     static constexpr uint8_t KILLER = 0b00010000;
     static constexpr uint8_t QUIET_SAFE = 0b00001000;
     static constexpr uint8_t SEE_BAD = 0b00000100;
-    static constexpr uint8_t QUIET_UNSAFE = 0b00000000;
+    static constexpr uint8_t QUIET_UNSAFE = 0b00000001;
 
     MoveScore(int16_t score, uint8_t movetype) : key((uint32_t(movetype) << 16) | uint16_t(score ^ 0x8000)) {}
     MoveScore() : key(0) {}
