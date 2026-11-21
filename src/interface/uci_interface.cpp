@@ -94,6 +94,7 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
     if (debug_mode)
         UCIInterface::uci_response("Processing go command: " + command);
     int wtime, btime, winc, binc;
+    std::optional<int> movetime = std::nullopt;
     std::optional<int> depth;
     wtime = btime = STANDARD_TIME;
     winc = binc = STANDARD_TINC;
@@ -161,6 +162,12 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
                         winc = oint.value();
                         idx++;
                     }
+
+                } else if (token == "movetime") {
+                    movetime = Utils::try_process_int(parts[idx + 1]);
+                    if (!movetime) {
+                        throw std::runtime_error("Got token movetime but could not process time.");
+                    }
                 } else if (token == "infinite") {
                     NotImplemented("Infinite time control is not implemented yet"); // TODO: Implement.
                 } else if (token == "ponder") {
@@ -170,7 +177,7 @@ void UCIInterface::process_go_command(std::string command, bool assign_worker) {
             }
         }
     }
-    TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc, .ponder = ponder});
+    TimeControl rem_time = TimeControl({.wtime = wtime, .btime = btime, .winc = winc, .binc = binc, .ponder = ponder, .movetime = movetime});
     engine.start_thinking(rem_time, depth, rem_time.ponder, assign_worker); // Enter ponder loop
     // UCIInterface::send_info_if_has();
     // UCIInterface::send_bestmove();

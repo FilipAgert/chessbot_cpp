@@ -9,6 +9,7 @@ using namespace std::chrono;
 struct TimeControl {
     int wtime, btime, winc, binc;
     bool ponder = false;
+    std::optional<int> movetime; // for hardcoding a time. if set, will think for this long.
 };
 struct TimeSettings {
     int buffer;

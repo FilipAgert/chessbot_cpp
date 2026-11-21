@@ -122,7 +122,7 @@ void TimeManager::init_search(TimeControl limits, bool is_white) {
     pondering = limits.ponder;
 
     if (!pondering)
-        start_clock({});
+        start_clock(limits.movetime);
 }
 
 void TimeManager::reset() {
