@@ -19,7 +19,7 @@ ARGPARSE_DIR := $(LIBRARIES)/ArgParse
 ARGPARSE_URL := https://raw.githubusercontent.com/p-ranav/argparse/refs/heads/master/include/argparse/argparse.hpp
 
 # ---------- build type ----------
-type ?= dev
+BUILD_TYPE ?= dev
 PGO_DIR  := build/pgo
 PROFRAW  := $(PGO_DIR)/default.profraw
 PROFDATA := $(PGO_DIR)/default.profdata
@@ -36,18 +36,18 @@ else
   $(error Invalid pgo '$(pgo)'. Must be none, generate, or use)
 endif
 
-ifeq ($(type),release)
+ifeq ($(BUILD_TYPE),release)
   FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -fopenmp $(PGO_FLAGS)
 else ifeq ($(BUILD_TYPE),PGO)
   FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -fopenmp -fprofile-generate=$(PROFRAW)
-else ifeq ($(type),dev)
+else ifeq ($(BUILD_TYPE),dev)
   FLAGS := -DDEBUG -g -Wall -std=c++23 -O2 -march=native -fsanitize=address
-else ifeq ($(type),debug)
+else ifeq ($(BUILD_TYPE),debug)
   FLAGS := -DDEBUG -g -Wall -std=c++23 -O0 -march=native -fsanitize=address
-else ifeq ($(type),profile)
+else ifeq ($(BUILD_TYPE),profile)
    FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -g -fno-omit-frame-pointer -fno-optimize-sibling-calls
 else
-  $(error Invalid type '$(type)'. Must be release, pgo, dev, debug or profile)
+  $(error Invalid type '$(BUILD_TYPE)'. Must be release, pgo, dev, debug or profile)
 endif
 
 # Binary name suffix: none for release/pgo, _<type> for everything else
@@ -59,9 +59,9 @@ endif
 
 # Separate object dir per build type, so switching type never mixes objects
 ifeq ($(pgo),none)
-  DOBJ := build/$(type)
+  DOBJ := build/$(BUILD_TYPE)
 else
-  DOBJ := build/$(type)-$(pgo)
+  DOBJ := build/$(BUILD_TYPE)-$(pgo)
 endif
 
 # ---------- parallelism ----------
