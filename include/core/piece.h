@@ -74,6 +74,8 @@ struct Piece {
     static char char_from_val(uint8_t value) { return all_piece_symbols[value]; }
     static uint8_t piece_col_from_char(char c);
     static uint8_t piece_type_from_char(char c);
+    static uint8_t piece_type_from_str(std::string s);
+    static std::string str_from_piece_type(uint8_t p);
     inline static bool are_colors_equal(const Piece color1, const Piece color2) {
         return (color1.value & pieces::color_mask) == (color2.value & pieces::color_mask);
     }

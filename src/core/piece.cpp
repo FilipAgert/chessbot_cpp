@@ -1,6 +1,7 @@
 // Copyright 2025 Filip Agert
 #include "core/piece.h"
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 using namespace pieces;
 const std::string Piece::white_pieces = "KQRNBP";
@@ -28,6 +29,36 @@ uint8_t Piece::piece_col_from_char(char c) {
     return none; // Return none if the character is not a valid Piece
 }
 
+std::string Piece::str_from_piece_type(uint8_t p) {
+    if (p == king)
+        return "king";
+    if (p == queen)
+        return "queen";
+    if (p == rook)
+        return "rook";
+    if (p == knight)
+        return "knight";
+    if (p == pawn)
+        return "pawn";
+    if (p == bishop)
+        return "bishop";
+    throw std::runtime_error("Invalid piece type.");
+}
+uint8_t Piece::piece_type_from_str(std::string s) {
+    if (s == "king")
+        return king;
+    if (s == "queen")
+        return queen;
+    if (s == "rook")
+        return rook;
+    if (s == "knight")
+        return knight;
+    if (s == "bishop")
+        return bishop;
+    if (s == "pawn")
+        return pawn;
+    return none;
+}
 uint8_t Piece::piece_type_from_char(char c) {
     if (c == 'K' || c == 'k') {
         return king;

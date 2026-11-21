@@ -6,13 +6,7 @@
 
 namespace Texel {
 pagmo::vector_double PagmoLossWrapper::fitness(const pagmo::vector_double &x) const {
-    Eval::HCE::EvalParameters params = p0;
-    std::vector<int> p(x.size());
-
-    for (size_t i = 0; i < x.size(); i++) {
-        p.at(i) = std::round(x.at(i));
-    }
-    params.from_vector(p);
+    Eval::HCE::EvalParameters params = param_creator->create_params(x);
     return {position_loss(params, fens, K, res)};
 }
 } // namespace Texel

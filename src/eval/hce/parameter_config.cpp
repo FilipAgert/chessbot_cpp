@@ -36,14 +36,11 @@ void ParameterConfig::load(const std::string &filename) {
         p.passed_dist_to_promotion.at(i + 1) = distances[i];
     }
 
+#define ASSIGN_SCALAR_PARAM(name) p.name = scalars.value(#name, 0);
+
     // scalar parameter loading
     auto scalars = j.value("scalars", json::object());
-    p.bishop_double_bonus = scalars.value("bishop_double_bonus", 48);
-    p.king_dist = scalars.value("king_dist", -11);
-    p.doubled_pawn_punishment = scalars.value("doubled_pawn_punishment", -9);
-    p.solo_pawn_punishment = scalars.value("solo_pawn_punishment", -8);
-    p.king_pawn_proximity_score = scalars.value("king_pawn_proximity_score", 26);
-    p.king_attacked_square_score = scalars.value("king_attacked_square_score", -1);
+    EVAL_SCALAR_PARAMS(ASSIGN_SCALAR_PARAM);
 
     // piece square table loading
     auto pst = j.value("piece_square_tables", json::object());
@@ -63,6 +60,55 @@ void ParameterConfig::load(const std::string &filename) {
             std::cerr << "error parsing stage: " << stage << std::endl;
     }
     params = p;
+}
+
+void ParameterConfig::save(const std::string &filename, const json &stats) const {
+
+    json j;
+
+    // Piece values
+    j["piecevals"] = {{"king", params.piecevals[pieces::king]},     {"queen", params.piecevals[pieces::queen]},   {"rook", params.piecevals[pieces::rook]},
+                      {"bishop", params.piecevals[pieces::bishop]}, {"knight", params.piecevals[pieces::knight]}, {"pawn", params.piecevals[pieces::pawn]}};
+
+    // Move values
+    j["movevals"] = {{"king", params.movevals[pieces::king]},     {"queen", params.movevals[pieces::queen]},   {"rook", params.movevals[pieces::rook]},
+                     {"bishop", params.movevals[pieces::bishop]}, {"knight", params.movevals[pieces::knight]}, {"pawn", params.movevals[pieces::pawn]}};
+
+    // Passed pawn distances
+    std::array<int, 6> distances;
+
+    for (size_t i = 0; i < 6; i++)
+        distances[i] = params.passed_dist_to_promotion.at(i + 1);
+
+    j["passed_dist_to_promotion"] = distances;
+
+    // Scalar parameters
+    json scalars = json::object();
+
+#define SAVE_SCALAR_PARAM(name) scalars[#name] = params.name;
+
+    EVAL_SCALAR_PARAMS(SAVE_SCALAR_PARAM);
+
+#undef SAVE_SCALAR_PARAM
+
+    j["scalars"] = scalars;
+
+    // Piece-square tables
+    // See the note below about accessing the PST parameter vectors.
+
+    // Optimization metadata
+    j["stats"] = stats;
+
+    // Write JSON
+    std::ofstream file(filename);
+
+    if (!file.is_open())
+        throw std::runtime_error("Could not open parameter file for writing: " + filename);
+
+    file << j.dump(4) << '\n';
+
+    if (!file.good())
+        throw std::runtime_error("Error writing parameter file: " + filename);
 }
 
 } // namespace Eval::HCE

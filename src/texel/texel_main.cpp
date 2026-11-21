@@ -1,9 +1,12 @@
+#include "core/board.h"
 #include "eval/hce/parameter_config.h"
 #include "texel/core.h"
 #include "texel/eigen_defs.h"
 #include "texel/eval_pos.h"
+#include "texel/hce_create_params.h"
 #include "texel/input_reader.h"
 #include "texel/pagmo_fitness.h"
+#include "tuning_config.h"
 #include "utils/config.h"
 #include <argparse/argparse.hpp>
 #include <iostream>
@@ -52,8 +55,9 @@ int main(int argc, char *argv[]) {
     parser.add_argument("--batch_gens").help("Generations per batch before checking validation.").default_value(50).scan<'i', int>();
     parser.add_argument("--patience").help("Stop after N batches without validation improvement.").default_value(2).scan<'i', int>();
     parser.add_argument("--max_gens").help("Maximum total generations.").default_value(10000).scan<'i', int>();
-    parsre.add_argument("--param_file").help("Default parameters to adjust from.").default_value("input/parameters.json");
-
+    parser.add_argument("--param_file").help("Default parameters to adjust from.");
+    parser.add_argument("--param_config_file").help("Contains settings per parameter");
+    parser.add_argument("--save").help("File to save into").default_value("results/tuning/best.json");
     try {
         parser.parse_args(argc, argv);
     } catch (const std::exception &err) {
@@ -72,8 +76,11 @@ int main(int argc, char *argv[]) {
     int batch_gens = parser.get<int>("--batch_gens");
     int patience = parser.get<int>("--patience");
     int max_gens = parser.get<int>("--max_gens");
-    std::string param_file = praser.get<std::string>("--param_file");
 
+    auto cpu_start = std::clock();
+    std::string param_file = parser.get<std::string>("--param_file");
+    std::string param_config_file = parser.get<std::string>("--param_config_file");
+    std::string outfile = parser.get<std::string>("--save");
     // Load dataset
     std::vector<Position> positions = read_dataset(path, {nload});
 
@@ -135,37 +142,34 @@ int main(int argc, char *argv[]) {
     // Initial parameters
     Eval::HCE::ParameterConfig config(param_file);
     Eval::HCE::EvalParameters p0 = config.params;
+    Texel::TuningConfig tuning_config(param_config_file);
+    Texel::HCEParameterCreator param_creator(p0, tuning_config);
 
-    int num_params = p0.num_params();
-    std::vector<bool> is_float(num_params, false);
+    pagmo::vector_double x0 = param_creator.get_initial_guess();
+    int num_params = x0.size();
 
-    auto create_params = [is_float, p0](const pagmo::vector_double &x) {
-        Eval::HCE::EvalParameters params;
-        std::vector<int> p(x.size());
+    PagmoLossWrapper training(training_fens, K, training_results, param_creator);
+    PagmoLossWrapper validation(validation_fens, K, validation_results, param_creator);
 
-        for (size_t i = 0; i < x.size(); i++) {
-            p.at(i) = round_if_int(x.at(i), is_float[i]);
-        }
-        params.from_vector(p);
-        return params;
-    };
-
-    pagmo::vector_double x0(num_params);
-    std::vector<int> params = p0.to_vector();
-    for (size_t i = 0; i < x0.size(); i++) {
-        x0[i] = params[i];
-    }
-
-    PagmoLossWrapper training(training_fens, K, training_results, p0);
-    PagmoLossWrapper validation(validation_fens, K, validation_results, p0);
-
+    double training_loss_before = training.fitness(x0)[0];
     double validation_loss_before = validation.fitness(x0)[0];
 
-    std::cout << "\n\nNow minimizing parameters" << std::endl;
-    std::cout << "Initial parameters:\n" << p0.to_string() << std::endl;
+    std::cout << "\n\nNow minimizing " << num_params << " parameters\n" << std::endl;
+    auto it = x0.begin();
+    for (auto param : tuning_config.get_parameter_order()) {
+        if (!param.bounds.enabled)
+            continue;
+        std::cout << param.name << "(" << param.count << ") [" << param.bounds.lower << " " << param.bounds.upper << "]: [";
+        for (size_t i = 0; i < param.count; i++) {
+            std::cout << *it++ << (i < param.count - 1 ? ", " : "]\n");
+        }
+    }
+    std::cout << '\n' << std::endl;
     std::cout << "Validation loss pre fit: " << validation_loss_before << std::endl;
     pagmo::problem prob{training};
-    pagmo::population pop{prob, 100, 42};
+    const int pop_size = 100;
+    const int seed = 42;
+    pagmo::population pop{prob, pop_size, seed};
 
     // Seed the population with your initial parameters x0
     pop.set_x(0, x0);
@@ -217,17 +221,76 @@ int main(int argc, char *argv[]) {
     } else {
         std::cout << "\nReached max generations (" << max_gens << ").\n";
     }
+    Eval::HCE::EvalParameters best = param_creator.create_params(best_x);
+    std::cout << best.to_string() << std::endl;
+    it = best_x.begin();
+    for (auto param : tuning_config.get_parameter_order()) {
+        if (!param.bounds.enabled)
+            continue;
+        std::cout << param.name << "(" << param.count << ") [" << param.bounds.lower << " " << param.bounds.upper << "]: [";
+        for (size_t i = 0; i < param.count; i++) {
+            std::cout << *it++ << (i < param.count - 1 ? ", " : "]\n");
+        }
+    }
 
-    // Convert best_x back to your parameter structure
-    Eval::HCE::EvalParameters optimized_params = create_params(best_x);
+    // Current date
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+
+    std::ostringstream date_stream;
+    date_stream << std::put_time(local_time, "%Y-%m-%d");
+
+    // CPU time (not wall time)
+    double cpu_time = static_cast<double>(std::clock() - cpu_start) / CLOCKS_PER_SEC;
+
+    // Optimization metadata
+    nlohmann::json stats = {{"date", date_stream.str()},
+
+                            {"training_loss", {{"before", training_loss_before}, {"after", best_train_loss}}},
+
+                            {"validation_loss", {{"before", validation_loss_before}, {"after", best_val_loss}}},
+
+                            {"cpu_time_seconds", cpu_time},
+
+                            {"dataset", path},
+
+                            {"training_points", training_count},
+                            {"validation_points", validation_fens.size()},
+
+                            // Input settings
+                            {"settings",
+                             {{"objective", objective},
+                              {"method", method},
+
+                              {"nload_requested", nload},
+                              {"nvalidation_requested", nvalidation},
+
+                              {"prior_offset", prior_offset},
+                              {"prior_relunc", prior_relunc},
+
+                              {"batch_gens", batch_gens},
+                              {"patience", patience},
+                              {"max_gens", max_gens},
+                              {"generations_run", total_gens},
+
+                              {"param_file", param_file},
+                              {"param_config_file", param_config_file},
+
+                              {"population_size", pop_size},
+                              {"seed", seed}}}};
 
     std::cout << "\nOptimization complete!" << std::endl;
     std::cout << "Best training loss:      " << best_train_loss << std::endl;
     std::cout << "Validation loss before:  " << validation_loss_before << std::endl;
     std::cout << "Best validation loss:    " << best_val_loss << std::endl;
+    std::cout << "CPU time:                " << cpu_time << " seconds" << std::endl;
 
-    std::cout << "Optimized parameters:\n" << optimized_params.to_string() << std::endl;
     std::cout << "\n=============================\n";
+
+    config.params = best;
+    config.save(outfile, stats);
+
+    std::cout << "Saved parameters to " << outfile << std::endl;
 
     return 0;
 }

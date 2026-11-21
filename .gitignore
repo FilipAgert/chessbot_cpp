@@ -51,3 +51,5 @@ batch_pgn_to_fen.sh
 
 config.json
 tools/bench/performance_scoreboard.json
+input/parameters_bounds.json
+input/*.json
