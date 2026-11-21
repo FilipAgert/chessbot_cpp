@@ -18,8 +18,25 @@ EIGEN_URL := https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.g
 ARGPARSE_DIR := $(LIBRARIES)/ArgParse
 ARGPARSE_URL := https://raw.githubusercontent.com/p-ranav/argparse/refs/heads/master/include/argparse/argparse.hpp
 
+# ---------- PaGMO ----------
+PAGMO_DIR     := $(LIBRARIES)/pagmo
+PAGMO_SRC     := $(PAGMO_DIR)/src
+PAGMO_BUILD   := $(PAGMO_DIR)/build
+PAGMO_INSTALL := $(PAGMO_DIR)/install
+PAGMO_STAMP   := $(PAGMO_INSTALL)/.installed
+
+PAGMO_URL := https://github.com/esa/pagmo2.git
+
+PAGMO_INCLUDE := $(PAGMO_INSTALL)/include
+PAGMO_LIB_DIR := $(PAGMO_INSTALL)/lib
+PAGMO_LIBS    := -L$(PAGMO_LIB_DIR) -Wl,-rpath,$(abspath $(PAGMO_LIB_DIR)) -lpagmo
+
 # ---------- build type ----------
+<<<<<<< HEAD
 BUILD_TYPE ?= dev
+=======
+BUILD_TYPE ?= Dev
+>>>>>>> tuning
 PGO_DIR  := build/pgo
 PROFRAW  := $(PGO_DIR)/default.profraw
 PROFDATA := $(PGO_DIR)/default.profdata
@@ -47,7 +64,11 @@ else ifeq ($(BUILD_TYPE),Debug)
 else ifeq ($(BUILD_TYPE),Profile)
    FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -g -fno-omit-frame-pointer -fno-optimize-sibling-calls
 else
+<<<<<<< HEAD
   $(error Invalid type '$(BUILD_TYPE)'. Must be Release, PGO, Dev, Debug or Profile)
+=======
+  $(error Invalid build type '$(BUILD_TYPE)'. Must be Release, pgo, Dev, Debug or Profile)
+>>>>>>> tuning
 endif
 
 # Binary name suffix: none for release/pgo, _<type> for everything else
@@ -101,8 +122,13 @@ TEST_OBJ  := $(call to_obj,$(TEST_SRC))
 ALL_OBJ := $(CORE_OBJ) $(MAIN_OBJ) $(MAGIC_OBJ) $(TEXEL_OBJ) $(TEST_OBJ)
 
 # add eigen include only to texel objects.
-$(TEXEL_OBJ): CPPFLAGS += -I$(EIGEN_DIR) -I$(ARGPARSE_DIR) -fpermissive
-$(TEXEL_OBJ): | $(EIGEN_DIR) $(ARGPARSE_DIR)
+$(TEXEL_OBJ): CPPFLAGS += \
+	-I$(EIGEN_DIR) \
+	-I$(ARGPARSE_DIR) \
+	-I$(PAGMO_INCLUDE) \
+	-fpermissive
+
+$(TEXEL_OBJ): | $(EIGEN_DIR) $(ARGPARSE_DIR) $(PAGMO_STAMP)
 
 $(EIGEN_DIR):
 	@echo "Downloading Eigen header-only library..."
@@ -131,6 +157,37 @@ $(ARGPARSE_DIR):
 	fi
 	@echo "Argparse downloaded successfully."
 
+# ---------- PaGMO installation ----------
+
+$(PAGMO_SRC)/CMakeLists.txt:
+	@echo "Downloading PaGMO..."
+	@mkdir -p $(PAGMO_DIR)
+	git clone --depth 1 $(PAGMO_URL) $(PAGMO_SRC)
+	@echo "PaGMO downloaded successfully."
+
+$(PAGMO_STAMP): $(PAGMO_SRC)/CMakeLists.txt
+	@echo "Building PaGMO..."
+
+	cmake -S $(PAGMO_SRC) -B $(PAGMO_BUILD) \
+		-DCMAKE_CXX_COMPILER=$(CXX) \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=$(abspath $(PAGMO_INSTALL)) \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DPAGMO_BUILD_TESTS=OFF \
+		-DPAGMO_BUILD_TUTORIALS=OFF \
+		-DPAGMO_WITH_EIGEN3=ON \
+		-DPAGMO_WITH_NLOPT=OFF \
+		-DPAGMO_WITH_IPOPT=OFF
+
+	cmake --build $(PAGMO_BUILD) --parallel 2
+	cmake --install $(PAGMO_BUILD)
+
+	@touch $(PAGMO_STAMP)
+	@echo "PaGMO installed successfully."
+
+.PHONY: pagmo
+pagmo: $(PAGMO_STAMP)
+
 # ---------- targets ----------
 .PHONY: all test runtest magic tune run clean FORCE pgo
 
@@ -143,8 +200,8 @@ $(DOBJ)/$(EXE): $(CORE_OBJ) $(MAIN_OBJ)
 $(DOBJ)/$(MAGIC_EXE): $(CORE_OBJ) $(MAGIC_OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(DOBJ)/$(TEXEL_EXE): $(CORE_OBJ) $(TEXEL_OBJ)
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(DOBJ)/$(TEXEL_EXE): $(CORE_OBJ) $(TEXEL_OBJ) | $(PAGMO_STAMP)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS) $(PAGMO_LIBS)
 
 $(DOBJ)/$(TEST_EXE): $(CORE_OBJ) $(TEST_OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)

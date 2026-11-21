@@ -1,12 +1,13 @@
 #pragma once
-#include "eval.h"
+#include "eval/hce/parameters.h"
 #include "texel/core.h"
 #include "texel/eigen_defs.h"
 #include <cmath>
 #include <vector>
 namespace Texel {
 
-dvec eval_positions(const EvalParameters &params, const std::vector<std::string> &fens, float K);
+double position_loss(const Eval::HCE::EvalParameters &params, const std::vector<std::string> &fens, float K, const dvec &res);
+dvec eval_positions(const Eval::HCE::EvalParameters &params, const std::vector<std::string> &fens, float K);
 
 constexpr double BASE_K = 1.0;
 inline double sigmoid(int eval, double K = BASE_K) {
@@ -23,4 +24,4 @@ inline double to_win(Result res) { return (static_cast<int>(res) + 1) * 0.5; }
  * @return float
  */
 double loss(const dvec &res, const dvec &pred);
-}  // namespace Texel
+} // namespace Texel

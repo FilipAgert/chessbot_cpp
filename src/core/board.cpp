@@ -375,9 +375,10 @@ bool Board::read_fen(const std::string &FEN) {
     // Fullmove number
     std::optional<int> opt_full = Utils::try_process_int(movePart);
     if (!opt_full) {
-        throw std::runtime_error("Could not process full_moves");
+        full_moves = 0;
+    } else {
+        full_moves = opt_full.value();
     }
-    full_moves = opt_full.value();
 
     // ----------------------------
     // 3. Store results in state

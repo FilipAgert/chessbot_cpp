@@ -8,29 +8,28 @@ namespace Eval::HCE {
 // contains all parameters needed to evaluate board
 namespace DefaultVals {
 constexpr int king = 200000;
-constexpr int pawn = 100;
-constexpr int knight = 290;
-constexpr int bishop = 300;
-constexpr int rook = 500;
-constexpr int queen = 900;
+constexpr int pawn = 130;
+constexpr int knight = 336;
+constexpr int bishop = 350;
+constexpr int rook = 570;
+constexpr int queen = 1009;
 
-constexpr int inv_frac = 10; // Fraction of extra value piece is worth extra from having more spaces to move to.
-constexpr int pawn_moveval = 0;
-constexpr int knight_moveval = knight / (8 * inv_frac);
-constexpr int bishop_moveval = bishop / (14 * inv_frac);
-constexpr int rook_moveval = rook / (14 * inv_frac);
-constexpr int queen_moveval = 0;
-constexpr int king_moveval = -6;
+constexpr int king_moveval = -5;
+constexpr int queen_moveval = 12;
+constexpr int rook_moveval = 21;
+constexpr int knight_moveval = 12;
+constexpr int bishop_moveval = 9;
+constexpr int pawn_moveval = 11;
 
-constexpr int bishop_double_bonus = 25;
+constexpr int bishop_double_bonus = 48;
 constexpr int king_dist =
-    10; // This more or less corresponds to maximum value of king distance score in late game. (8cp/sq at full lategame with maximum material advantage.)
-constexpr int doubled_pawn_punishment = -15;
-constexpr int solo_pawn_punishment = -15;
+    -11; // This more or less corresponds to maximum value of king distance score in late game. (8cp/sq at full lategame with maximum material advantage.)
+constexpr int doubled_pawn_punishment = -9;
+constexpr int solo_pawn_punishment = -8;
 
 // king safety
-constexpr int king_pawn_proximity_score = 10;   // 10 per pawn in front of king.
-constexpr int king_attacked_square_score = -15; // -15 per attacked square near the king.
+constexpr int king_pawn_proximity_score = 26;  // 10 per pawn in front of king.
+constexpr int king_attacked_square_score = -1; // -15 per attacked square near the king.
 } // namespace DefaultVals
 
 #define EVAL_SCALAR_PARAMS(X)                                                                                                                                  \
@@ -57,7 +56,7 @@ struct EvalParameters {
                                          DefaultVals::pawn_moveval};
     std::array<PieceSquareTable, num_pieces> psts;
     std::array<std::optional<PieceSquareTable>, num_pieces> psts_endgame;
-    std::array<int, 7> passed_dist_to_promotion = {0, 80, 60, 40, 30, 10, 10};
+    std::array<int, 7> passed_dist_to_promotion = {0, 107, 86, 62, 26, -3, -6};
 
     void set_pst(Piece_t p, Symmetry s, std::vector<int> params) {
         assert(p > 0 && p < num_pieces);
