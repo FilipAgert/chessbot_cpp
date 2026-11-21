@@ -36,18 +36,18 @@ else
   $(error Invalid pgo '$(pgo)'. Must be none, generate, or use)
 endif
 
-ifeq ($(BUILD_TYPE),release)
+ifeq ($(BUILD_TYPE),Release)
   FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -fopenmp $(PGO_FLAGS)
 else ifeq ($(BUILD_TYPE),PGO)
   FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -fopenmp -fprofile-generate=$(PROFRAW)
-else ifeq ($(BUILD_TYPE),dev)
+else ifeq ($(BUILD_TYPE),Dev)
   FLAGS := -DDEBUG -g -Wall -std=c++23 -O2 -march=native -fsanitize=address
-else ifeq ($(BUILD_TYPE),debug)
+else ifeq ($(BUILD_TYPE),Debug)
   FLAGS := -DDEBUG -g -Wall -std=c++23 -O0 -march=native -fsanitize=address
-else ifeq ($(BUILD_TYPE),profile)
+else ifeq ($(BUILD_TYPE),Profile)
    FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -g -fno-omit-frame-pointer -fno-optimize-sibling-calls
 else
-  $(error Invalid type '$(BUILD_TYPE)'. Must be release, pgo, dev, debug or profile)
+  $(error Invalid type '$(BUILD_TYPE)'. Must be Release, PGO, Dev, Debug or Profile)
 endif
 
 # Binary name suffix: none for release/pgo, _<type> for everything else
