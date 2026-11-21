@@ -137,6 +137,8 @@ If stockfish is not installed, you can modify ```bisect.py``` to replace stockfi
 
 The bisect.py and most of the unit tests were generated mainly with clankers. The src code is not.
 
+The texel tuning part ```src/texel``` & the json read/writer in ```src/eval/hce/parameter_config.cpp``` are also written with ai.
+
 ## Feature list
 
 - Time management on another thread.
