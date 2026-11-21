@@ -7,8 +7,6 @@ namespace Eval::HCE {
 enum class Symmetry : unsigned { None = 0, EW = 1, NS = 2, EWNS = 3, PIZZA };
 std::string symmetry_name(Symmetry s);
 Symmetry symmetry_from_name(std::string s);
-extern const std::array<std::pair<std::vector<int>, Symmetry>, 7> psq_parameters_base;
-extern const std::array<std::optional<std::pair<std::vector<int>, Symmetry>>, 7> psq_parameters_base_endgame;
 struct PieceSquareTable {
     PieceSquareTable() { set(Symmetry::None, pieces::none, std::vector<int>(64, 0)); }
     /**
