@@ -16,6 +16,17 @@ std::optional<int> moves_to_mate(int score) {
         return {};
     }
 }
+template <bool is_white> bool side_cannot_win(const Board &board) {
+    int num_pieces = board.get_num_pieces<is_white>();
+    if (num_pieces > 2)
+        return false; // can win
+
+    if (num_pieces == 1)
+        return true; // with king only
+
+    return (board.get_piece_bb<pieces::bishop, is_white>() | board.get_piece_bb<pieces::knight, is_white>()) > 0;
+    // if our only piece is a knight or a bishop, we cannot mate.
+}
 bool insufficient_mating_material(const Board &board) {
     int black_num_pieces = board.get_num_pieces<false>();
     int white_num_pieces = board.get_num_pieces<true>();
@@ -46,4 +57,7 @@ bool insufficient_mating_material(const Board &board) {
         return (board.get_piece_bb<pieces::bishop, true>() | board.get_piece_bb<pieces::knight, true>()) > 0;
     }
 }
+
+template bool side_cannot_win<true>(const Board &board);
+template bool side_cannot_win<false>(const Board &board);
 } // namespace Eval

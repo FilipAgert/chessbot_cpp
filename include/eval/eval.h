@@ -40,6 +40,7 @@ std::optional<int> moves_to_mate(int score);
  */
 bool insufficient_mating_material(const Board &board);
 
+template <bool is_white> bool side_cannot_win(const Board &board);
 template <bool is_white> bool can_zugzwang(const Board &board) {
     return board.occupancy<is_white>() == (board.get_piece_bb<pieces::king, is_white>() | board.get_piece_bb<pieces::pawn, is_white>());
 }

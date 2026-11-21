@@ -1,6 +1,8 @@
 #include "eval/hce/hceval.h"
+#include "eval.h"
 #include "eval/hce/utils.h"
 #include <algorithm>
+#include <cmath>
 namespace Eval::HCE {
 HCEval::HCEval(EvalParameters params_) : params(params_) {}
 
@@ -22,6 +24,13 @@ int HCEval::evaluate(const Board &board) {
     score += eval_king_safety(board, phase);
     score += eval_king_distance(board, mat_diff, phase);
     score += eval_pawn_structure(board);
+
+    if (side_cannot_win<true>(board)) {
+        score = std::min(score, 0);
+    }
+
+    if (side_cannot_win<false>(board))
+        score = std::max(score, 0);
 
     int color_fac = 1 - 2 * (board.get_turn_color() == pieces::black);
     return score * color_fac;
