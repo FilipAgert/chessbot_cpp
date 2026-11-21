@@ -9,12 +9,13 @@ TEST(TimeManagerTest, ontime) {
     int timeinc = 50;
     int remtime_frac = 20;
     TimeControl rem_time = TimeControl(remtime, remtime, timeinc, timeinc);
-    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true, true);
+    TimeSettings settings{buffer, remtime_frac};
+    TimeManager manager = TimeManager(settings);
     auto start = std::chrono::high_resolution_clock::now();
     int target = remtime / remtime_frac + timeinc - buffer; // Here is where we want to go.
 
     auto sleeptime = 1ms;
-    manager.start_time_management();
+    manager.init_search(rem_time, true);
     for (int i = 0; i < target; i++) {
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
@@ -40,10 +41,11 @@ TEST(TimeManagerTest, thread_stop_test) {
     int timeinc = 50;
     int remtime_frac = 20;
     TimeControl rem_time = TimeControl(remtime, timeinc, remtime, timeinc);
-    TimeManager manager = TimeManager(rem_time, buffer, remtime_frac, true, true);
+    TimeSettings settings{buffer, remtime_frac};
+    TimeManager manager = TimeManager(settings);
 
     auto start = std::chrono::high_resolution_clock::now();
-    manager.start_time_management();
+    manager.init_search(rem_time, true);
     manager.stop_and_join();
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
