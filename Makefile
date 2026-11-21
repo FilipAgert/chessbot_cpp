@@ -38,7 +38,7 @@ endif
 
 ifeq ($(type),release)
   FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -fopenmp $(PGO_FLAGS)
-else ifeq ($(type),pgo)
+else ifeq ($(BUILD_TYPE),PGO)
   FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -fopenmp -fprofile-generate=$(PROFRAW)
 else ifeq ($(type),dev)
   FLAGS := -DDEBUG -g -Wall -std=c++23 -O2 -march=native -fsanitize=address
@@ -51,8 +51,8 @@ else
 endif
 
 # Binary name suffix: none for release/pgo, _<type> for everything else
-ifeq ($(filter $(type),release pgo),)
-  SUFFIX := _$(type)
+ifeq ($(filter $(BUILD_TYPE),Release PGO),)
+  SUFFIX := _$(BUILD_TYPE)
 else
   SUFFIX :=
 endif
@@ -169,13 +169,13 @@ pgo:
 	@test -n "$(PROFTOOL)" || { echo "Error: llvm-profdata not found." >&2; exit 1; }
 	@echo "=== [1/4] Building instrumented binary ==="
 	@rm -rf $(PGO_DIR) build/release-use
-	@$(MAKE) type=pgo all
+	@$(MAKE) BUILD_TYPE=PGO all
 	@echo "=== [2/4] Running self-play workload to collect profile ==="
 	@printf "position startpos\nself 200\nquit\n" | LLVM_PROFILE_FILE="$(PGO_DIR)/default_%p.profraw" ./$(DEXE)/$(EXE) > /dev/null
 	@echo "=== [3/4] Merging raw profile data ==="
 	@$(PROFTOOL) merge -output=$(PROFDATA) $(PGO_DIR)/*.profraw
 	@echo "=== [4/4] Recompiling optimized release binary ==="
-	@$(MAKE) type=release pgo=use all
+	@$(MAKE) BUILD_TYPE=Release pgo=use all
 	@echo "=== PGO Release build complete: $(DEXE)/$(EXE) ==="
 
 # ---------- convenience ----------
