@@ -18,29 +18,13 @@ Manage time better
 - If unstable search, extend
   PV changed or cp changed by > 20, extend time
 
-# Threads
-
-Low priority.
-
-- Multithreading for search (low prio)
-
 # Search
 
 High priority
 
 - Save move generation if possible. We can try to use TT or killer moves first - if legal.
     The savings may be negligble as the move generation is fairly quick.
-- Futility pruning <https://chessprogramming.org/Futility_Pruning>
-    Low priority.
-    Even in futility pruned, still search moves that check, captures.
-    Do not use when in check, or when alpha/beta is close to mate value.
-    Need to check that there exists a legal move.
-- Late move reductions (LMR) <https://chessprogramming.org/Late_Move_Reductions>
-    Implemented but needs tuning:
-  - Evaluation == 0 maybe can be removed
-  - i>=2 instead of 3
-  - killers get r-=1 instead of exclusion
-  
+
 ## Quiesence
 
 - Null move pruning?
@@ -66,6 +50,13 @@ High priority:
   - Open files near king bad
 
 Medium priority
+
+Make eval handle a loss of material better:
+If only opponent has material to win:
+clamp score in ]-inf, -1]
+this gives us incentive to draw.
+E.g. one game I saw we had knight vs pawn.
+We can never win, so its worth it to sack the knight for the pawn.
 
 - Replace eval by neural network.
 
