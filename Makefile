@@ -32,11 +32,7 @@ PAGMO_LIB_DIR := $(PAGMO_INSTALL)/lib
 PAGMO_LIBS    := -L$(PAGMO_LIB_DIR) -Wl,-rpath,$(abspath $(PAGMO_LIB_DIR)) -lpagmo
 
 # ---------- build type ----------
-<<<<<<< HEAD
-BUILD_TYPE ?= dev
-=======
 BUILD_TYPE ?= Dev
->>>>>>> tuning
 PGO_DIR  := build/pgo
 PROFRAW  := $(PGO_DIR)/default.profraw
 PROFDATA := $(PGO_DIR)/default.profdata
