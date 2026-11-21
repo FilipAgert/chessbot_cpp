@@ -39,15 +39,9 @@ git worktree add --detach "$WT" "$FULL_HASH" >&2
   cd "$WT"
   mkdir -p build bin
 
-  # Check if this revision's Makefile defines a 'pgo' target, then attempt PGO build
-  if grep -qE '^pgo:' Makefile && make -j1 BUILD_TYPE=Release all >&2; then
-      echo "Built $HASH with PGO." >&2
-  else
-      echo "PGO unavailable or failed for $HASH, falling back to standard release build..." >&2
-      rm -rf build bin
-      mkdir -p build bin
-      make -j1 BUILD_TYPE=Release all >&2
-  fi
+  rm -rf build bin
+  mkdir -p build bin
+  make -j1 BUILD_TYPE=Release all >&2
 
   cp bin/filipbot "$BIN"
 )

@@ -64,11 +64,7 @@ else ifeq ($(BUILD_TYPE),Debug)
 else ifeq ($(BUILD_TYPE),Profile)
    FLAGS := -Wall -std=c++23 -O3 -DNDEBUG -march=native -g -fno-omit-frame-pointer -fno-optimize-sibling-calls
 else
-<<<<<<< HEAD
-  $(error Invalid type '$(BUILD_TYPE)'. Must be Release, PGO, Dev, Debug or Profile)
-=======
   $(error Invalid build type '$(BUILD_TYPE)'. Must be Release, pgo, Dev, Debug or Profile)
->>>>>>> tuning
 endif
 
 # Binary name suffix: none for release/pgo, _<type> for everything else
