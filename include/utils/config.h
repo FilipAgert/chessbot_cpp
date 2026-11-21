@@ -6,6 +6,7 @@
 struct ConfigSettings {
     bool aspiration_enable = false;
     bool should_ponder = false;
+    std::string parameter_file = "input/parameters.json";
 };
 inline std::string const ID_name = "chiral_ebt";
 inline std::string const ID_author = "filipa";

@@ -9,7 +9,6 @@ namespace Eval::HCE {
 
 class HCEval : public Eval {
   public:
-    HCEval();
     HCEval(EvalParameters params);
 
     int evaluate(const Board &board) override;

@@ -18,6 +18,9 @@ EIGEN_URL := https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.g
 ARGPARSE_DIR := $(LIBRARIES)/ArgParse
 ARGPARSE_URL := https://raw.githubusercontent.com/p-ranav/argparse/refs/heads/master/include/argparse/argparse.hpp
 
+JSON_DIR := libraries/nlohmann
+JSON_URL := https://raw.githubusercontent.com/nlohmann/json/v3.12.0/single_include/nlohmann/json.hpp
+
 # ---------- PaGMO ----------
 PAGMO_DIR     := $(LIBRARIES)/pagmo
 PAGMO_SRC     := $(PAGMO_DIR)/src
@@ -88,7 +91,7 @@ PROFTOOL := $(shell \
     ls -1 /usr/lib/llvm-*/bin/llvm-profdata /usr/bin/llvm-profdata-* /opt/homebrew/opt/llvm/bin/llvm-profdata 2>/dev/null | sort -V | tail -n1 \
 )
 INC_DIRS := $(shell find $(DINC) -type d)
-CPPFLAGS := $(addprefix -I,$(INC_DIRS)) -MMD -MP
+CPPFLAGS := $(addprefix -I,$(INC_DIRS)) -MMD -MP -Ilibraries
 CXXFLAGS := $(FLAGS)
 LDFLAGS  := $(FLAGS)
 LIBS     := -lgtest -lgtest_main -pthread
@@ -112,7 +115,7 @@ TEXEL_OBJ := $(call to_obj,$(TEXEL_SRC))
 TEST_OBJ  := $(call to_obj,$(TEST_SRC))
 
 ALL_OBJ := $(CORE_OBJ) $(MAIN_OBJ) $(MAGIC_OBJ) $(TEXEL_OBJ) $(TEST_OBJ)
-
+$(ALL_OBJ): | $(JSON_DIR)/json.hpp
 # add eigen include only to texel objects.
 $(TEXEL_OBJ): CPPFLAGS += \
 	-I$(EIGEN_DIR) \
@@ -136,6 +139,11 @@ $(EIGEN_DIR):
 	@mv libraries/eigen-* $(EIGEN_DIR)
 	@rm libraries/eigen.tar.gz
 	@echo "Eigen downloaded successfully."
+
+$(JSON_DIR)/json.hpp:
+	@mkdir -p $(JSON_DIR)
+	@echo "Downloading nlohmann/json..."
+	@curl -L $(JSON_URL) -o $@
 
 $(ARGPARSE_DIR):
 	@echo "Downloading argparse library..."

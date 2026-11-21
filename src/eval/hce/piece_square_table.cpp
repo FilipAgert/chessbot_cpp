@@ -36,8 +36,19 @@ std::string symmetry_name(Symmetry s) {
     }
     return "none";
 }
+Symmetry symmetry_from_name(std::string s) {
+    if (s == "EW")
+        return Symmetry::EW;
+    if (s == "EWNS")
+        return Symmetry::EWNS;
+    if (s == "NS")
+        return Symmetry::NS;
+    if (s == "PIZZA")
+        return Symmetry::PIZZA;
+    return Symmetry::None;
+}
 // Piece square tables
-int PieceSquareTable::num_params(Symmetry s, Piece_t p) const {
+int PieceSquareTable::num_params(Symmetry s, Piece_t p) {
     if (s == Symmetry::None)
         return 64 - (p == pieces::pawn ? 16 : 0);
     if (s == Symmetry::EW || s == Symmetry::NS)

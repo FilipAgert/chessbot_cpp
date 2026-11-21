@@ -8,7 +8,7 @@ fastchess/
 opening_books/
 engines
 results
-*.json
+
 
 # Build folders
 bin/
@@ -48,3 +48,6 @@ libraries
 data
 batch_pgn_to_fen.sh
 .venv   
+
+config.json
+tools/bench/performance_scoreboard.json

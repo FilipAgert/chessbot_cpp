@@ -1,13 +1,16 @@
 // Copyright 2025 Filip Agert
 #include "eval/hce/hceval.h"
+#include "eval/hce/parameter_config.h"
 #include "interface/engine.h"
 #include "interface/uci_interface.h"
 #include "iostream"
+#include "parameter_config.h"
 #include "string"
 #include "thread"
 #include "utils/config.h"
 #include "utils/config_parser.h"
 #include <queue>
+#include <stdexcept>
 class ThreadSafeCommandQueue {
   private:
     std::queue<std::string> queue_;
@@ -29,16 +32,20 @@ class ThreadSafeCommandQueue {
 };
 
 int main(int argc, char *argv[]) {
-    std::string config_file = "input/input.cfg";
+    std::string config_file = "/home/filip/projects/chessbot_cpp/input/input.json";
     if (argc > 1) {
         config_file = argv[1];
     }
 
     ConfigParser parser;
-    parser.load(config_file);
-    ConfigSettings settings = parser.get_settings();
 
-    Eval::HCE::HCEval eval;
+    if (!parser.load(config_file)) {
+        throw std::runtime_error("Failed to load configuration");
+    }
+
+    ConfigSettings settings = parser.get_settings();
+    Eval::HCE::ParameterConfig config(settings.parameter_file);
+    Eval::HCE::HCEval eval(config.params);
     Engine engine(settings, eval);
     UCIInterface uci(engine);
 

@@ -3,7 +3,6 @@
 #include <algorithm>
 namespace Eval::HCE {
 HCEval::HCEval(EvalParameters params_) : params(params_) {}
-HCEval::HCEval() : params(EvalParameters()) {}
 
 const HCE::EvalParameters &HCEval::get_params() const { return params; }
 

@@ -1,19 +1,22 @@
-#ifndef CONFIG_PARSER_H
-#define CONFIG_PARSER_H
+#pragma once
+
 #include "utils/config.h"
-#include <map>
+#include <nlohmann/json.hpp>
 #include <string>
+
+using json = nlohmann::json;
+
 class ConfigParser {
   private:
-    // Structure: [Section] -> {Key: Value}
-    std::map<std::string, std::map<std::string, std::string>> data;
+    json data;
 
   public:
     bool load(const std::string &filename);
 
-    std::string read_string(const std::string &key);
-    int read_int(const std::string &key, int default_val = 0);
+    std::string read_string(const std::string &key, const std::string &default_val = "") const;
 
-    ConfigSettings get_settings();
+    int read_int(const std::string &key, int default_val) const;
+    bool read_bool(const std::string &key, bool default_val) const;
+
+    ConfigSettings get_settings() const;
 };
-#endif

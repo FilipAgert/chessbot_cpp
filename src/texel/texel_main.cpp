@@ -1,3 +1,4 @@
+#include "eval/hce/parameter_config.h"
 #include "texel/core.h"
 #include "texel/eigen_defs.h"
 #include "texel/eval_pos.h"
@@ -51,6 +52,7 @@ int main(int argc, char *argv[]) {
     parser.add_argument("--batch_gens").help("Generations per batch before checking validation.").default_value(50).scan<'i', int>();
     parser.add_argument("--patience").help("Stop after N batches without validation improvement.").default_value(2).scan<'i', int>();
     parser.add_argument("--max_gens").help("Maximum total generations.").default_value(10000).scan<'i', int>();
+    parsre.add_argument("--param_file").help("Default parameters to adjust from.").default_value("input/parameters.json");
 
     try {
         parser.parse_args(argc, argv);
@@ -70,6 +72,7 @@ int main(int argc, char *argv[]) {
     int batch_gens = parser.get<int>("--batch_gens");
     int patience = parser.get<int>("--patience");
     int max_gens = parser.get<int>("--max_gens");
+    std::string param_file = praser.get<std::string>("--param_file");
 
     // Load dataset
     std::vector<Position> positions = read_dataset(path, {nload});
@@ -130,7 +133,8 @@ int main(int argc, char *argv[]) {
     dvec validation_results = to_res(validation_res);
 
     // Initial parameters
-    Eval::HCE::EvalParameters p0;
+    Eval::HCE::ParameterConfig config(param_file);
+    Eval::HCE::EvalParameters p0 = config.params;
 
     int num_params = p0.num_params();
     std::vector<bool> is_float(num_params, false);

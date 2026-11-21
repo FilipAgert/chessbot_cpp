@@ -3,7 +3,7 @@
 namespace Eval::HCE {
 std::vector<int> EvalParameters::to_vector() const {
     std::vector<int> v;
-#define X(name, def) v.push_back(name);
+#define X(name) v.push_back(name);
     EVAL_SCALAR_PARAMS(X)
 #undef X
     for (size_t i = 1; i < passed_dist_to_promotion.size(); i++)
@@ -26,7 +26,7 @@ void EvalParameters::from_vector(const std::vector<int> &v) {
     if (v.size() != num_params())
         throw std::invalid_argument("EvalParameters::from_vector: wrong size");
     size_t i = 0;
-#define X(name, def) name = v[i++];
+#define X(name) name = v[i++];
     EVAL_SCALAR_PARAMS(X)
 #undef X
     for (size_t j = 1; j < passed_dist_to_promotion.size(); j++)
@@ -52,7 +52,7 @@ void EvalParameters::from_vector(const std::vector<int> &v) {
 size_t EvalParameters::num_params() const { return to_vector().size(); }
 std::string EvalParameters::to_string() const {
     std::ostringstream os;
-#define X(name, def) os << #name << " = " << name << "\n";
+#define X(name) os << #name << " = " << name << "\n";
     EVAL_SCALAR_PARAMS(X)
 #undef X
     auto dump = [&]<size_t N>(const char *label, const std::array<int, N> &a) {
