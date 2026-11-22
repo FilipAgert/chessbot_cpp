@@ -1,6 +1,7 @@
 #include "eval/hce/piece_square_table.h"
 #include "core/notation_interface.h"
 #include <sstream>
+#include <stdexcept>
 namespace Eval::HCE {
 
 void south_north_mirror(std::array<int, 64> &arr) {
@@ -25,37 +26,20 @@ std::string symmetry_name(Symmetry s) {
     if (s == Symmetry::EW) {
         return "EW";
     }
-    if (s == Symmetry::EWNS) {
-        return "EWNS";
-    }
-    if (s == Symmetry::NS) {
-        return "NS";
-    }
-    if (s == Symmetry::PIZZA) {
-        return "PIZZA";
-    }
     return "none";
 }
 Symmetry symmetry_from_name(std::string s) {
     if (s == "EW")
         return Symmetry::EW;
-    if (s == "EWNS")
-        return Symmetry::EWNS;
-    if (s == "NS")
-        return Symmetry::NS;
-    if (s == "PIZZA")
-        return Symmetry::PIZZA;
     return Symmetry::None;
 }
 // Piece square tables
 int PieceSquareTable::num_params(Symmetry s, Piece_t p) {
     if (s == Symmetry::None)
         return 64 - (p == pieces::pawn ? 16 : 0);
-    if (s == Symmetry::EW || s == Symmetry::NS)
+    if (s == Symmetry::EW)
         return 32 - (p == pieces::pawn ? 8 : 0);
-    if (s == Symmetry::PIZZA)
-        return 10 - (p == pieces::pawn ? 4 : 0);
-    return 16 - (p == pieces::pawn ? 4 : 0);
+    throw std::runtime_error("Invalid symmetry");
 }
 void PieceSquareTable::set(Symmetry s, Piece_t p, std::vector<int> params_) {
     if (params_.size() != num_params(s, p)) {
@@ -70,7 +54,7 @@ void PieceSquareTable::set(Symmetry s, Piece_t p, std::vector<int> params_) {
 }
 
 int PieceSquareTable::num_cols(Symmetry s) {
-    if (s == Symmetry::NS || s == Symmetry::None)
+    if (s == Symmetry::None)
         return 8;
     return 4;
 }
@@ -82,12 +66,7 @@ void PieceSquareTable::rebuild() {
         for (size_t i = 0; i < np; i++) {
             white_[i + idx_offset] = params.at(i);
         }
-    } else if (sym_ == Symmetry::NS) { // 32 pieces.
-        for (size_t i = 0; i < np; i++) {
-            white_[i + idx_offset] = params.at(i);
-        }
-        south_north_mirror(white_);
-    } else if (sym_ == Symmetry::EW || sym_ == Symmetry::EWNS) {
+    } else if (sym_ == Symmetry::EW) {
         int row = piece_ == pieces::pawn ? 1 : 0;
         int col = 0;
         // go A1...D1, A2...D2 up to maxrows
@@ -101,26 +80,7 @@ void PieceSquareTable::rebuild() {
                 row++;
             }
         }
-        if (sym_ == Symmetry::EWNS)
-            south_north_mirror(white_);
         west_east_mirror(white_);
-    } else if (sym_ == Symmetry::PIZZA) {
-        int row = piece_ == pieces::pawn ? 1 : 0;
-        int col = piece_ == pieces::pawn ? 1 : 0;
-
-        for (size_t i = 0; i < np; i++) {
-            int idx = NotationInterface::idx(row, col);
-            white_[idx] = params.at(i);
-            int mirrored = NotationInterface::idx(col, row);
-            white_[mirrored] = white_[idx];
-            if (++col >= 4) {
-                row++;
-                col = row;
-            }
-        }
-        south_north_mirror(white_);
-        west_east_mirror(white_);
-
     } else {
         throw std::runtime_error("Unknown symmetry");
     }
@@ -133,15 +93,11 @@ void PieceSquareTable::rebuild() {
 }
 size_t PieceSquareTable::size() const { return params.size(); }
 size_t PieceSquareTable::width() const {
-    if (sym_ != Symmetry::EW && sym_ != Symmetry::EWNS && sym_ != Symmetry::PIZZA)
+    if (sym_ != Symmetry::EW)
         return 8;
     return 4;
 }
-size_t PieceSquareTable::height() const {
-    if (sym_ != Symmetry::NS && sym_ != Symmetry::EWNS && sym_ != Symmetry::PIZZA)
-        return 8;
-    return 4;
-}
+size_t PieceSquareTable::height() const { return 8; }
 Symmetry PieceSquareTable::symmetry() const { return sym_; }
 
 std::string PieceSquareTable::to_string() const {
@@ -173,8 +129,7 @@ std::string PieceSquareTable::to_string() const {
         for (int f = 0; f < 8; ++f) {
             int offset = piece_ == pieces::pawn ? 1 : 0;
             int idx = NotationInterface::idx(r, f);
-            const bool store = ((static_cast<size_t>(f) < w) && (static_cast<size_t>(r) < (h - offset)) && (static_cast<size_t>(r) >= offset) &&
-                                (sym_ == Symmetry::PIZZA ? f >= r : true));
+            const bool store = ((static_cast<size_t>(f) < w) && (static_cast<size_t>(r) < (h - offset)) && (static_cast<size_t>(r) >= offset));
             os << centered(store ? std::to_string(white_[idx]) : "") << "|";
         }
         os << " " << (r + 1) << "\n" << sep;
@@ -186,5 +141,33 @@ std::string PieceSquareTable::to_string() const {
     for (size_t i = 0; i < params.size(); ++i)
         os << params[i] << ((i < params.size() - 1) ? ", " : "}\n");
     return os.str();
+}
+std::vector<std::vector<int>> PieceSquareTable::get_parameter_groups(Symmetry s, Piece_t p) {
+
+    std::vector<std::vector<int>> out(num_params(s, p));
+
+    for (size_t i = 0; i < num_params(s, p); i++) {
+        int per_square = s == Symmetry::EW ? 2 : 1;
+        std::vector<int> to(per_square);
+
+        if (s == Symmetry::EW) {
+            // we want to map local indices to squares
+
+            int row = i / 4 + (p == pieces::pawn ? 1 : 0);
+            int col = i % 4;
+            int secc = 7 - col;
+
+            int sq = NotationInterface::idx(row, col);
+            to[0] = sq;
+            int sq2 = NotationInterface::idx(row, secc);
+            to[1] = sq2;
+        } else {
+            int offset = p == pieces::pawn ? 8 : 0;
+            int sq = i + offset;
+            to[0] = sq;
+        }
+        out[i] = to;
+    }
+    return out;
 }
 } // namespace Eval::HCE

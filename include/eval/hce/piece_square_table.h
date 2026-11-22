@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 namespace Eval::HCE {
-enum class Symmetry : unsigned { None = 0, EW = 1, NS = 2, EWNS = 3, PIZZA };
+enum class Symmetry : unsigned { None = 0, EW = 1 };
 std::string symmetry_name(Symmetry s);
 Symmetry symmetry_from_name(std::string s);
 struct PieceSquareTable {
@@ -32,7 +32,7 @@ struct PieceSquareTable {
      * @tparam is_white
      * @return const std::array<int, 64>&
      */
-    template <bool is_white> const std::array<int, 64> &get() {
+    template <bool is_white> const std::array<int, 64> &get() const {
         if constexpr (is_white)
             return white_;
         else
@@ -70,6 +70,13 @@ struct PieceSquareTable {
     Symmetry symmetry() const;
 
     std::string to_string() const;
+
+    /**
+     * @brief Returns a mapping from parmams -> white
+     *
+     * @return std::vector<std::vector<int>>
+     */
+    static std::vector<std::vector<int>> get_parameter_groups(Symmetry s, Piece_t p);
 
   private:
     Symmetry sym_;

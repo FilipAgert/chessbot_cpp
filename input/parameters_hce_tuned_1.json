@@ -1,11 +1,14 @@
 {
     "scalars": {
         "bishop_double_bonus": 48,
-        "king_dist": -11,
+        "king_dist": {
+            "early_game": 0,
+            "end_game": -11
+        },
         "doubled_pawn_punishment": -9,
         "solo_pawn_punishment": -8,
         "king_pawn_proximity_score": 26,
-        "king_attacked_square_score": -1
+        "king_attacked_square_score": 0
     },
     "piecevals": {
         "queen": 1009,
@@ -17,10 +20,10 @@
     "movevals": {
         "king": -5,
         "queen": 12,
-        "rook": 21,
+        "rook": 0,
         "knight": 12,
         "bishop": 9,
-        "pawn": 11
+        "pawn": 0
     },
     "passed_dist_to_promotion": [
         107,

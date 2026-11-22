@@ -56,16 +56,20 @@ extern const std::array<uint8_t, 64> dist2centre = [] {
     }
     return distances;
 }();
-
-template <bool one_sided> int eval_phase_score(int phase, int early_game_score, int late_game_score){
+double eval_phase(int phase, double score, bool late_game) {
+    if (late_game)
+        return (score * phase) / 256;
+    return (256.0 - phase) * score / 256.0;
+}
+template <bool one_sided> int eval_phase_score(int phase, int early_game_score, int late_game_score) {
     constexpr int max = one_sided ? 128 : 256;
     return (early_game_score * (max - phase) + late_game_score * phase) / max;
 }
 
 template int eval_phase_score<true>(int, int, int);
 template int eval_phase_score<false>(int, int, int);
-template int get_phase<true, true>(const Board& board);
-template int get_phase<true, false>(const Board& board);
-template int get_phase<false, true>(const Board& board);
-template int get_phase<false,false>(const Board& board);
+template int get_phase<true, true>(const Board &board);
+template int get_phase<true, false>(const Board &board);
+template int get_phase<false, true>(const Board &board);
+template int get_phase<false, false>(const Board &board);
 } // namespace Eval::HCE::Utils

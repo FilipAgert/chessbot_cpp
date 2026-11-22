@@ -19,6 +19,7 @@ template <bool one_sided = false, bool is_white = false> int get_phase(const Boa
  */
 template <bool one_sided = false> int eval_phase_score(int phase, int early_game_score, int late_game_score);
 
+double eval_phase(int phase, double score, bool late_game);
 /**
  * @brief Get manhattan distance between two squares
  *

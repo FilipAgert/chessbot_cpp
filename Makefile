@@ -20,19 +20,36 @@ ARGPARSE_URL := https://raw.githubusercontent.com/p-ranav/argparse/refs/heads/ma
 
 JSON_DIR := libraries/nlohmann
 JSON_URL := https://raw.githubusercontent.com/nlohmann/json/v3.12.0/single_include/nlohmann/json.hpp
+# ---------- NLopt ----------
+NLOPT_DIR     := $(LIBRARIES)/nlopt
+NLOPT_SRC     := $(NLOPT_DIR)/src
+NLOPT_BUILD   := $(NLOPT_DIR)/build
+NLOPT_INSTALL := $(NLOPT_DIR)/install
+NLOPT_STAMP   := $(NLOPT_INSTALL)/.installed
 
+NLOPT_INCLUDE := $(NLOPT_INSTALL)/include
+NLOPT_LIB_DIR := $(NLOPT_INSTALL)/lib
+
+NLOPT_URL := https://github.com/stevengj/nlopt.git
 # ---------- PaGMO ----------
+
 PAGMO_DIR     := $(LIBRARIES)/pagmo
 PAGMO_SRC     := $(PAGMO_DIR)/src
 PAGMO_BUILD   := $(PAGMO_DIR)/build
 PAGMO_INSTALL := $(PAGMO_DIR)/install
 PAGMO_STAMP   := $(PAGMO_INSTALL)/.installed
 
-PAGMO_URL := https://github.com/esa/pagmo2.git
-
 PAGMO_INCLUDE := $(PAGMO_INSTALL)/include
 PAGMO_LIB_DIR := $(PAGMO_INSTALL)/lib
-PAGMO_LIBS    := -L$(PAGMO_LIB_DIR) -Wl,-rpath,$(abspath $(PAGMO_LIB_DIR)) -lpagmo
+
+
+PAGMO_URL := https://github.com/esa/pagmo2.git
+
+PAGMO_LIBS := -L$(PAGMO_LIB_DIR) \
+              -Wl,-rpath,$(abspath $(PAGMO_LIB_DIR)) \
+              -L$(NLOPT_LIB_DIR) \
+              -Wl,-rpath,$(abspath $(NLOPT_LIB_DIR)) \
+              -lpagmo -lnlopt
 
 # ---------- build type ----------
 BUILD_TYPE ?= Dev
@@ -91,7 +108,7 @@ PROFTOOL := $(shell \
     ls -1 /usr/lib/llvm-*/bin/llvm-profdata /usr/bin/llvm-profdata-* /opt/homebrew/opt/llvm/bin/llvm-profdata 2>/dev/null | sort -V | tail -n1 \
 )
 INC_DIRS := $(shell find $(DINC) -type d)
-CPPFLAGS := $(addprefix -I,$(INC_DIRS)) -MMD -MP -Ilibraries
+CPPFLAGS := $(addprefix -I,$(INC_DIRS)) -MMD -MP -Ilibraries -I$(EIGEN_DIR)
 CXXFLAGS := $(FLAGS)
 LDFLAGS  := $(FLAGS)
 LIBS     := -lgtest -lgtest_main -pthread
@@ -115,12 +132,13 @@ TEXEL_OBJ := $(call to_obj,$(TEXEL_SRC))
 TEST_OBJ  := $(call to_obj,$(TEST_SRC))
 
 ALL_OBJ := $(CORE_OBJ) $(MAIN_OBJ) $(MAGIC_OBJ) $(TEXEL_OBJ) $(TEST_OBJ)
-$(ALL_OBJ): | $(JSON_DIR)/json.hpp
+$(ALL_OBJ): | $(JSON_DIR)/json.hpp $(EIGEN_DIR)
 # add eigen include only to texel objects.
 $(TEXEL_OBJ): CPPFLAGS += \
 	-I$(EIGEN_DIR) \
 	-I$(ARGPARSE_DIR) \
 	-I$(PAGMO_INCLUDE) \
+	-I$(NLOPT_INCLUDE) \
 	-fpermissive
 
 $(TEXEL_OBJ): | $(EIGEN_DIR) $(ARGPARSE_DIR) $(PAGMO_STAMP)
@@ -156,6 +174,25 @@ $(ARGPARSE_DIR):
 		echo "Error: Neither curl nor wget found" >&2; exit 1; \
 	fi
 	@echo "Argparse downloaded successfully."
+# ---------- Build NLopt ----------
+
+$(NLOPT_SRC)/CMakeLists.txt:
+	@mkdir -p $(NLOPT_DIR)
+	git clone --depth 1 $(NLOPT_URL) $(NLOPT_SRC)
+
+$(NLOPT_STAMP): $(NLOPT_SRC)/CMakeLists.txt
+	@echo "Building NLopt..."
+
+	cmake -S $(NLOPT_SRC) -B $(NLOPT_BUILD) \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=$(abspath $(NLOPT_INSTALL))
+
+	cmake --build $(NLOPT_BUILD) --parallel 2
+	cmake --install $(NLOPT_BUILD)
+
+	@touch $(NLOPT_STAMP)
+	@echo "NLopt installed successfully."
+
 
 # ---------- PaGMO installation ----------
 
@@ -165,18 +202,19 @@ $(PAGMO_SRC)/CMakeLists.txt:
 	git clone --depth 1 $(PAGMO_URL) $(PAGMO_SRC)
 	@echo "PaGMO downloaded successfully."
 
-$(PAGMO_STAMP): $(PAGMO_SRC)/CMakeLists.txt
-	@echo "Building PaGMO..."
+$(PAGMO_STAMP): $(PAGMO_SRC)/CMakeLists.txt $(NLOPT_STAMP)
+	@echo "Building PaGMO with NLopt..."
 
 	cmake -S $(PAGMO_SRC) -B $(PAGMO_BUILD) \
 		-DCMAKE_CXX_COMPILER=$(CXX) \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=$(abspath $(PAGMO_INSTALL)) \
 		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_PREFIX_PATH=$(abspath $(NLOPT_INSTALL)) \
 		-DPAGMO_BUILD_TESTS=OFF \
 		-DPAGMO_BUILD_TUTORIALS=OFF \
-		-DPAGMO_WITH_EIGEN3=ON \
-		-DPAGMO_WITH_NLOPT=OFF \
+		-DPAGMO_WITH_EIGEN3=OFF \
+		-DPAGMO_WITH_NLOPT=ON \
 		-DPAGMO_WITH_IPOPT=OFF
 
 	cmake --build $(PAGMO_BUILD) --parallel 2

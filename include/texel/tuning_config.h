@@ -17,7 +17,7 @@ struct TuningParameter {
 struct OptimizationParameter {
     std::string name;
     TuningParameter bounds;
-    size_t count = 1;
+    int count; // in the case of e.g. PST or other arrays.
 };
 
 class TuningConfig {

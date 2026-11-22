@@ -6,6 +6,6 @@
         "enable": true
     },
     "eval": {
-        "parameter_file": "/home/filip/projects/chessbot_cpp/input/parameters_hce_tuned_1.json"
+        "parameter_file": "/home/filip/projects/chessbot_cpp/input/parameters_hce_tuned_2.json"
     }
 }

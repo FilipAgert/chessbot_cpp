@@ -327,7 +327,7 @@ std::pair<int, SearchNodeType> Searcher::alpha_beta(int depth, int ply, int alph
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, Parameters::NUM_KILLER_MOVES> &killers = killer_moves[ply];
-    MoveOrder::move_heuristics<is_white>(eval.get_params().piecevals, moves, scores, num_moves, board, first_move, move_history, killers);
+    MoveOrder::move_heuristics<is_white>(eval.get_params().shared.piecevals, moves, scores, num_moves, board, first_move, move_history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
 
     // Multicut pruning.
@@ -524,7 +524,7 @@ template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> Sea
     std::array<Move, max_legal_moves> &moves = move_arr[ply];
     std::array<MoveOrder::MoveScore, max_legal_moves> &scores = move_heuristic_score[ply];
     std::array<Move, Parameters::NUM_KILLER_MOVES> &killers = killer_moves[ply];
-    MoveOrder::move_heuristics<is_white>(eval.get_params().piecevals, moves, scores, num_moves, board, tt_move, move_history, killers);
+    MoveOrder::move_heuristics<is_white>(eval.get_params().shared.piecevals, moves, scores, num_moves, board, tt_move, move_history, killers);
     MoveOrder::MovePicker picker(moves, scores, num_moves);
     while (picker.has_next()) {
         const auto [i, move] = picker.next();
@@ -534,10 +534,10 @@ template <bool is_white, bool is_mate_search> std::pair<int, SearchNodeType> Sea
         // delta pruning:
         //  check if delta threshhold is reached
         if ((!in_check) && !(may_zugwang)) {
-            int extra = eval.get_params().piecevals[board.get_piece_at(move.target).get_type()];
-            extra += eval.get_params().piecevals[move.get_promotion()]; // doesn't detract pawn
-                                                                        // value if promotion...
-            extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? eval.get_params().piecevals[pieces::pawn] : 0;
+            int extra = eval.get_params().shared.piecevals[board.get_piece_at(move.target).get_type()];
+            extra += eval.get_params().shared.piecevals[move.get_promotion()]; // doesn't detract pawn
+                                                                               // value if promotion...
+            extra += move.flag == moveflag::MOVEFLAG_pawn_ep_capture ? eval.get_params().shared.piecevals[pieces::pawn] : 0;
             assert(extra > 0);
 
             // worth checking branch!
